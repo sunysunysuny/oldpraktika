@@ -1,0 +1,151 @@
+<?
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (isset($_GET['id'])) {
+	$id = intval($_GET['id']);
+} else {
+	$id = intval($_POST['id']);
+}
+
+if($_POST["action"] == "verschieben") {
+	$id = intval($_POST['entryID']);
+	
+	if (!empty($_POST['createDir'])) {
+		mysql_query('INSERT INTO prakt2.nutzerordner (nutzerid, name, bereich, reihenfolge) VALUES ('.$_SESSION['s_nutzerid'].',\''.mysql_real_escape_string($_POST['createDir']).'\','.$_SESSION['s_bereich'].',\'100\')', $praktdbmaster);
+		
+		$_POST['newDir'] = mysql_insert_id($praktdbmaster);
+	}
+
+	$ordnerid = (int)$_POST['newDir'];
+	$newDirectoryID = $ordnerid;
+	
+	switch($_SESSION["s_bereich"]) {
+		case 1:
+			$dbstring = 'UPDATE prakt2.bewerberkontakte SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			break;
+		case 2:
+			$dbstring = 'UPDATE prakt2.nutzerbookmark SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			break;
+		case 3:
+			$dbstring = 'UPDATE prakt2.bewerbung SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			break;
+		case 4:
+			$dbstring = 'UPDATE prakt2.ext_firmen SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			break;
+		case 5:
+			$dbstring = 'UPDATE prakt2.jobmailsend SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			break;									
+	}
+
+	mysql_query($dbstring, $praktdbmaster);
+	
+	return;
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo '<script type="text/javascript">'."\n";
+	echo '<!--'."\n";
+	echo '	top.location.reload();'."\n";
+	echo '//-->'."\n";
+	echo '</script>'."\n";
+	exit();
+} 
+
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+# pageheader(array('page_title' => 'Diesen Eintrag verschieben'));
+
+if (isset($_POST['action'])) {
+	
+	if (!empty($_POST['newfolder'])) {
+		mysql_query('INSERT INTO prakt2.nutzerordner (nutzerid, name, bereich, reihenfolge) VALUES ('.$_SESSION['s_nutzerid'].',\''.mysql_real_escape_string($_POST['newfolder']).'\','.$_SESSION['s_bereich'].',\'100\')', $praktdbmaster);
+		
+		$_POST['ordnerid'] = mysql_insert_id($praktdbmaster);
+	}
+
+	$ordnerid = (int)$_POST['ordnerid'];
+	switch($_SESSION["s_bereich"]) {
+		case 1:
+			$dbstring = 'UPDATE prakt2.bewerberkontakte SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			$pfad = "/Karriere_Center/Messaging/Posteingang/".$ordnerid."/";
+			break;
+		case 2:
+			$dbstring = 'UPDATE prakt2.nutzerbookmark SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			$pfad = "/Karriere_Center/Messaging/Merkzettel/".$ordnerid."/";
+			break;
+		case 3:
+			$dbstring = 'UPDATE prakt2.bewerbung SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			$pfad = "/Karriere_Center/Messaging/Postausgang/".$ordnerid."/";
+			break;
+		case 4:
+			$dbstring = 'UPDATE prakt2.ext_firmen SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			$pfad = "/Karriere_Center/Messaging/Posteingang/".$ordnerid."/";
+			break;
+		case 5:
+			$dbstring = 'UPDATE prakt2.jobmailsend SET ordner = '.$ordnerid.' WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'];
+			$pfad = "/Karriere_Center/Messaging/Posteingang/".$ordnerid."/";
+			break;									
+	}
+
+	mysql_query($dbstring, $praktdbmaster);
+
+	if (mysql_affected_rows($praktdbmaster) != 0) {
+		$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = $ordnerid;
+		
+		echo '<p class="success">Der Eintrag wurde erfolgreich verschoben.<br /><br />Dieses Fenster schlie&szlig;t sich automatisch und es wird der neue Ordner geöffnet.</p>';
+		echo '<script type="text/javascript">'."\n";
+		echo '	document.write = setTimeout(\'top.kc_page(1,"directory='.$ordnerid.'")\',2000)'."\n";
+		echo '	document.write = setTimeout(\'top.GB_hide()\',2000)'."\n";
+		echo '</script>'."\n";	
+	}
+} else {
+?>
+<title>Eintrag verschieben</title>
+<form action="#" method="post" style="width:390px; ">
+<br />
+<div style="padding:20px; width:350px; text-align:center;">
+	<fieldset>
+		<p>
+			Den Eintrag in folgenden Ordner verschieben:<br /><br />
+			<select id="smallbox_ordnerid" name="smallbox_ordnerid" class="stdStyle" style="width:250px;">
+<?
+	$bereichvars[1] = "Posteingang - Hauptordner";
+	$bereichvars[2] = "Merkzettel - Hauptordner";
+	$bereichvars[3] = "Postausgang - Hauptordner";
+	$bereichvars[4] = "externe Bewerbungen - Hauptordner";
+	$bereichvars[5] = "JobMail - Hauptordner";
+	
+	$result = mysql_db_query($database_db,'SELECT id,name FROM nutzerordner WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND bereich = '.$_SESSION['s_bereich'].' ORDER BY reihenfolge',$praktdbslave);
+	echo '				<option value="0">'.$bereichvars[$_SESSION['s_bereich']].'</option>'."\n";
+	
+	while ($result_row = mysql_fetch_array($result)) {
+		echo '<option value="'.$result_row['id'].'">&nbsp;&nbsp;&nbsp;&nbsp;'.htmlentities($result_row['name']).'</option>'."\n";
+	}
+?>
+			</select>
+		</p><br /><br />
+		<p>
+			oder in einen <b>neuen Ordner</b> legen:<br /><br />
+			<input type="text" class="stdStyle" id="smallbox_newfolder" name="smallbox_newfolder" style="width:250px;" value="" />
+		</p>
+	</fieldset>
+</div>
+<br />
+<div class="smallbox_footer" style="text-align:center;width:350px; height:36px !important; ">
+<?	
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="submit" name="action" onclick="kc.verschieben(\''.$id.'\', $(\'smallbox_newfolder\').value!=\'\'?$(\'smallbox_newfolder\').value:undefined, $(\'smallbox_ordnerid\').value); return false;" value="Eintrag verschieben"><span><span><span>EINTRAG VERSCHIEBEN</span></span></span></button>'."\n";
+	echo '			<input type="hidden" name="bereich" value="'.(int)$_GET["bereich"].'" />'."\n";
+	echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset></div>'."\n";
+?><?	
+	echo '</form>'."\n";
+}
+
+bodyoff();

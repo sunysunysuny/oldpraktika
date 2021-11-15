@@ -1,0 +1,141 @@
+#header {
+	z-index: 100;
+}
+#main {
+	z-index:80;
+}
+#footer {
+	z-index:1;
+}
+div#searchbox form input {
+	float: left;
+}
+
+div#user_details {
+	width: 261px;
+}
+body.companies div#user_details {
+	width: auto;
+}
+
+div.box {
+	padding-bottom: 10px;
+}
+
+div.box p,
+div.box table,
+div.box form,
+div.box label,
+div.box ul,
+div.box ul li {
+	overflow: hidden;
+}
+
+body#home div.ausland,
+body#home div.auslandskrankenversicherung,
+body#home div.sprachreisen,
+body#home div.auslandsstudium {
+	height: 240px;
+}
+body#home div.ausland p,
+body#home div.auslandskrankenversicherung p,
+body#home div.sprachreisen p,
+body#home div.auslandsstudium p {
+	padding-top: 0;
+}
+body#home div.ausland p a.secondLink {
+	margin-top: -15px;
+}
+div#main div#content div#mainlogin div.box form#mainlogin fieldset.control_panel p input {
+	width: 58px;
+}
+
+div#main div#content .box_gray form {
+	/*height: 70px;*/
+}
+
+div#main div#content div#programmvorschau li a {
+	display: block;
+}
+
+div#main div#sprachreise_vorschau h2 {
+	clear: both;
+}
+
+div#main div#sprachreise_vorschau li {
+	height: 200px;
+}
+div#main div#content form#information fieldset.control_panel input {
+	margin-top: 38px;
+}
+div#main div#content h1.kategorie {
+	top: 115px;
+}
+div#main div#content h1.long {
+	top: 124px;
+}
+div#main div#content form#sprachreisen_buchung fieldset.control_panel input {
+	margin-left: 140px;
+}
+div#main form fieldset p span#other_lang {
+	clear: both;
+}
+div#main div#content div.ie_ks_height {
+	height: 320px;
+}
+div#main div#content form#kanditatensuche label {
+	width: 290px;
+}
+div#main div#content form#kanditatensuche fieldset.control_panel input {
+	margin-left: 300px;
+}
+div#main form#quickSearchForm {
+	width: 470px;
+}
+div.quickSearch2 input.was,
+div.quickSearch2 input.wo {
+	float: left;
+	margin-right: 5px;
+}
+div#main div#content form#quickSearchForm fieldset.control_panel p {
+	float: right;
+	margin: 0;
+}
+div#main div#content form#quickSearchForm fieldset.control_panel p input.button {
+	height: 27px;
+}
+div#recruitingCenter {
+	width: 770px;
+}
+div#recr_container .bewerbungHeader a {
+	float: left;
+}
+
+div#sidebar div.premium ul li,
+div#sidebar div.socialnetwork ul li {
+	margin-left: -15px;
+}
+
+div#footer p.linkliste_1 span {
+	margin-top: -36px;
+	margin-right: 5px;
+}
+
+div#main div#smallboxContainer {
+	top: 1px !important;
+	left: 1px !important;
+}
+
+div#skyscraper2 {
+	top:5px;
+}
+/*div#skyscraper2 a { 
+	position: absolute;
+	width: 728px;
+	height: 90px;
+	margin-left: -728px;
+}
+div#skyscraper2 img#j-1-leaderboard {
+	position: relative;
+	margin-left: 0;
+}*/

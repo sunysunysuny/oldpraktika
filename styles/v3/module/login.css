@@ -1,0 +1,30 @@
+form#mainlogin {
+	margin: 0 auto 150px auto;
+    clear: both;
+    width: 500px;
+    padding: 0px 15px 15px 15px;
+	border: 1px dotted #ccc;
+}
+form#mainlogin fieldset p label {
+	float: left;
+	text-align: right;
+	width: 90px;
+    margin-top: 10px;
+}
+form#mainlogin fieldset p input {
+	width: 190px;
+	margin-left: 10px;
+}
+form#mainlogin fieldset p.username {
+	margin-top: 25px;
+}
+form#mainlogin fieldset p.notice {
+	margin-bottom: 10px;
+}
+form#mainlogin fieldset.control_panel {
+	margin-top: 0;
+}
+form#mainlogin fieldset.control_panel input.button {
+	margin-left: 110px;
+	margin-bottom: 20px;
+}

@@ -1,0 +1,296 @@
+<?php
+// config
+ $preis = "2.4";
+
+ // config ende
+
+// ---------------------------------------------------
+
+ require("/home/praktika/etc/config.inc.php");
+ //require("/home/praktika/etc/kandidatensuche.inc.php");
+
+$firmenquery="SELECT * FROM firmen WHERE id = $s_firmenid";
+$firmenresults=mysql_db_query($database_db,$firmenquery,$praktdbslave);
+if ($firmenresults != false) $firmenresult_row = mysql_fetch_array ( $firmenresults, MYSQL_ASSOC );
+
+$bearbeiterquery="SELECT * FROM bearbeiter WHERE id = $s_loginid";
+$bearbeiterresults=mysql_db_query($database_db,$bearbeiterquery,$praktdbslave);
+if ($bearbeiterresults != false) $bearbeiterresult_row = mysql_fetch_array ( $bearbeiterresults, MYSQL_ASSOC );
+
+$anzahl = count($s_firmenproparray["kandidatensuche"]["warenkorb"]);
+
+$wkid = $s_firmenproparray["kandidatensuche"]["warenkorb_id"];
+$sqlabfrage = mysql_db_query($database_comm,"UPDATE kswarenkorb SET gedruckt='true' ,modify=NOW() WHERE id = $wkid",$praktdbmaster);
+
+if ($s_loggedin=="yes") {
+$query="SELECT `gesuchedb` FROM `firmen_prop_assign` WHERE firmenid = $s_firmenid";
+$gesucheresults=mysql_db_query($database_db,$query,$praktdbmaster);
+
+$gesuche_anzahl = mysql_result($gesucheresults,0,"gesuchedb");
+} else {
+$gesuche_anzahl = 0;
+}
+
+$gesuche_anzahl_berechnung = $gesuche_anzahl;
+
+?>
+<html>
+<head>
+<title>Warenkorb - Druckansicht</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<script language="JavaScript">window.focus();</script>
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (window.print) {
+  window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+//-->
+</script>
+<table width="670" cellspacing="0" cellpadding="0" align="center">
+  <tr>
+    <td rowspan="2" colspan=2><img src="https://www.praktika.de/home/gifs/praktlogogerman.gif"></td>
+    <td colspan="3"><font face="Arial, Helvetica, sans-serif" size="+1"><b>Auftrag
+      Kandidatensuche</b></font></td>
+  </tr>
+  <tr>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="+1">per Fax:
+      +49 341 2252059</font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr bgcolor="#9A0302">
+    <td colspan="5" height="25"><font face="Arial, Helvetica, sans-serif" color="#FFFFFF"><b>Firmendaten</b></font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="183" height=25><b><font face="Arial, Helvetica, sans-serif" size="-1">Firma:</font></b></td>
+    <td colspan="4" height=25><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $firmenresult_row["firma"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">LoginID
+      </font></b><font face="Arial, Helvetica, sans-serif" size="-1">(optional)</font><b><font face="Arial, Helvetica, sans-serif" size="-1">:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $s_loginid; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Stra&szlig;e:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $firmenresult_row["strasse"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">PLZ
+      / Ort</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $firmenresult_row["plz"]." ".$firmenresult_row["ort"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Ansprechpartner:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $bearbeiterresult_row["anrede"]." ".$bearbeiterresult_row["titel"]." ".$bearbeiterresult_row["vname"]." ".$bearbeiterresult_row["name"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Abteilung:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $bearbeiterresult_row["abteilung"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Telefon:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $bearbeiterresult_row["tel"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Fax:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $bearbeiterresult_row["fax"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td height="25" width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Email:</font></b></td>
+    <td colspan="4"><font face="Arial, Helvetica, sans-serif" size="-1"><? if($s_loggedin=="yes") { echo $bearbeiterresult_row["email"]; } else { echo "_________________________________________________________"; } ?></font></td>
+  </tr>
+  <tr>
+    <td colspan="5">&nbsp;</td>
+  </tr>
+  <tr bgcolor="#9A0302">
+    <td colspan="5" height="25"><font face="Arial, Helvetica, sans-serif" color="#FFFFFF"><b><font color="#000000"><font color="#FFFFFF">Buchung</font></font></b></font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td width="183"><b><font face="Arial, Helvetica, sans-serif" size="-1">Produkt</font></b></td>
+    <td width="112"><b><font face="Arial, Helvetica, sans-serif" size="-1">Menge</font></b></td>
+    <td width="113"><b><font face="Arial, Helvetica, sans-serif" size="-1">Einzelpreis</font></b></td>
+    <td width="94"><b><font face="Arial, Helvetica, sans-serif" size="-1">Rabatt</font></b></td>
+    <td width="166"> <div align="left"><b><font face="Arial, Helvetica, sans-serif" size="-1">Gesamtpreis</font></b></div></td>
+  </tr>
+  <tr>
+    <td colspan="5" height="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font>
+      <div align="left"><font face="Arial, Helvetica, sans-serif" size="-1"></font></div></td>
+  </tr>
+<?
+if ( $anzahl  > 0) {
+
+$rabattsatz = rabattstaffel($anzahl);
+$guthabenanzahl = $anzahl - $gesuche_anzahl_berechnung;
+if ($guthabenanzahl < 0) { $guthabenanzahl=0; }
+$gesuche_anzahl_berechnung = $gesuche_anzahl_berechnung-($anzahl-$guthabenanzahl);
+echo "<tr>\n";
+echo "<td height='39' width='183' valign='top'><font face='Arial, Helvetica, sans-serif' size='-1'>Profilsuche</font></td>\n";
+echo "<td width='112' height='39' valign='top'><font face='Arial, Helvetica, sans-serif' size='-1'>".$anzahl."</font></td>\n";
+echo "<td width='113' height='39' valign='top'><font face='Arial, Helvetica, sans-serif' size='-1'>EUR&nbsp;".sprintf("%01.2f",$preis)."</font></td>\n";
+echo "<td width='94' height='39' valign='top'><font face='Arial, Helvetica, sans-serif' size='-1'>".((1 - $rabattsatz)*100)."%</font></td>\n";
+echo "<td width='166' height='39' valign='top'><font face='Arial, Helvetica, sans-serif' size='-1'>EUR&nbsp;".sprintf("%01.2f",($gesamtpreis = $preis*$guthabenanzahl*$rabattsatz))."</font></td>\n";
+echo "</tr>\n";
+}
+
+if ($gesuche_anzahl >= $anzahl) {
+	$gesamtpreis = 0;
+}
+
+if ($gesamtpreis < 12) {
+	$gesamtpreis = 12;
+	$umsatzvar = "Mindestumsatz";
+} else {
+	$umsatzvar = "Gesamt";
+}
+?>
+  <tr>
+    <td colspan="5" height="17"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;-
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -</font></td>
+  </tr>
+  <tr>
+    <td colspan="2"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+    <td colspan="2"> <div align="right"><font face="Arial, Helvetica, sans-serif" size="-1"><? echo $umsatzvar; ?>
+        netto:&nbsp;&nbsp;</font></div></td>
+    <td width="166"> <div align="left"><font face="Arial, Helvetica, sans-serif" size="-1">EUR&nbsp;<? echo sprintf("%01.2f",($finalpreis = $gesamtpreis)); ?></font></div></td>
+  </tr>
+  <tr>
+    <td colspan="2"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+    <td colspan="2"> <div align="right"><font face="Arial, Helvetica, sans-serif" size="-1">MwSt.
+        <? echo $mwst_satz; ?>%:&nbsp;&nbsp;</font></div></td>
+    <td width="166"> <div align="left"><font face="Arial, Helvetica, sans-serif" size="-1">EUR&nbsp;<? echo sprintf("%01.2f",($finalpreis*$mwst_satz/100)); ?></font></div></td>
+  </tr>
+  <tr>
+    <td colspan="2"><font face="Arial, Helvetica, sans-serif" size="-1">Warenkorb-ID: <? echo $s_firmenproparray["kandidatensuche"]["warenkorb_id"]; ?>
+      </font></td>
+    <td colspan="2"> <div align="right"><b><font face="Arial, Helvetica, sans-serif" size="-1">Gesamt
+        brutto:&nbsp;&nbsp;</font></b></div></td>
+    <td width="166"> <div align="left"><b><font face="Arial, Helvetica, sans-serif" size="-1">EUR&nbsp;<? echo sprintf("%01.2f",($finalpreis*(($mwst_satz/100)+1))); ?></font></b></div></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr bgcolor="#9A0302">
+    <td colspan="5" height="25"><font face="Arial, Helvetica, sans-serif" color="#FFFFFF"><b>Bezahlung</b></font></td>
+  </tr>
+  <tr>
+    <td colspan="5" height="20" valign="top"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font>
+      <div align="left"><font face="Arial, Helvetica, sans-serif" size="-1"></font></div></td>
+  </tr>
+  <tr>
+    <td colspan="5" valign="top"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font>
+      <div align="left">
+        <table width="658" cellspacing="0" cellpadding="0">
+          <tr>
+            <td width="126"><font face="Arial, Helvetica, sans-serif" size="-1"><b>(&nbsp;&nbsp;)
+              per Lastschrift</b></font></td>
+            <td width="530" height="25"><font face="Arial, Helvetica, sans-serif" size="-1">Kontonummer:
+              ___________________ &nbsp;Bankleitzahl: ___________________</font></td>
+          </tr>
+          <tr>
+            <td width="126"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+            <td width="530" height="25"><font face="Arial, Helvetica, sans-serif" size="-1">Kontoinhaber:
+              ___________________</font></td>
+          </tr>
+          <tr>
+            <td width="126">&nbsp;</td>
+            <td width="530">&nbsp;</td>
+          </tr>
+          <tr>
+            <td width="126" height="14"><font face="Arial, Helvetica, sans-serif" size="-1"><b>(&nbsp;&nbsp;)
+              per Rechnung</b></font></td>
+            <td width="530" height="14"><font face="Arial, Helvetica, sans-serif" size="-1">Bezahlung
+              innerhalb von 7 Tagen ohne Abzug.</font></td>
+          </tr>
+          <tr>
+            <td width="126">&nbsp;</td>
+            <td width="530">&nbsp;</td>
+          </tr>
+          <tr>
+            <td width="126"><font face="Arial, Helvetica, sans-serif" size="-1"><b>(&nbsp;&nbsp;)
+              per Kreditkarte </b></font></td>
+            <td width="530" height="25"><font face="Arial, Helvetica, sans-serif" size="-1">Art
+              der Kreditkarte: &nbsp;(&nbsp;&nbsp;) VisaCard &nbsp;&nbsp;(&nbsp;&nbsp;)
+              MasterCard &nbsp;&nbsp;(&nbsp;&nbsp;) AmericanExpress&nbsp; </font></td>
+          </tr>
+          <tr>
+            <td width="126" height="20">&nbsp;</td>
+            <td width="530" height="25"><font face="Arial, Helvetica, sans-serif" size="-1">Karteninhaber:
+              ___________________ &nbsp;Kartennummer: __________________________</font></td>
+          </tr>
+          <tr>
+            <td width="126"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+            <td width="530" height="25"><font face="Arial, Helvetica, sans-serif" size="-1">Kartenpr&uuml;fnummer
+              <font size="-2">(dreistellige Zahl auf Kartenr&uuml;ckseite)</font>:
+              ________ &nbsp;g&uuml;ltig bis: ____ / ____</font></td>
+          </tr>
+        </table>
+      </div></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr bgcolor="#9A0302">
+    <td colspan="5" height="25"><font face="Arial, Helvetica, sans-serif" color="#FFFFFF"><b><font color="#000000"><font color="#FFFFFF">Best&auml;tigung</font></font></b></font></td>
+  </tr>
+  <tr>
+    <td colspan="5" height="20"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">Wir haben
+      die <a href="http://praktika.de/cms/index.php?id=650" onClick="window.open('http://praktika.de/cms/?id=278&miniwindow=yes&noadvertise=yes','Nutzungsbedingungen','scrollbars=yes,statusbar=no,resizable=no,toolbar=no,width=500,height=400'); return false;">AGB</a>
+      von praktika.de gelesen und akzeptiert. Wir buchen verbindlich die oben
+      genannten Dienstleistungen / Produkte.</font></td>
+  </tr>
+  <tr>
+    <td height="40" colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font></td>
+  </tr>
+  <td colspan="5" height="49"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">Ort
+    / Datum: &nbsp;______________________</font><font face="Arial, Helvetica, sans-serif" size="-1">
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stempel / Unterschrift: &nbsp;_________________________<br>
+    </font></td>
+  </tr>
+  <tr>
+    <td height="45" colspan="5"> <form name="form2" method="post" action="">
+        <input type="button" value="drucken" onClick="printform();">
+      </form></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;-
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      - - - - - - - - - </font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-2">&nbsp;Stand:
+      01.07.2004 &nbsp;| &nbsp;Servicehotline: 0800 - 69772582&nbsp; | &nbsp;Email:
+      service@praktika.de</font></td>
+  </tr>
+  <tr>
+    <td colspan="5"><font face="Arial, Helvetica, sans-serif" size="-1">&nbsp;</font><font face="Arial, Helvetica, sans-serif" size="-1">-
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      - - - - - - - - -</font></td>
+  </tr>
+</table>
+</body>
+</html>

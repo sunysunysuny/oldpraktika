@@ -1,0 +1,347 @@
+<?php
+
+require_once("/home/praktika/etc/config.inc.php");
+
+$_SESSION['current_page'] = PAGE_CV;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+
+$_SESSION["sidebar"] = "none";
+$_SESSION["s_sprachid"] = empty($_SESSION["s_lebenslauf"])?2:$_SESSION["s_lebenslauf"];
+$_SESSION["s_lebenslauf"] = $_SESSION["s_sprachid"];
+$_SESSION['s_sprache'] = $_SESSION["s_lebenslauf"]==2?"german":"english";
+
+$sprachbasisdatei = '/home/praktikanten/profil/kcenter/index.phtml';
+
+if(!empty($_GET["lang"])) {
+	$_SESSION["s_lebenslauf"] = $_GET["lang"]=="de"?2:1;
+	$_SESSION['s_sprache'] = $_GET["lang"]=="de"?"german":"english";
+	$_SESSION["s_sprachid"] =$_SESSION["s_lebenslauf"];
+}
+
+if($_POST["akt"] == "profil_freischalten") {
+	$sql = "SELECT profil_freischalten FROM prakt2_bprofil.einstellungen WHERE nutzerid = ".$_SESSION["s_nutzerid"];
+	$result = mysql_query($sql, $praktdbslave);
+	
+	if(mysql_result($result, 0, "profil_freischalten") == "true") {
+		$newState = "false";
+	} else {
+		$newState = "true";		
+	}
+	
+	$sql = "UPDATE prakt2_bprofil.einstellungen SET profil_freischalten = '".$newState."' WHERE nutzerid = ".$_SESSION["s_nutzerid"];
+	mysql_query($sql, $praktdbmaster);
+	exit();
+}
+
+/**
+ * Spracharray erzeugen
+ */
+$sql = sprintf("SELECT DISTINCT 
+                    stringname,
+                    %s 
+                FROM 
+                    menulanguage 
+                WHERE 
+                    uri='%s'%s;",
+					$_SESSION['s_sprache'],
+					$_SERVER['PHP_SELF'],
+					(!empty($sprachbasisdatei)) ? " OR uri = '".$sprachbasisdatei."'" : ""
+					);
+
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+while (list ($stringname, $wert) = mysql_fetch_row($result))
+{
+	$language[$stringname] = $wert;
+}
+
+/**
+ * Profil de-/aktivieren
+ */
+if (isset($_POST['inactive2']))
+{
+	$sql = sprintf("INSERT INTO 
+                        einstellungen (nutzerid, sprachid, profil_freischalten, lebenslauftemplate, datum_eintrag, modify)
+                    VALUES
+                        (%1\$d, %2\$d, '%3\$s', '%4\$s', NOW(), UNIX_TIMESTAMP(NOW()))
+                    ON DUPLICATE KEY UPDATE
+                        profil_freischalten = '%3\$s',
+                        sprachid = %2\$d,
+                        modify = NOW();",
+				$_SESSION['s_loginid'],
+				$_SESSION['s_sprachid'],
+				mysql_real_escape_string($_POST['inactive2']),
+				'01'
+				);
+	mysql_db_query($database_bprofil, $sql, $praktdbmaster);
+}
+
+pageheader(array('page_title' => 'Karriere Center - Mein Lebenslauf', 'grid_system' => '6-0'));
+
+Praktika_Static::__(array('cv', 'kcenter'));
+
+if ($_SESSION['s_loggedin']) {
+$parts = array("lebenslauf");
+#include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+$error = false;
+
+# $lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND sprachid = 2',$praktdbslave);
+
+if ($_SESSION["s_sprachid"] == 2) {
+	$lebenslauftemplate = "01";
+} else {
+	$lebenslauftemplate = '11';
+}
+
+if ($lebenslauftemplate == '01' || $lebenslauftemplate == '02' || $lebenslauftemplate == '03') {
+	$sprachCode = 'de';
+	$aplic = 'g';
+} elseif ($lebenslauftemplate == '11' || $lebenslauftemplate == '12' || $lebenslauftemplate == '13') {
+	$sprachCode = 'en';
+	$aplic = 'b';
+} elseif ($lebenslauftemplate == '21' || $lebenslauftemplate == '22' || $lebenslauftemplate == '23') {
+	$sprachCode = 'en';
+	$aplic = 'u';
+}
+
+if($_GET["ok"] == "1") {
+	echo '<p class="hint success">Ihr Eintrag wurde gespeichert und steht nun im Onlinebewerbungstool zur Verf&uuml;gung !</p>';
+}
+
+?>
+<div id="recruitingCenter">
+	<div id="recr_container">
+	</div>
+</div>
+<div id="cvdata" class="clearfix">
+	<br />
+
+<?php
+
+$sql = sprintf("SELECT
+                    ausbildung.berufsarray,
+                    einstellungen.profil_freischalten AS freischalten,
+                    einstellungen.lebenslauftemplate,
+                    erfahrung.berufserfahrungsarray,
+                    foto.url AS foto_url,
+                    hobbies.hobby AS hobbies,
+                    praktika.praktikumarray,
+                    referenzen.referenzarray,
+                    schule.schularray,
+                    leistung.beschreibungen AS beschreibung,
+                    leistung.sprachkenntnisse1 AS sprachkenntnis,
+                    studium.studiumarray,
+                    COUNT(leistung.id) AS leistungen,
+                    COUNT(zukunft.id) AS zukunft,
+                    COUNT(video.id) AS videos,
+                    COUNT(dateien.id) AS dateien,
+                    kurzbewerbung.id AS kurzbewerbung
+                FROM
+                	".$database_db.".nutzer AS nutzer
+                LEFT JOIN
+                    ".$database_bprofil.".einstellungen AS einstellungen
+                ON
+                    nutzer.id = einstellungen.nutzerid
+                LEFT JOIN
+                    ".$database_db.".bewerbungsfoto AS foto
+                ON
+			        nutzer.id = foto.nutzerid
+                LEFT JOIN
+                    ".$database_bprofil.".profil_berufsausbildung AS ausbildung
+                ON
+					  nutzer.id = ausbildung.nutzerid AND 
+					  ausbildung.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_beruferfahrung AS erfahrung
+                    ON
+					  nutzer.id = erfahrung.nutzerid AND 
+					  erfahrung.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_hobby AS hobbies
+                    ON
+					  nutzer.id = hobbies.nutzerid AND 
+					  hobbies.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_dateien AS dateien
+                    ON
+					  nutzer.id = dateien.nutzerid
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_kurzbewerbung AS kurzbewerbung
+                    ON
+					  nutzer.id = kurzbewerbung.nutzerid AND 
+					  kurzbewerbung.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_leistung AS leistung
+                    ON
+					  nutzer.id = leistung.nutzerid AND 
+					  leistung.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_zukunft AS zukunft
+                    ON
+					  nutzer.id = zukunft.nutzerid AND 
+					  leistung.sprachid = %2\$d					  
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_praktika AS praktika
+                    ON
+					  nutzer.id = praktika.nutzerid AND 
+					  praktika.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_referenzen AS referenzen
+                    ON
+					  nutzer.id = referenzen.nutzerid AND 
+					  referenzen.sprachid = %2\$d
+
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_schule AS schule
+                    ON
+					  nutzer.id = schule.nutzerid AND 
+					  schule.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_studium AS studium
+                    ON
+					  nutzer.id = studium.nutzerid AND 
+					  studium.sprachid = %2\$d
+                    LEFT JOIN
+					  ".$database_bprofil.".profil_video_new AS video
+                    ON
+					  nutzer.id = video.nutzerid
+                WHERE
+                    nutzer.id = %1\$d
+                GROUP BY
+                    nutzer.id = %1\$d
+                LIMIT 
+                    1;",
+					$_SESSION['s_loginid'],
+					$_SESSION['s_sprachid']);
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+$record = mysql_fetch_array($result, MYSQL_ASSOC);
+
+foreach($record as $key => $value)
+{
+	if (strpos($key, 'array') !== false && !empty($value))
+	{
+		$record[$key] = wddx_deserialize($value);
+	}
+}
+mysql_free_result($result);
+
+
+
+$data['cv'] = array(
+						/*array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'Personal data' : 'Stammdaten',
+							'desc'  => $language["strText"],
+							'class' => 'filled',
+							'url'	=> '/karriere/daten'
+							), 
+						array(
+							'title' => $language["strBewerbungsfoto"],
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'Upload your Photo for resume.' : 'F&uuml;gen Sie hier Ihr Bewerbungsphoto f&uuml;r Ihren Lebenslauf ein.',
+							'class' => ((!empty($record['foto_url'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/foto'
+							),*/
+						array(
+							'title' => $language["strSchulausbildung"],
+							'desc'  => $language["strText_3"],
+							'class' => ((count($record['schularray']) > 0 && !empty($record['schularray'][0]['schule']) && !empty($record['schularray'][0]['ort'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/ausbildung/schule'
+						),
+						array(
+							'title' => $language["strBerufsausbildung2"],
+							'desc'  => $language["strText_7"],
+							'class' => ((count($record['berufsarray']) > 0 && !empty($record['berufsarray'][0]['beruf']) && !empty($record['berufsarray'][0]['ausbort'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/ausbildung/beruf'
+						),
+						array(
+							'title' => $language["strStudium"],
+							'desc'  => $language["strText_4"],
+							'class' => ((count($record['studiumarray']) > 0 && !empty($record['studiumarray'][0]['studiengang']) && !empty($record['studiumarray'][0]['hochschule'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/ausbildung/studium'
+						),
+						array(
+							'title' => $language["strPN"],
+							'desc'  => $language["strText_5"],
+							'class' => ((count($record['praktikumarray']) > 0 && !empty($record['praktikumarray'][0]['unternehmen'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/praktika'
+						),
+						array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'Professional Experience' : 'Berufserfahrung',
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'List your professional background here.' : 'Erfassen Sie hier Ihren beruflichen Werdegang (Jobs, Wehrdienst, Zivildienst,...).',
+							'class' => ((count($record['berufserfahrungsarray']) > 0 && !empty($record['berufserfahrungsarray'][0]['beruf']) && !empty($record['berufserfahrungsarray'][0]['unternehmen'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/berufserfahrung'
+						),
+						array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'Language Skills & Further Skills' : 'F&auml;higkeiten &amp; Sprachkenntnisse',
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'Please state in your language skills and other special skills.' : 'Tragen Sie hier Ihre Sprachkenntnisse und speziellen F&auml;higkeiten f&uuml;r Ihren Lebenslauf ein.',
+							'class' => ((!empty($record['beschreibung']) && isset($record['sprachkenntnis']) && $record['sprachkenntnis'] != 0) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/sprachen'
+						),
+						array(
+							'title' => $language["strZQuali"],
+							'desc'  => $language["strText_10"],
+							'class' => (!empty($record['hobbies']) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/hobbies'
+						),
+						array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'References' : 'Referenzen',
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'Please list in your references.' : 'Hinterlegen Sie hier Ihre Referenzen.',
+							'class' => ((count($record['referenzarray']) > 0 && !empty($record['referenzarray'][0]['ansprechpartner'])) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/referenzen'
+						),
+						array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'Video Resume' : 'Bewerbungsvideo',
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'Include your video application in your praktika.de profile andpresent yourself in a creative way.' : 'Laden Sie ein Bewerbungsvideo in Ihr Profil und pr&auml;sentieren Sie sich in einer ganz neuen Art.',
+							'class' => (((int) $record['videos'] > 0) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/video'
+						),
+						array(
+							'title' => $language["strDA"],
+							'desc'  => $language["strDAText_2"],
+							'class' => (((int) $record['dateien'] > 0) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/dateien'
+						)/*,
+						array(
+							'title' => ($_SESSION['s_sprachid'] == 1) ? 'CV/Resume Templates' : 'Lebenslauf-Layout w&auml;hlen',
+							'desc'  => ($_SESSION['s_sprachid'] == 1) ? 'Please choose your favorite template for CV/Resume.' : 'W&auml;hlen Sie hier das passende Design f&uuml;r Ihren Online-Lebenslauf.',
+							'class' => (!empty($record['lebenslauftemplate']) ? 'filled' : 'empty'),
+							'url'	=> '/lebenslauf/layout'
+						),
+						array(
+							'title' => $language["strKB"],
+							'desc'  => $language["strText_2"],
+							'class' => 'em '.(!empty($record['kurzbewerbung'])? 'filled' : 'empty'),
+							'url'	=> '/karriere/kurzbewerbung'
+						)*/
+					);
+		$data['profile'] = array(
+							array(
+								'title' => $language["strLeistung"],
+								'desc'  => $language["strLeistungInfo"],
+								'class' => 'col_1 '.(($record['leistungen'] > 0) ? 'filled' : 'empty'),
+								'url'	=> '/lebenslauf/leistung'
+							),
+							array(
+								'title' => $language["strZukunft"],
+								'desc'  => $language["strZukunftInfo"],
+								'class' => 'col_2 '.(($record['zukunft'] > 0) ? 'filled' : 'empty'),
+								'url'	=> '/lebenslauf/zukunft'
+							)
+						);
+				
+	$zView->assign("freischalten", $record["freischalten"]);					
+	$zView->assign("sprachid", $_SESSION["s_sprachid"]);
+	$zView->assign("nutzerid", $_SESSION["s_nutzerid"]);
+	$zView->assign("lebenslauflayout" , $lebenslauftemplate);
+	$zView->assign("lebenslaufstyle" , $aplic.substr($lebenslauftemplate,1));
+	$zView->assign("data", $data);
+					
+	echo $zView->render("lebenslauf_index.php");
+	echo "</div>";
+} else {
+	header("Location: https://www.praktika.de/cms/Lebenslauf.1481.0.html");
+	exit();
+}
+
+bodyoff();
+?>

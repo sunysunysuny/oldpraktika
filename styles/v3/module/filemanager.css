@@ -1,0 +1,34 @@
+/* 
+    Document   : filemanager.css
+    Created on : 17.12.2009, 11:40:33
+    Author     : swarnat
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+div#main div#content div.filemanager table.filelist tr:nth-child(odd) {
+	background-color: #fdf7df;
+}
+div#main div#content div.filemanager table.filelist td {
+    line-height: 25px;
+	vertical-align: middle;
+	padding: 2px 0;
+}
+div#main div#content div.filemanager table.filelist img {
+	cursor: pointer;
+	margin-bottom: -5px;
+	margin-right: 5px;
+}
+div#main div#content div.filemanager table.filelist td.fileinfo span {
+	font-size: 10px;
+	font-style: italic;
+}
+.statusbar {
+    margin: 0px !important;
+    font-weight: bold;
+}

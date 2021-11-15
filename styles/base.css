@@ -1,0 +1,42 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+
+html, body {
+	height: 100%;
+}
+
+body {
+	background: #edede7;
+	color: #000;
+	font: .8em Verdana, Helvetica, Arial, sans-serif;
+	min-height: 100%;
+}
+
+
+
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a img {
+	border: none;
+}
+
+ul, ol {
+	list-style-type: none;
+}
+
+option {
+	margin: 0 5px 1px;
+}
+
+table {
+	width: 100%;
+}

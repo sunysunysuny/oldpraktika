@@ -1,0 +1,235 @@
+<?
+ $gruppe = "praktikanten";
+ require("/home/praktika/etc/config.inc.php"); 
+?>
+<html>
+<head>
+<title>praktika.de Lebenslauf</title>
+<LINK HREF="/home/praktika.css">
+
+<style type="text/css">
+<!--
+body {
+ font-family: Verdana;
+ color: #000000;
+}
+
+td {
+ font-size: 9pt;
+ vertical-align: middle;
+
+}
+
+.ueber {
+ color: <? echo $topnavleiste; ?>;
+ font-size: 12pt;
+ font-weight: bold;
+ text-decoration: none;
+}
+
+.nichtmarkiert {  color: <? echo $topnavleiste; ?>; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+.nichtmarkiert a{ color: <? echo $topnavleiste; ?>; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+.nichtmarkiert :visited{ color: <? echo $topnavleiste; ?>; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}  
+.nichtmarkiert a:hover {  color: <? echo $topnavleiste; ?> text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+
+.markiert {  color: #FFFFFF; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+.markiert a{ color: #FFFFFF; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+.markiert :visited{ color: #FFFFFF; text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}  
+.markiert a:hover {  color: #FFFFFF text-decoration: underline; font-weight:bold; font-family: Verdana, Arial, Geneva;}
+
+.menu_w {  color: #ffffff; text-decoration: none; font-size: 10px; font-family: Verdana, Arial, Geneva;}
+.menu_w a{ color: #ffffff; text-decoration: none; font-size: 10px; font-family: Verdana, Arial, Geneva;}
+.menu_w a:hover {  color: #ffffff; text-decoration: underline; font-size: 10px; font-family: Verdana, Arial, Geneva;}
+.menu_w :visited{ color: #ffffff; text-decoration: none; font-size: 10px; font-family: Verdana, Arial, Geneva;}  
+
+.linie {
+ background-image: url(unternehmen/hintergrund_linie_oben.gif); 
+ background-repeat: repeat-x;
+}
+-->
+</style>
+</head>
+
+<body text="#000000" bgcolor="<? echo $praktikafarbe ?>" link="#FF0000" alink="#FF0000" vlink="#FF0000">
+<IMG SRC="/cgi-bin/vdz/CP/home/praktikanten/profilausgabe/previewtop.phtml" width="1" height="1">
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (parent.previewmain.window.print) {
+  parent.previewmain.focus();
+  parent.previewmain.window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+
+function ZweiFrames(ID, NUTZERID, MAPPE, SPRACHID, DATEI) {
+  Frame1=eval("parent.previewtop");
+  Frame2=eval("parent.previewmain");
+  Frame1.location.href = "<? echo "previewtop.phtml?mappe=\" + MAPPE + \"&sprachid=\" + SPRACHID + \"&id=\" + ID + \"&" . session_name() . "=" . session_id(); ?>";
+  Frame2.location.href = <? echo "DATEI + \"?nid=\" + NUTZERID + \"&sprachid=\" + SPRACHID + \"&id=\" + ID + \"&" . session_name() . "=" . session_id(); ?>";
+}
+
+//-->
+</script>
+
+
+<?
+$mappe=$mappe;
+?>
+
+
+<table width="680" border="0" cellpadding="0" cellspacing="0">
+
+<tr height="60"><td align="center" class="ueber" colspan="5">&nbsp; BEWERBUNGSMAPPE &nbsp;</td></tr>
+<tr height="25">
+<td width="20">&nbsp;</td>
+<td align="left" width="160">
+
+<? 
+$bewerbung=mysql_db_query($database_db,"select id, nutzerid, lebenslauflayout, sprachid from bewerbung where id=$id AND firmenid=$s_firmenid",$praktdbslave);
+$nutzerid=mysql_result($bewerbung,0,"nutzerid");
+$lebenlaufwahl=mysql_result($bewerbung,0,"lebenslauflayout");
+$sprachid=mysql_result($bewerbung,0,"sprachid");
+
+if ($lebenlaufwahl=="20" || $lebenlaufwahl=="10") $lebenlaufwahl="01";
+if (empty($lebenlaufwahl)) $lebenlaufwahl="01";
+if ($lebenlaufwahl=="01") { $leistung="01"; $zukunft="01"; }
+if ($lebenlaufwahl=="02" || $lebenlaufwahl=="11" || $lebenlaufwahl=="21") { $leistung="02"; $zukunft="02"; }
+if ($lebenlaufwahl=="03" || $lebenlaufwahl=="12" || $lebenlaufwah=="22") { $leistung="03"; $zukunft="03"; }
+
+// Anschreiben
+if ($mappe == 1) {
+$imagelleft="unternehmen/reiter_links.gif";
+$imagelright="unternehmen/reiter_rechts.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="markiert";
+} else {
+$imagelleft="unternehmen/reiter_links_linie.gif";
+$imagelright="unternehmen/reiter_rechts_linie.gif";
+$bgcolorl="";
+$class="nichtmarkiert";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"".$imagelleft."\" height=\"25\"></td>";
+echo "<td align=\"left\" width=\"120\" ".$bgcolorl." class=\"linie\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','1','".$sprachid."','/home/praktikanten/previewbewerbung.phtml');\">ANSCHREIBEN</a></span></td>";
+echo "<td><img src=\"".$imagelright."\" height=\"25\"></td>";
+echo "</tr>";
+echo "</table>";
+
+echo "</td><td width=\"170\" align=\"center\" >";
+
+// LEBENSLAUF
+if ($mappe == 2) {
+$imagelleft="unternehmen/reiter_links.gif";
+$imagelright="unternehmen/reiter_rechts.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="markiert";
+} else {
+$imagelleft="unternehmen/reiter_links_linie.gif";
+$imagelright="unternehmen/reiter_rechts_linie.gif";
+$bgcolorl="";
+$class="nichtmarkiert";
+}
+
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"".$imagelleft."\" height=\"25\" ></td>";
+echo "<td align=\"center\" width=\"100\" ".$bgcolorl." class=\"linie\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','2','".$sprachid."','/home/praktikanten/profil/previewlebenslauf".$lebenlaufwahl.".phtml');\">LEBENSLAUF</a></span></td>";
+
+echo "<td><img src=\"".$imagelright."\" height=\"25\"></td>";
+echo "</tr>";
+echo "</table>";
+echo "</td><td width=\"170\" align=\"center\" >";
+
+
+// LEISTUNGSPROFIL
+if ($mappe == 3) {
+$imagelleft="unternehmen/reiter_links.gif";
+$imagelright="unternehmen/reiter_rechts.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="markiert";
+} else {
+$imagelleft="unternehmen/reiter_links_linie.gif";
+$imagelright="unternehmen/reiter_rechts_linie.gif";
+$bgcolorl="";
+$class="nichtmarkiert";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"".$imagelleft."\" height=\"25\"></td>";
+echo "<td align=\"center\" width=\"140\" ".$bgcolorl." class=\"linie\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','3','".$sprachid."','/home/praktikanten/profilausgabe/profilleistung".$leistung.".phtml');\">LEISTUNGSPROFIL</a></span></td>";
+echo "<td><img src=\"".$imagelright."\" height=\"25\"></td>";
+echo "</tr>";
+echo "</table>";
+
+
+echo "</td><td width=\"170\" align=\"center\" >";
+
+
+// ZUKUNFTSPROFIL
+if ($mappe == 4) {
+$imagelleft="unternehmen/reiter_links.gif";
+$imagelright="unternehmen/reiter_rechts.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="markiert";
+} else {
+$imagelleft="unternehmen/reiter_links_linie.gif";
+$imagelright="unternehmen/reiter_rechts_linie.gif";
+$bgcolorl="";
+$class="nichtmarkiert";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"".$imagelleft."\" height=\"25\"></td>";
+echo "<td align=\"center\" width=\"120\" ".$bgcolorl." class=\"linie\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','4','".$sprachid."','/home/praktikanten/profilausgabe/profilzukunft".$zukunft.".phtml');\">ZUKUNFTSPROFIL</a></span></td>";
+echo "<td><img src=\"".$imagelright."\" height=\"25\"></td>";
+echo "</tr>";
+echo "</table>";
+
+echo "</td><td width=\"160\" align=\"right\" >";
+
+// Anlagen
+if ($mappe == 5) {
+$imagelleft="unternehmen/reiter_links.gif";
+$imagelright="unternehmen/reiter_rechts.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="markiert";
+} else {
+$imagelleft="unternehmen/reiter_links_linie.gif";
+$imagelright="unternehmen/reiter_rechts_linie.gif";
+$bgcolorl="";
+$class="nichtmarkiert";
+}
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"".$imagelleft."\" height=\"25\"></td>";
+echo "<td align=\"center\" width=\"140\" ".$bgcolorl." class=\"linie\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','5','".$sprachid."','/home/praktikanten/previewanlagen.phtml');\">ANLAGEN</a></span></td>";
+echo "<td><img src=\"".$imagelright."\" height=\"25\"></td>";
+echo "</tr>";
+echo "</table>";
+
+
+echo "</td></tr>";
+echo "<tr height=\"30\">";
+echo "<td width=\"20\">&nbsp;</td>";
+echo "<td align=\"left\" bgcolor=\"".$topnavleiste."\" class=\"menu_w\">&nbsp;&nbsp;&nbsp;<img src=\"/gifs/zentralelemente/grid_dots_firmen_weiss.gif\" border=0> <a href=\"javascript:printform();\">Drucken</a></a></td>";
+echo "<td colspan=\"4\" bgcolor=\"".$topnavleiste."\" class=\"menu_w\">&nbsp;</td></tR>";
+
+?>
+</table>
+
+</body>
+</html>

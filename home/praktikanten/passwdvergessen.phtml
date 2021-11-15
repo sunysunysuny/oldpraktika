@@ -1,0 +1,62 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+pageheader(array('page_title' => 'Passwort versenden'));
+
+$id = $_GET['id'];
+
+$to = $_GET['zeit'];
+
+if(strpos($id, "-") !== false) {
+	$ids = explode("-",$id);
+	$id = $ids[0];
+	$to = $ids[1];
+}
+            	
+$rs = mysql_db_query($database_db,'SELECT id,passwort_plain,email FROM prakt2.nutzer WHERE id = '.intval($id),$praktdbslave);
+$result = mysql_fetch_assoc($rs);
+
+if (empty($result['passwort_plain'])) { 
+	echo '<p class="error">'.$language['strNichtMoeglich'].'</p>'."\n";
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/candidate/passwort/" target="_top">Zur&uuml;ck</a>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+} elseif (time() > ($to+3600)) { 
+	echo '<p class="error">Diese Anforderung ist derzeit nicht m&ouml;glich, bitte versuchen Sie es erneut!</p>'."\n";
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/candidate/passwort/" target="_top">Zur&uuml;ck</a>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+} else {
+	if (empty($result['email'])) {
+		echo '<p class="error">'.$language['strKeineMail'].'</p>'."\n";
+	} else {
+		// Neues Emailtemplatesystem nutzen
+		$mailtoaddr = $result['email'];
+
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(6);
+		
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace('{id}',$result['id']);
+		$emailobj->replace('{email}',$result['email']);
+		$emailobj->replace('{passwort}',$result['passwort_plain']);
+		$emailobj->replace('{url}','http://'.$_SERVER['SERVER_NAME'].'/login/');
+		
+		// infomail verschicken
+		$emailobj->send_email($mailtoaddr);
+		
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+
+		echo $language['strBestaetigung'];
+	}
+}
+
+bodyoff();
+?>

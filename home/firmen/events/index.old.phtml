@@ -1,0 +1,645 @@
+<?
+require('/home/praktika/etc/config.inc.php');
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Veranstaltungen veröffentlichen')); 
+
+mysql_select_db ($database_db,$praktdbslave);
+
+###################################################
+#       Fuer internationale Einstellungen!        #
+###################################################
+
+$reset=$language['strZurueck'];
+$ohneaenderng=$language['strOhneAender'];
+$abschicken=$language['strVeroeffentl'];
+$speichern=$language['strAenderungen'];
+$loeschen=$language['strLoeschen'];
+$editieren=$language['strKorigieren'];
+$nein=$language['strNein'];
+$ja=$language['strJa'];
+$NameJahr=$language['strJahr'];
+$NameTag=$language['strTag'];
+$NameMonat=$language['strMonat'];
+
+$rubrik=array(
+8=>$language['strBeschreib1']);
+
+$rubrik2=array(
+0=>$language['strTitel'],
+1=>$language['strKategorie'],
+2=>$language['strBeginn'],
+3=>$language['strEnde'],
+4=>$language['strStrasse'],
+5=>$language['strOrt'],
+6=>$language['strPLZ'],
+7=>$language['strLand'],
+8=>$language['strBeschreib'],
+9=>$language['strVeranstalter'],
+10=>$language['strPartner'],
+11=>$language['strTelefon'],
+12=>$language['strFax'],
+13=>$language['strLink'],
+14=>$language['strEmail']);
+
+$phrase=array(
+0=>$language['strBitteFuellen'],
+1=>$language['strBitteWaehlen'],
+2=>$language['strEmailFalsch'],
+3=>$language['strDatumFalsch']);
+
+
+$ueberschriften=array(
+0=>$language['strVeranstVeroeff'],
+1=>$language['strEventVeroeff'],
+2=>$language['strEventLoeschen'],
+3=>$language['strEintrEdit'],
+4=>$language['strEintrEdit'], # TODO
+5=>$language['strDatum'],
+6=>$language['strHinweis'],
+7=>$language['strVeranstaltung']);
+
+$defaultKategorie = 3;
+
+$SteveText=$language['strSteveText'];
+$SteveText='<tr><td colspan=3>'.$SteveText.'<br/><br/></td></tr>'."\n";
+
+$SteveText2=$language['strSteveText2'];
+$SteveText2.='<br/><br/>'."\n";
+
+$SteveText3=$language['strSteveText3'];
+$SteveText3='<tr><td colspan=3>'.$SteveText3.'<br/><br/></td></tr>'."\n";
+
+$SteveText4=$language['strSteveText4'];
+$SteveText4='<tr><td colspan=3>'.$SteveText4.'<br/><br/></td></tr>'."\n";
+
+###################################################
+###################################################
+###################################################
+
+$abf_sprache = @mysql_query("SELECT * FROM sprachen WHERE id=".$s_sprachid,$praktdbslave);
+$abf_spr = @mysql_fetch_array($abf_sprache);
+
+$abf_land_spez = @mysql_query("SELECT ".$abf_spr['master']." FROM land WHERE ccode='".$abf_spr['ccode']."'",$praktdbslave);
+$abf_ld_spez = @mysql_fetch_array($abf_land_spez);
+$NameLand=$abf_ld_spez[0]; # z.B: fuer Deutschland - Deutschland, fuer US - USA
+
+$staat = @mysql_query("SELECT ".$abf_spr['master']." FROM land ORDER BY BINARY ".$abf_spr['master'],$praktdbslave);
+$anz_land = @mysql_num_rows($staat);
+for ($r=0;$r<($anz_land-1);$r++){
+$abfrg=mysql_fetch_array($staat);
+$land_liste[$r]=$abfrg[0];
+}
+
+var_dump($_SESSION);
+
+$kategorieliste = array();
+$rs = @mysql_query("SELECT * FROM kategorie", $praktdbslave);
+while ($row = mysql_fetch_assoc($rs)) {
+	$kategorieliste[$row['id']] = $row['kategorie'];
+}
+
+setlocale(LC_TIME,$abf_spr['sprachcode']);
+for ($ii=1;$ii<13;$ii++){$months[$ii] = strftime("%B",mktime(0,0,0,$ii,1,2001));}
+
+$monate=array($NameMonat=>"0", $months[1]=>"01", $months[2]=>"02", $months[3]=>"03", $months[4]=>"04", $months[5]=>"05", $months[6]=>"06", $months[7]=>"07", $months[8]=>"08", $months[9]=>"09", $months[10]=>10, $months[11]=>11, $months[12]=>12);
+
+$a=array_keys($monate);
+$b=array_values($monate);
+for ($x=0;$x<13;$x++){$monate_new[$b[$x]]=$a[$x];}
+
+$tage=array($NameTag, "01", "02", "03", "04", "05", "06", "07", "08", "09", 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
+
+unset($anker,$fehler);
+
+$spalten_namen=array("veranstltname", "kategorie", "datumanfang", "datumendung", "land", "ort", "plz", "strasse", "kurzbeschreibung", "veranstalter", "kontaktperson", "telefon", "fax", "link", "mail", "aktuellesdatum", "id", "spracheid", "firmenid", "UNIX_TIMESTAMP(datumanfang) AS beginn", "UNIX_TIMESTAMP(datumendung) AS ende");
+$spalten_reihe=join(",",$spalten_namen);
+
+$spalten_namen2=array("veranstltname", "kategorie", "datumanfang", "datumendung", "strasse", "ort", "plz", "land", "kurzbeschreibung", "veranstalter", "kontaktperson", "telefon", "fax", "link", "mail", "aktuellesdatum", "id", "spracheid", "firmenid", "UNIX_TIMESTAMP(datumanfang) AS beginn", "UNIX_TIMESTAMP(datumendung) AS ende");
+$spalten_reihe2=join(",",$spalten_namen2);
+
+$spalten=array('firmenid', 'veranstltname', 'kategorie', 'datumanfang', 'datumendung', 'land', 'ort', 'plz', 'strasse', 'kurzbeschreibung', 'veranstalter', 'kontaktperson', 'telefon', 'fax', 'link', 'mail', 'aktuellesdatum', 'spracheid');
+$spalten=join(",",$spalten);
+
+$spalten2=array('firmenid', 'veranstltname', 'kategorie', 'datumanfang', 'datumendung', 'strasse', 'ort', 'plz', 'land', 'kurzbeschreibung', 'veranstalter', 'kontaktperson', 'telefon', 'fax', 'link', 'mail', 'aktuellesdatum', 'spracheid');
+$spalten2=join(",",$spalten2);
+
+if ( isset($veranstltname) && isset($kategorie) && isset($land) && isset($ort) && isset($plz) && isset($strasse) && isset($kurzbeschreibung) && isset($veranstalter) && isset($kontaktperson) && isset($telefon) && isset($fax) && isset($link) && isset($mail) )
+	$id_neu_eintrag=array($veranstltname, $kategorie, "", "", $land, $ort, $plz, $strasse, $kurzbeschreibung, $veranstalter, $kontaktperson, $telefon, $fax, $link, $mail);
+	
+if ( isset($veranstltname) && isset($kategorie) && isset($land) && isset($ort) && isset($plz) && isset($strasse) && isset($kurzbeschreibung) && isset($veranstalter) && isset($kontaktperson) && isset($telefon) && isset($fax) && isset($link) && isset($mail) )
+	$id_neu_eintrag2=array($veranstltname, $kategorie, "", "", $strasse, $ort, $plz, $land, $kurzbeschreibung, $veranstalter, $kontaktperson, $telefon, $fax, $link, $mail);
+
+$id_auflistung=array("veranstltname", "kategorie", "beginn", "ende", "land", "ort", "plz", "strasse", "kurzbeschreibung", "veranstalter", "kontaktperson", "telefon", "fax", "link", "mail");
+
+$id_auflistung2=array("veranstltname", "kategorie", "beginn", "ende", "strasse", "ort", "plz", "land", "kurzbeschreibung", "veranstalter", "kontaktperson", "telefon", "fax", "link", "mail");
+
+function warning_message($phrase,$field){
+global $rubrik;
+$size=strlen($field);
+$field_new=substr($field,0,$size);
+$warning=ereg_replace("\*{3}",$field_new,$phrase);
+return $warning;
+}
+
+$heute=date('Y-m-d',time());
+
+# Formatierung:
+$styleB='"font-weight:bold"';
+$styleredB='"color:red"';
+$styleTextFeld='\"width:198\"';
+$warnung='"font-weight:bold;color:red"';
+
+function DatumAusgabe($beginn,$end){
+if ($beginn==$end){return date("d.m.Y",$beginn);}
+else {
+$jahranf=date("Y",$beginn);
+$jahrend=date("Y",$end);
+$zweite=date("d.m.Y",$end);
+if ($jahrend==$jahranf){$erste=date("d.m. - ",$beginn);}
+else {$erste=date("d.m.Y. - ",$beginn);}
+return $erste.$zweite;}
+}
+
+function SelectKategorien($x){  # Erstellt Array fuer alle SELECT-Feld "Veroeffentlichung"
+	global $kategorieliste;
+	foreach ($kategorieliste as $id => $name){
+		$opt = '<option';
+		if($id == $x)	$opt .= " selected='selected'";
+		$opt .= ' value="'. $id .'">'.$name.'</option>'."\n";
+		echo $opt;
+	}
+}
+
+function SelectKategorien2($herekategorie){
+global $styleTextFeld, $defaultKategorie;
+$NameKategorie=$defaultKategorie;
+echo '<select name="kategorie" style=$styleTextFeld>'."\n";
+if (empty($herekategorie)){SelectKategorien($NameKategorie);}
+else {SelectKategorien($herekategorie);}
+echo '</select>';
+}
+
+function SelectTage($x){  # Erstellt Array fuer alle SELECT-Feld "Tage"
+global $tage;
+echo '<option>'.$x.'</option>'."\n";
+for ($i=0;$i<32;$i++){
+	if($tage[$i]!=$x){echo '<option>'.$tage[$i].'</option>'."\n";}
+	}
+}
+
+function SelectMonate($y){  # Erstellt Array fuer alle SELECT-Feld "Monate"
+global $monate_new;
+$heremonate=array_values($monate_new);
+echo '<option>'.$y.'</option>'."\n";
+for ($i=0;$i<13;$i++){
+	if($heremonate[$i]!=$y){echo '<option>'.$heremonate[$i].'</option>'."\n";}
+	}
+}
+
+function SelectJahre($z){  # Erstellt Array fuer alle SELECT-Feld "Jahre"
+global $heute, $NameJahr;
+$jahrmon=$heute;
+eregi('^(.{4})-(.{2})-(.{2})',$jahrmon,$regs);
+$jhr=$regs[1];
+$mnt=$regs[2];
+if (($mnt>=10)&&($mnt<=12)){$jahre=array($NameJahr,$jhr,($jhr+1));}
+else {$jahre=array($NameJahr,$jhr);}
+$numjahre=count($jahre);
+echo '<option>'.$z.'</option>'."\n";
+for ($i=0;$i<$numjahre;$i++){
+	if($jahre[$i]!=$z){echo '<option>'.$jahre[$i].'</option>'."\n";}
+	}
+}
+
+function DatumSelect($Tag,$Monat,$Jahr,$NR){
+global $NameTag, $NameMonat, $NameJahr;
+echo '<table border="0" cellpadding="0" cellspacing="0">'."\n";
+echo '<tr><td><select name='.$NameTag.$NR.'>'."\n";
+if (empty($Tag)){SelectTage($NameTag);}
+else {SelectTage($Tag);}
+echo '</select>&nbsp;</td>\n<td>\n<select name='.$NameMonat.$NR.'>'."\n";
+if (empty($Monat)){SelectMonate($NameMonat);}
+else {SelectMonate($Monat);}
+echo '</select>&nbsp;</td>\n<td>\n<select name='.$NameJahr.$NR.'>'."\n";
+if (empty($Jahr)){SelectJahre($NameJahr);}
+else {SelectJahre($Jahr);}
+echo '</select></td></tr></table>';
+}
+
+function SelectStaat($s){  # Erstellt Array fuer alle SELECT-Feld "Land"
+global $land_liste;
+echo '<option>'.$s.'</option>'."\n";
+for ($i=0;$i<sizeof($land_liste);$i++){
+	if($land_liste[$i]!=$s){echo '<option>'.$land_liste[$i].'</option>'."\n";}
+	}
+}
+
+function SelectLand($hereland){
+global $NameLand,$styleTextFeld;
+echo '<select name="land" style='.$styleTextFeld.'>'."\n";
+if (empty($hereland)){SelectStaat($NameLand);}
+else {SelectStaat($hereland);}
+echo '</select>';
+}
+
+function cellformdescribe2 ($ausgabe,$zuschlag) {
+$rueckgabe  = '<td><pre><b>';
+$rueckgabe .= $ausgabe;
+$rueckgabe .= zeichenkette($ausgabe);
+$rueckgabe .= '</b>&nbsp;<br/><b style="font-weight:normal;font-size:8pt">$zuschlag</b></pre></td>';
+return $rueckgabe;
+};
+
+if (isset($deleteid)){$delete=mysql_db_query($database_db,"DELETE FROM veranstaltungskalender WHERE id=$deleteid",$praktdbmaster);}
+
+if (isset($behandlung2)){unset($pruefung, $veranstltname, $Tag1, $Tag2, $Monat1, $Monat2, $Jahr1, $land, $strasse, $Jahr2, $ort, $kurzbeschreibung, $veranstalter, $kontaktperson, $telefon, $fax, $link, $mail, $id_neu_eintrag);}
+
+if(isset($pruefung)){ ########### Wenn $pruefung existiert start ###########
+
+$fehler="";
+
+######################################
+######## Pruefung der Eingabe ########
+######################################
+
+if ($pruefung==2){
+unset($pruefung);
+$mail = trim($mail);
+//$mymail=ValidateMail($mail);
+$mymail[0]=1;
+
+if (($Tag2==$NameTag)&&($Monat2==$NameMonat)&&($Jahr2==$NameJahr)){$Tag2=$Tag1; $Monat2=$Monat1; $Jahr2=$Jahr1;}
+$datumanfang = $Jahr1."-".$monate[$Monat1]."-".$Tag1;
+
+if (checkdate($monate[$Monat1],$Tag1,$Jahr1)){
+$datumanfang=$Jahr1."-".$monate[$Monat1]."-".$Tag1;
+if($datumanfang<$heute){$not_up_to_day = 1;}
+else{unset($not_up_to_day);}
+}
+else {unset($datumanfang);}
+
+if (checkdate($monate[$Monat2],$Tag2,$Jahr2)){$datumendung=$Jahr2."-".$monate[$Monat2]."-".$Tag2;}
+else {unset($datumendung);}
+
+# 0. Veranstaltungsname
+if ($veranstltname=="") {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[0]).'</b><a name="ANKER">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 1. Anfangsdatum
+elseif ( ($Tag1==$NameTag)||($Monat1==$NameMonat)||($Jahr1==$NameJahr) ) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[1],$rubrik2[2]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+elseif (empty($datumanfang)) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[1],$rubrik2[2]).'</b><a name="ANKER">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+elseif (isset($not_up_to_day)) {$fehler='<tr><td colspan=3><a name="anker"></a><b style='.$warnung.'>'.warning_message($phrase[3],$rubrik2[2]).'</b></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 2. Ablaufsdatum
+elseif (empty($datumendung) || ($datumendung<$datumanfang)) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[1],$rubrik2[3]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+
+# 5. Strasse
+elseif ($strasse=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[4]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+
+# 3. Ort
+elseif ($ort=='') {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[5]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 4. PLZ
+elseif ($plz=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[6]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+
+
+# 6. Kurzbeschreibung
+elseif ($kurzbeschreibung=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[8]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 7. Veranstalter
+elseif ($veranstalter=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[9]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 8. Kontakt
+elseif ($kontaktperson=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[10]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 9. Telefon
+elseif ($telefon=='' && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[11]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 10. Fax - Keine Pruefung
+# 11. Link
+elseif (($link=='' || $link=='http://') && $s_firmenid !=1359) {$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[13]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+# 12. Email
+elseif ($mail=="" && $s_firmenid !=1359){$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[0],$rubrik2[14]).'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+elseif ($mymail[0]!=1  && $s_firmenid !=1359 ){$fehler='<tr><td colspan=3><b style='.$warnung.'>'.warning_message($phrase[2],'').'</b><a name="anker">&nbsp;</a></td></tr>'."\n";
+if(isset($edit)){$pruefung=1;}
+}
+
+else {  	###############################################
+		# Tragen wir Informationen in Mysql-Datenbank #
+		###############################################
+
+if (empty($edit)) { # fuer neuer Eintrag
+
+$abfr = mysql_query("SELECT veranstltname, datumanfang, datumendung FROM veranstaltungskalender WHERE datumendung>='$heute' AND firmenid=$firmenid",$praktdbslave);
+$numrows = mysql_num_rows($abfr);
+
+for ($kk=0;$kk<$numrows;$kk++){
+$qw=mysql_fetch_array($abfr);
+if (($qw['veranstltname']==$veranstltname)&&($qw['datumanfang']==$datumanfang) &&($qw['datumendung']==$datumendung)){$testing++;}
+}
+if (empty($testing)) {
+$spracheid=$s_sprachid;
+$insert=mysql_db_query($database_db,"INSERT INTO veranstaltungskalender ($spalten2) VALUES ('$firmenid', '$veranstltname', '$kategorie', '$datumanfang', '$datumendung', '$strasse', '$ort', '$plz', '$land', '$kurzbeschreibung', '$veranstalter', '$kontaktperson', '$telefon', '$fax', '$link', '$mail',CURDATE(), '$spracheid')",$praktdbmaster);}
+$eintrag="false";
+}
+
+else { # fuer Edit
+unset($pruefung);
+$update=mysql_db_query($database_db,"UPDATE veranstaltungskalender SET veranstltname='$veranstltname', kategorie='$kategorie', datumanfang='$datumanfang', datumendung='$datumendung', land='$land', ort='$ort', plz='$plz', strasse='$strasse', kurzbeschreibung='$kurzbeschreibung', veranstalter='$veranstalter', kontaktperson='$kontaktperson', telefon='$telefon', fax='$fax', link='$link', mail='$mail', aktuellesdatum=CURDATE() WHERE id=$eintragid",$praktdbmaster);
+}
+
+$anker='<a name="anker"></a>';
+
+unset($veranstltname, $Tag1, $Tag2, $Monat1, $Monat2, $Jahr1, $land, $strasse, $Jahr2, $ort, $kurzbeschreibung, $veranstalter, $kontaktperson, $telefon, $fax, $link, $mail, $id_neu_eintrag, $edit);
+}
+
+} ###### neuer Eintrag eingeben end ######
+
+if ($pruefung==1) { ###### Wenn Eintrag editieren oder loeschen start ######
+
+######################################
+### Wenn Veranstaltung loeschen   ####
+######################################
+
+if (isset($behandlung3)){
+	echo '<table width="90%" border="0">'."\n";
+	echo '<tr><td colspan=3><h1 class="layout1">'.($ueberschriften[2]).'</h1></td></tr>'."\n";
+	echo $SteveText4;
+	echo '<form method=post action='.$_SERVER["PHP_SELF"].' name="formloeschen">'."\n";
+	echo '<tr><td><input type="button" name="behandlung" value="&nbsp;&nbsp;".$ja."&nbsp;&nbsp;" style="font-weight:normal" onclick="location.replace("$_SERVER["PHP_SELF"]?'.session_name().'='.session_id().'&deleteid='.$eintragid.'")">';
+	echo '&nbsp;';
+	echo '<input type="button" name="behandlung" value="'.$nein.'" style="font-weight:normal" onclick="location.replace("'.$_SERVER["PHP_SELF"].'?'.session_name().'='.session_id().'")"><br/></td></tr>'."\n";
+	echo '</form>'."\n";
+	echo '</table>'."\n";
+	} ### Wenn Veranstaltung loeschen end ####
+
+######################################
+### Wenn Veranstaltung editieren  ####
+######################################
+
+else {						   
+echo '<table width="90%" border="0">'."\n";
+echo '<form method=post action="'.$_SERVER["PHP_SELF"].'#anker" name="Editieren">'."\n";
+echo '<input type="hidden" name="firmenid" value="'.$s_firmenid.'">'."\n";
+echo '<input type="hidden" name="eintragid" value="'.$eintragid.'">'."\n";
+echo '<input type="hidden" name="'.session_name().'" value="'.session_id().'">'."\n";
+echo '<input type="hidden" name="pruefung" value="2">'."\n";
+echo '<input type="hidden" name="edit" value="1">'."\n";
+
+if (empty($edit)){
+$abfr = mysql_query("SELECT ".$spalten_reihe2.", DATE_FORMAT(datumanfang,'%d') AS Tag1, DATE_FORMAT(datumanfang,'%m') AS Monat1, DATE_FORMAT(datumanfang,'%Y') AS Jahre1, DATE_FORMAT(datumendung,'%d') AS Tag2, DATE_FORMAT(datumendung,'%m') AS Monat2, DATE_FORMAT(datumendung,'%Y') AS Jahre2 FROM veranstaltungskalender WHERE id=".$eintragid,$praktdbslave);
+unset($abfrage);
+$abfrage=mysql_fetch_array($abfr);
+}
+
+else {
+$abfrage['veranstltname']=$veranstltname;
+$abfrage['kategorie']=$kategorie;
+$abfrage['Monat1']=$monate[$Monat1];
+$abfrage['Monat2']=$monate[$Monat2];
+$abfrage['Tag1']=$Tag1;
+$abfrage['Tag2']=$Tag2;
+$abfrage['Jahre1']=$Jahr1;
+$abfrage['Jahre2']=$Jahr2;
+$abfrage['land']=$land;
+$abfrage['ort']=$ort;
+$abfrage['plz']=$plz;
+$abfrage['strasse']=$strasse;
+$abfrage['kurzbeschreibung']=$kurzbeschreibung;
+$abfrage['veranstalter']=$veranstalter;
+$abfrage['kontaktperson']=$kontaktperson;
+$abfrage['telefon']=$telefon;
+$abfrage['fax']=$fax;
+$abfrage['link']=$link;
+$abfrage['mail']=$mail;
+	}
+
+echo '<tr><td colspan=3><h1 class="layout1">'.($ueberschriften[3]).' </h1></td></tr>'."\n";
+echo $SteveText3;
+echo $fehler; # Fehlermeldung
+
+		for ($c=0;$c<sizeof($id_auflistung2);$c++){
+
+		# $c==1 Kategorie:
+		if ($c==1){echo '<tr valign="baseline">'.cellformdescribe($rubrik2[$c]).'<td>';
+		SelectKategorien2($abfrage[$spalten_namen2[$c]]);
+		echo '</td></tr>'."\n";}
+
+		# $c==2 Anfangsdatum:
+		elseif ($c==2){echo '<tr valign="baseline">'.cellformdescribe($rubrik2[$c]).'<td>';
+		DatumSelect($abfrage['Tag1'],$monate_new[$abfrage['Monat1']],$abfrage['Jahre1'],1);
+		echo '</td></tr>'."\n";}
+
+		# $c==3 Ablaufsdatum:
+		elseif ($c==3){echo '<tr valign="baseline">'.cellformdescribe($rubrik2[$c]).'<td>';
+		DatumSelect($abfrage['Tag2'],$monate_new[$abfrage['Monat2']],$abfrage['Jahre2'],2);
+		echo '</td></tr>'."\n";}
+
+		# $c==7 Land:
+		elseif ($c==7){echo '<tr valign="baseline">'.cellformdescribe($rubrik2[$c]).'<td>';
+		SelectLand($abfrage[$spalten_namen2[$c]]);
+		echo '</td></tr>'."\n";}
+
+		# $c==8 Kurzbeschreibung:
+		elseif ($c==8){echo '<tr valign="top">'.cellformdescribe2($rubrik[$c],$ueberschriften[6]).'<td><textarea name="kurzbeschreibung" cols="17" rows="6" style='.$styleTextFeld.'>'.$abfrage[$spalten_namen2[$c]].'</textarea></td></tr>'."\n";}
+
+		# $c==12 Fax:
+		elseif ($c==12){echo '<tr valign=\"baseline\">'.cellformdescribe($rubrik2[$c]).'<td><Input type="text" size="20" maxlength="100" name="fax" value="'.$abfrage[$spalten_namen2[$c]].'" style=$styleTextFeld></td></tr>'."\n";}
+
+		else {echo '<tr valign="baseline">'.cellformdescribe($rubrik2[$c]).'<td><INPUT TYPE="text" size="20" maxlength="100" NAME="'.$spalten_namen2[$c].'" VALUE="'.$abfrage[$spalten_namen2[$c]].'" style=$styleTextFeld></td></tr>'."\n";}
+		}
+
+echo '<tr valign="baseline"><td colspan=3><br/><input type="submit" name="behandlung" value="'.$speichern.'" style="font-weight:normal">&nbsp;<input type="button" name="behandlung2" value="'.$ohneaenderng.'" style="font-weight:normal" onclick=location.replace("index.phtml?'.session_name().'='.session_id().'")></td></tr>'."\n";
+
+echo '</table></form>'."\n";
+	} ### Wenn Veranstaltung editieren end ####
+
+} ###### Wenn Eintrag editieren oder loeschen end ######
+
+} ###### Wenn $pruefung existiert end ######
+?>
+
+<!-- ############### HTML Ausgabe ########################## -->
+
+<?
+#######################################
+#### Auflistung der Veranstaltungen ###
+#######################################
+
+if(empty($pruefung)){
+if(isset($eintrag) && $eintrag != 'yes'){
+echo '<table width="90%" border="0">'."\n";
+echo '<tr><td colspan=3>'.$anker.'<h1 class="layout1">'.($ueberschriften[0]).'</h1>'.$SteveText2.'<span class="normal"> <a href="'.$_SERVER['PHP_SELF'].'?eintrag=yes&'.session_name().'='.session_id().'">'.$ueberschriften[1].'</a></span><br/><br/></td></tr>'."\n";
+
+$abfr = mysql_query("SELECT $spalten_reihe2 FROM veranstaltungskalender WHERE (datumendung>='$heute' AND firmenid=$s_firmenid) ORDER BY datumanfang DESC",$praktdbslave);
+if ($abfr) {
+	$num_rows = mysql_num_rows($abfr);
+}
+
+if (empty($num_rows)){
+echo "<tr><td><b style=$styleB>".$ueberschriften[4]."</b></td></tr>\n";
+}
+
+else {for ($i=0;$i<$num_rows;$i++){
+	$abfrage=mysql_fetch_array($abfr);
+	echo '<form method=post action="'.$_SERVER["PHP_SELF"].'#anker" name="verwaltung'.$abfrage['id'].'">'."\n";
+	echo '<input type="hidden" name="firmenid" value="'.$s_firmenid.'">'."\n";
+	echo '<input type="hidden" name="eintragid" value="'.$abfrage['id'].'">'."\n";
+	echo '<input type="hidden" name="'.session_name().'" value="'.session_id().'\">'."\n";
+	echo '<input type="hidden" name="pruefung" value="1">'."\n";
+
+	# Nummerierung von Veranstaltungen:
+	echo '<tr><td><br/>'.($i+1).'. '.$ueberschriften[7].'<br/><img src="/home/gifs/leer.gif" height="1" width="180" border="0" alt=""></td><td>&nbsp;</td></tr>'."\n";
+
+		for ($c=0;$c<sizeof($id_auflistung2);$c++){
+
+		# $c==2 Datum:
+		if ($c==2){echo '<tr><td valign="top">'.$ueberschriften[5].':</td><td>'.DatumAusgabe($abfrage[$id_auflistung2[2]], $abfrage[$id_auflistung2[3]]).'</td></tr>'."\n";$c++;}
+
+		# $c==5 Ort + PLZ:
+		elseif ($c==5){echo '<tr><td valign="top">'.$rubrik2[$c].':</td><td>'.$abfrage[$id_auflistung2[6]].', '.$abfrage[$id_auflistung2[5]].'</td></tr>'."\n";}
+
+		# $c==8 Kurzbeschreibung:
+		elseif ($c==8){echo '<tr><td valign="top">'.$rubrik[$c].':</td><td valign="top">'.$abfrage[$id_auflistung2[$c]].'</td></tr>'."\n";}
+
+		# $c==13 Link:
+		elseif ($c==13){
+		$myurl=str_replace('http://', '', $abfrage[$id_auflistung2[$c]]);
+		$myurl=substr($myurl,0,25);
+		echo '<tr><td valign="top">".$rubrik2[$c].":</td><td><a href="'.$abfrage[$id_auflistung2[$c]].'">'.$myurl.'</a></td></tr>'."\n";}
+
+		# $c==14 Email:
+		elseif ($c==14){
+		$myemail=$abfrage[$id_auflistung2[$c]];
+		$myemail=substr($myemail,0,25);
+		echo '<tr><td valign="top">'.$rubrik2[$c].':</td><td><a href="mailto:"'.$abfrage[$id_auflistung2[$c]].'">'.$myemail.'</a></td></tr>'."\n";}
+
+		# $c==3 Keine Uebereinstimmungen fuer diesen Fall
+		elseif ($c==3){echo "";}
+
+		# $c==6 Keine Uebereinstimmungen fuer diesen Fall
+		elseif ($c==6){echo "";}
+		
+		# $c==1 Kategorie
+		elseif ($c==1) {
+			echo '<tr><td valign="top">'.$rubrik2[$c].':</td><td valign="top">'.$kategorieliste[$abfrage[$id_auflistung2[$c]]].'</td></tr>'."\n";
+		}
+		else {echo '<tr><td valign="top">'.$rubrik2[$c].':</td><td valign="top">'.$abfrage[$id_auflistung2[$c]].'</td></tr>'."\n";}
+		}
+
+	echo '<tr valign="top"><td colspan=3><br/><input type="submit" name="behandlung" value="'.$editieren.'" style="font-weight:normal">&nbsp;<input type="submit" name="behandlung3" value="'.$loeschen.'" style="font-weight:normal"> <input type="button" name="y" value="zum RecruitingCenter" onclick=location.replace("/home/firmen/bcenter/?'.session_name().'='.session_id().'")></td></tr>'."\n";
+
+	echo '</form>'."\n\n";
+
+	}
+}
+echo '</table>'."\n";
+
+} else {
+
+###############################
+#### Neuer Eintrag eingeben ###
+###############################
+
+echo '<table width="90%" border="0">'."\n";
+echo '<form method=post action="'.$_SERVER["PHP_SELF"].'#anker" name="neuantrag">'."\n";
+echo '<input type="hidden" name="eintragid" value="'.$abfrage['id'].'">'."\n";
+echo '<input type="hidden" name="'.session_name().'" value="'.session_id().'">'."\n";
+echo '<input type="hidden" name="pruefung" value="2">'."\n";
+echo '<input type="hidden" name="eintrag" value="yes">'."\n";
+echo '<input type="hidden" name="firmenid" value="'.$s_firmenid.'">'."\n";
+echo '<input type="hidden" name="firstshow" value="1">'."\n";
+
+if (empty($firstshow)){
+	unset($abfr);
+	$abfr = mysql_query("SELECT * FROM firmen WHERE id=$s_firmenid",$praktdbslave);
+	unset($abfrage);
+	if($abfr) {
+		$abfrage=mysql_fetch_array($abfr);
+		$id_neu_eintrag2[5]=$abfrage['ort'];
+		$id_neu_eintrag2[6]=$abfrage['plz'];
+		$id_neu_eintrag2[4]=$abfrage['strasse'];
+		$id_neu_eintrag2[9]=$abfrage['firma'];
+		$id_neu_eintrag2[11]=$abfrage['tel'];
+		$id_neu_eintrag2[12]=$abfrage['fax'];
+		$id_neu_eintrag2[13]=$abfrage['homepage'];
+		$id_neu_eintrag2[14]=$abfrage['email'];
+	}
+}
+
+echo '<tr><td colspan=3><h1 class="layout1">'.($language['strNeuesEvent']).'</h1></td></tr>'."\n";
+echo $SteveText;
+echo $fehler; # Fehlermeldung
+
+		for ($c=0; $c<sizeof($id_auflistung2); $c++){
+		
+		# $c==1 Kategorie:
+		if ($c==1){echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td>';
+		SelectKategorien2($kategorie);
+		echo '</td></tr>'."\n";}
+
+		# $c==2 Anfangsdatum:
+		elseif ($c==2){echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td>';
+		DatumSelect($Tag1,$Monat1,$Jahr1,1);
+		echo '</td></tr>'."\n";}
+
+		# $c==3 Ablaufsdatum:
+		elseif ($c==3){echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td>';
+		DatumSelect($Tag2,$Monat2,$Jahr2,2);
+		echo '</td></tr>'."\n";}
+
+		# $c==7 Land:
+		elseif ($c==7){echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td>';
+		SelectLand($id_neu_eintrag2[$c]);
+		echo '</td></tr>'."\n";}
+
+		# $c==8 Kurzbeschreibung:
+		elseif ($c==8){echo '<tr valign="top"><td>'.$einruecken.'</td><td>'.$rubrik[$c],$ueberschriften[6].':<td><textarea name="kurzbeschreibung" cols="17" rows="6" style='.$styleTextFeld.'>'.$id_neu_eintrag2[$c].'</textarea></td></tr>'."\n";}
+
+		# $c==12 Fax:
+		elseif ($c==12) {echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td><input type="text" size="20" maxlength="100" name="fax" value="'.$id_neu_eintrag2[$c].'" style='.$styleTextFeld.'></td></tr>'."\n";
+		}
+
+		# $c==13 Link:
+		elseif ($c==13) {
+		$id_neu_eintrag2[$c]=str_replace("http://", "", $id_neu_eintrag2[$c]);
+		echo '<tr valign="baseline"><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td><input type="text" size="20" maxlength="100" name="link" value="http://'.$id_neu_eintrag2[$c].'" style='.$styleTextFeld.'></td></tr>'."\n";
+		}
+
+		else {echo '<tr valign="baseline\><td>'.$einruecken.'</td><td>'.($rubrik2[$c]).':<td><input type="text" size="20" maxlength="100" name="'.$spalten_namen2[$c].'" value="'.$id_neu_eintrag2[$c].'" style='.$styleTextFeld.'></td></tr>'."\n"; }
+		}
+
+echo '<tr valign="baseline"><td colspan=3><br/><input type="submit" name="behandlung" value="'.$abschicken.'" style="font-weight:normal">&nbsp;<input type="button" name="behandlung2" value="'.$reset.'" style="font-weight:normal" onclick=location.replace("index.phtml?'.session_name().'='.session_id().'")></td></tr>'."\n";
+
+echo '</table></form>'."\n";
+}} ########### Wenn erste Ansicht end ###########
+?>
+<!-- ###################### HTML Ausgabe end ############################ -->
+<? bodyoff(); ?>

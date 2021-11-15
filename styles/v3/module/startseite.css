@@ -1,0 +1,175 @@
+body#home div#main div#content div#header_image {
+	background: transparent url(/styles/images/startseite.jpg) no-repeat;
+	height: 225px;
+	padding-left: 20px;
+	margin-bottom: 15px;
+}
+body#home div#main div#content div#header_image h1 {
+	margin-top: 15px;
+	margin-bottom: 0px;
+}
+body#home div#main div#content div#header_image p {
+	font-size: 14px;
+	line-height: 20px;
+	margin-top: 4px;
+}
+body#home div#main div#content div#header_image form {
+	margin-top: -12px;	
+}
+body#home div#main div#content div#header_image form fieldset {
+	margin-top: 0;	
+}
+body#home div#main div#content div#header_image form fieldset p {
+	float: left;
+	clear: none;
+}
+body#home div#main div#content div#header_image form fieldset p label {
+	width: auto;
+	float: none;
+	text-align: left;
+	margin-bottom: 4px;
+}
+body#home div#main div#content div#header_image form fieldset p.wo label {
+	margin-left: 12px;
+}
+body#home div#main div#content div#header_image form fieldset p.was input {
+	width: 220px;
+	margin-left: -2px;
+	font-size: 13px;
+}
+body#home div#main div#content div#header_image form fieldset p.wo input {
+	width: 150px;
+	margin-left: 10px;
+	font-size: 13px;
+}
+body#home div#main div#content div#header_image form fieldset.control_panel {
+	margin-top: 0;	
+}
+body#home div#main div#content div#header_image form fieldset.control_panel p input.button {
+	margin-left: -2px;
+}
+body#home div#main div#content div#header_image form fieldset.control_panel p a {
+	display: block;
+	float: left;
+	margin: 11px 0 0 8px;
+}
+
+
+/* job ad list starting page - begin */
+
+body#home div#main div#leftColumn div h3 {
+	color: #640096;
+	background: #e5ebf1;
+	padding: 5px 0 5px 5px;
+	margin-bottom: 10px;
+}
+body#home div#main div#leftColumn div ul li {
+	margin: 0;
+	padding: 2px 0;
+}
+body#home div#main div#leftColumn div ul li div.image {
+	width: 70px;
+	height: 26px;
+	float: left;
+	text-align: center;
+	display: inline;
+	margin-right: 5px;
+}
+body#home div#main div#leftColumn div p {
+	margin: 0;
+	overflow: hidden;
+}
+body#home div#main div#leftColumn div ul li a {
+	padding: 5px 0 0 0;
+	font-size: 12px;
+}
+body#home div#main div#leftColumn div p span,
+body#home div#main div#leftColumn div ul li span {
+	font-size: 11px;
+	color:#777;
+}
+body#home div#main div#leftColumn div.channel {
+	margin-top: 20px;	
+}
+body#home div#main div#leftColumn div#channel_nearest p.center img {
+	float: none;
+}
+
+/* job ad list starting page - end */
+
+
+/* second col - begin */
+
+body#home div#content div.box img {
+	margin: 0;
+}
+body#home div.ausland {
+	background: #333;
+	height: 250px;
+}
+body#home div.ausland p {
+	clear: both;
+	color: #b9b9b9;
+	padding-top: 5px;
+	overflow: visible;
+}
+body#home div.ausland p a.secondLink {
+	color: #fff;
+	font-size: 11px !important;
+	padding-top: 5px;
+	display: block;
+	float: left;
+}
+
+body#home div.auslandskrankenversicherung {
+	border: 1px solid #009600;
+	height: 250px;
+}
+body#home div.auslandskrankenversicherung h3 {
+	background: #009600;
+}
+body#home div.auslandskrankenversicherung p {
+	clear: both;
+	padding-top: 5px;
+	overflow: visible;
+}
+
+body#home div.sprachreisen {
+	background: #eff4fa;
+	height: 250px;
+}
+body#home div.sprachreisen p {
+	clear: both;
+	padding-top: 5px;
+	overflow: visible;
+}
+
+body#home div.auslandsstudium {
+	border: 1px solid #9b0204;
+	height: 250px;
+}
+body#home div.auslandsstudium h3 {
+	background: #9b0204;
+}
+body#home div.auslandsstudium p {
+	clear: both;
+	padding-top: 5px;
+	overflow: visible;
+}
+
+/* second col - end */
+
+
+/* Sidebar - begin */
+
+div#sidebar div.premium {
+	margin-bottom: 15px;
+}
+div#sidebar div.socialnetwork {
+	height: 39px;
+	margin: -5px 0 15px 0;
+}
+div#sidebar div.socialnetwork  ul li{
+	margin: 0px;
+}
+/* Sidebar - end */

@@ -1,0 +1,12 @@
+<?php
+
+ini_set('zlib.output_compression', 0);
+$session_no_cache = true;
+
+/* Main-Script for the PDF-CV-Generator*/
+include_once("/home/praktika/etc/gb_config.inc.php");
+include('/home/praktika/public_html/home/praktikanten/profil/lebenslauf_pdf/lebenslauf_functions.inc.php');
+
+$pdfname = lebenslaufPdfMain();
+
+?>

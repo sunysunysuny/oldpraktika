@@ -1,0 +1,152 @@
+<?
+
+
+// Sortierung �ndern
+if(!empty($_POST["sort"])) {
+
+	if($_SESSION['s_nutzerproparray']['kcenter']["sort"] == $_POST["sort"]) {
+		if($_SESSION['s_nutzerproparray']['kcenter']["sort_asc"] == "asc") {
+			$_SESSION['s_nutzerproparray']['kcenter']["sort_asc"] = "desc";
+		} else {
+			$_SESSION['s_nutzerproparray']['kcenter']["sort_asc"] = "asc";
+		}
+	} else {
+		$_SESSION['s_nutzerproparray']['kcenter']["sort"] = $_POST["sort"];
+	}
+	
+}
+
+if(!empty($_POST["page"])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['pageNumber'] = $_POST["page"];
+}
+
+$_SESSION['s_bereich'] = 1;
+$ds_pro_seite = 15;
+
+$spalteLabel = array("","Praktikum","Bachelor-/Masterarbeit","Nebenjob","Ausbildung","Berufseinstieg","Projekt","Trainee");
+
+praktikaInclude(array("layout.php", "db.php", "String.php"));
+$hDB = new Praktika_Db();	
+
+if(empty($_SESSION['s_nutzerproparray']['kcenter']['pageNumber'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['pageNumber'] = 1;
+}
+if(empty($_SESSION['s_nutzerproparray']['kcenter']['rowOnPage'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['rowOnPage'] = $ds_pro_seite;
+}
+
+// K�rzere Bezeichnung
+$s_kcenter = &$_SESSION['s_nutzerproparray']['kcenter'];
+
+$ordnerquery = 'AND bewerberkontakte.ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];		
+
+$result = array();
+
+// Anzahl abfragen
+$anzahl = $hDB->query('SELECT COUNT(id) `num_rows`
+	FROM prakt2.bewerberkontakte 
+	WHERE bewerberkontakte.nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+	bewerberkontakte.versendet = \'true\' AND 
+	bewerberkontakte.inactive = \'false\' '.$ordnerquery.'',
+	$praktdbslave);
+	
+// $result["rows"] = (int)mysql_result($anzahl,0,"num_rows");
+// $result["rowsOnPage"] = $s_kcenter["rowOnPage"];
+
+if((int)mysql_result($anzahl,0,"num_rows") >$_SESSION['s_nutzerproparray']['kcenter']['rowOnPage']) {
+	$result["data"]["pageNumber"] = Praktika_Layout::paging("kc_page({page});", (int)mysql_result($anzahl,0,"num_rows"), $_SESSION['s_nutzerproparray']['kcenter']['pageNumber'], $_SESSION['s_nutzerproparray']['kcenter']['rowOnPage']);
+} else {
+	$result["data"]["pageNumber"] = "";
+}
+
+$result["data"]["num_rows"] = (int)mysql_result($anzahl,0,"num_rows");
+
+if($result["data"]["num_rows"] == 0) {
+	$result["data"]["pageNumber"] = "&nbsp;";
+}
+
+$result["data"]["ordnername"] = $ordnername;
+$result["data"]["ordnerid"] = $ordnerid;
+
+$sortedRow = "bewerberkontakte.id";
+$sortedDesc = "asc";
+
+if($s_kcenter["sort"] == "firma") {
+	$result["data"]["sorted_firma"] = "active";
+	$sortedRow = "bewerberkontakte.firma";
+}
+if($s_kcenter["sort"] == "betreff") {
+	$result["data"]["sorted_betreff"] = "active";
+	$sortedRow = "bewerberkontakte.betreff";	
+}
+if($s_kcenter["sort"] == "datum") {
+	$result["data"]["sorted_datum"] = "active";
+	$sortedRow = "bewerberkontakte.datum";	
+}
+if($s_kcenter["sort"] == "spalte") {
+	$result["data"]["sorted_spalte"] = "active";
+	$sortedRow = "bewerberkontakte.spalte";	
+}
+if($s_kcenter["sort_asc"] == "asc") {
+	$result["data"]["sorted_asc"] = "downSort";
+	$sortedDesc = "ASC";
+} else {
+	$result["data"]["sorted_asc"] = "upSort";	
+	$sortedDesc = "DESC";
+}
+
+
+// abfrage ausfuehren  //
+$sql = 'SELECT bewerberkontakte.id, bewerberkontakte.angebote_id, bewerberkontakte.firmenid, bewerberkontakte.betreff, 
+	UNIX_TIMESTAMP(bewerberkontakte.datum) AS datum, bewerberkontakte.gelesen, bewerberkontakte.spalte, bewerberkontakte.firma, firmenprofil.id `profilid`, nutzerbookmark.id `nutzerbookmark`, bewerberkontakte.angebote_id
+	FROM prakt2.bewerberkontakte 
+		LEFT JOIN prakt2.firmenprofil ON(firmenprofil.firmenid = bewerberkontakte.firmenid)	
+		LEFT JOIN prakt2.nutzerbookmark ON(nutzerbookmark.nutzerid = '.$_SESSION['s_nutzerid'].' AND stellenid = bewerberkontakte.angebote_id)
+	WHERE bewerberkontakte.nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+	bewerberkontakte.versendet = \'true\' AND 
+	bewerberkontakte.inactive = \'false\' '.$ordnerquery.' 
+	ORDER BY '.$sortedRow.' '.$sortedDesc.'
+	LIMIT '.(($s_kcenter["pageNumber"]-1)*$s_kcenter["rowOnPage"]).','.$s_kcenter["rowOnPage"];
+
+# echo $sql;
+$results = $hDB->query($sql, $praktdbslave);
+
+if(mysql_num_rows($results) == 0) {
+	$result["data"]["row"] = false;
+	$result["data"]["pageNumber"] = "&nbsp;";
+} else {
+	$result["data"]["norow"] = false;
+	
+	while ($result_row = mysql_fetch_assoc($results)) {
+		$data = array();
+		if ($result_row['gelesen'] == 'false') {
+			$data["status"] = '<img src="/styles/images/icons/neu1.png" alt="neu" />';
+		} else {
+			$data["status"] = '';
+		}
+		$data["showIcon"] = false;
+		
+		if(file_exists('/home/praktika/public_html/webtemp/'.$result_row["firmenid"].'.gif')) { 
+			unset($data["showIcon"]);
+		}
+				
+		$data["firma"] = Praktika_String::cutWord($result_row["firma"], 20);
+		
+		$data["betreff"] = stripslashes(htmlentities($result_row["betreff"]));
+		
+		$data["datum"] = date("d.m.Y", $result_row["datum"]);
+		$data["spalte"] = $spalteLabel[$result_row["spalte"]];
+		$data["messageID"] = $result_row["id"];
+		$data["firmenID"] = $result_row["firmenid"];
+		$data["spaltenID"] = $result_row["spalte"];
+		$data["stellenID"] = $result_row["angebote_id"];
+		
+		if(empty($result_row["profilid"])) $data["show_profil"] = false;	
+		if($result_row["angebote_id"] == 0 || !empty($result_row["nutzerbookmark"])) $data["show_merkzettel"] = false;
+		
+		$result["data"]["row"][] = $data;
+	}
+
+}
+
+echo json_encode($result["data"]);

@@ -1,0 +1,122 @@
+html, body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body.template {
+	width: 100%;
+	height: 100%;
+	margin: 0px;
+	padding: 0px;
+
+	-moz-box-shadow: inset rgba(0,0,0,0.25) 0px 1px 4px;
+	-webkit-box-shadow: inset rgba(0,0,0,0.25) 0px 1px 4px;
+
+	box-shadow: inset rgba(0,0,0,0.25) 0px 1px 4px;     
+}
+
+.editable {
+	border: 1px dotted #ddd;
+	cursor: pointer;
+}
+.editable:hover {
+	border: 1px dotted #f27000;
+	background: #faf0bd;
+	color: #000000;
+}
+/*.selectedField {
+	border:1px solid #9B6038;
+}*/
+
+p {
+	margin: 0;
+	padding: 0;
+}
+
+.editorField {
+	width: 750px;
+	border: 1px solid #cccccc;
+
+
+}
+
+.editorField h4 {
+	margin-bottom: 0;
+	border-right: 0;
+	border-left: 0;
+}
+
+.editorField iframe {
+	height: 700px;
+	width: 750px;
+	padding: 0;
+	background-color: #ffffff;
+
+}
+
+.border0 { border: 1px solid #000000; }
+.border1 { border: 1px solid #ffffff; }
+
+.logo {
+	border: 1px solid transparent;
+}
+.logo:hover {
+	background-color: #e7d995;
+}
+
+#stelleneditor {
+	margin: 0;
+	width: 750px;
+	padding: 0;
+}
+
+#stelleneditor .link1 {
+	text-align: right;
+	font-weight: bold;
+	margin-bottom: 10px;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+#stelleneditor .extraColor {
+	background-color:
+}
+
+#stelleneditor .faq_box {
+	height:46px;
+	margin:0;
+	padding:5px;
+	width:740px;
+}
+
+ul {
+	margin-top: 0px !important;
+	margin-bottom: 0px;
+}
+.template ul {
+	margin: 1em 0 !important;
+	display: block;
+	list-style-type: disc !important;
+	padding-left: 40px !important;
+}
+.template p {
+	margin: 0 !important;
+}
+.template ol {
+	margin: 1em 0 !important;
+	display: block;
+	list-style-type: decimal !important;
+	padding-left: 40px !important;
+}
+
+img.logo,
+img.flash {
+	cursor: pointer !important;
+}
+
+a.link {
+	color: #0f5ba3 !important;
+	font-weight: bold !important;
+}

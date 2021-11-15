@@ -1,0 +1,110 @@
+<?
+ $restricted = "yes";
+ $gruppe = "firmen";
+ require("/home/praktika/etc/config.inc.php"); 
+
+pageheader(session_id(), session_name()); ?>
+      <table width="90%">
+        <tr> 
+          <td> 
+            <h1 class="layout1">praktika.de ClickIn-Button</h1>
+              <?
+/* Datenbank */
+if($save == "yes") {
+$dbstring = "UPDATE firmen_prop_assign SET clickinbuttonid=$clickin where firmenid=$s_firmenid";
+
+/* datensatz aendern */
+mysql_db_query($database_db,$dbstring,$praktdbmaster);
+
+echo $language["strUebernommen"]."<br><br>";
+}
+
+
+$clickinbutton = mysql_db_query($database_db,"select clickinbuttonid from firmen_prop_assign where firmenid=$s_firmenid",$praktdbslave);
+$clickinbuttonid = mysql_result($clickinbutton,0,"clickinbuttonid");
+$clickin = mysql_db_query($database_db,"select * from clickinbutton where active='true'",$praktdbslave);
+$row = mysql_fetch_array($clickin);
+echo "<img src=\"/home/clickin/clickinbutton.gif\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\" align=\"right\">";
+?>
+              <? echo $language["strVerwalten"]; ?>
+<form action="myclickin.phtml" method="GET">
+<table border="0" cellspacing="5" cellpadding="0">
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+       <tr align="left">
+           <td><input type="Radio" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>)" name="clickin"<? $row = mysql_fetch_array($clickin); echo " value=\"" . $row["bannerID"] . "\""; if($clickinbuttonid == $row["bannerID"]) echo " checked"; ?>></td>
+           <td><? echo "<img src=\"/home/clickin/clickinbutton.gif?id=" . $row["bannerID"] . "\" width=\"" . $row["width"] . "\" height=\"" . $row["height"] . "\" alt=\"" . $row["alt"] . "\" border=\"0\">"; ?></td>
+       </tr>
+</table>
+<br>
+              <input type="submit" value="<? echo $language ["strAendern"]; ?>">
+              <INPUT type="hidden" name="save" value="yes">
+              <INPUT type="hidden" name="<?=session_name()?>" value="<?=session_id()?>">
+</form>
+<? echo $language["strAchtung"]; ?>
+<br><br>
+<? echo $language["strKopieren"]; ?>
+            <form>
+              <textarea rows=5 cols=47 wrap=VIRTUAL name="textarea" style="width: 410px"><?
+echo "&lt;A HREF=\"http://".getenv("HTTP_HOST")."/home/clickin/?id=" . $s_firmenid . "\" TARGET=\"praktika\"&gt;";
+echo "&lt;IMG SRC=\"http://".getenv("HTTP_HOST")."/home/clickin/clickinbutton.gif?fid=" . $s_firmenid . "\" ALT=\"" . $row["alt"] . "\" BORDER=\"0\"&gt;";
+echo "&lt;/A&gt;\n";  
+              
+            ?></textarea>
+            </form>
+            <? echo $language["strIndividuell"]; ?>
+            <form name="x">
+              <hr>
+              <input type="BUTTON" name="y" value="<? echo $language["strFirmmenu"]; ?>" onClick=location.replace('/home/firmen/bcenter/?<?=session_name()."=".session_id()?>')>
+            </form>
+          </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

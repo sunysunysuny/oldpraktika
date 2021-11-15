@@ -1,0 +1,149 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/mitglied.phtml";
+$sprachbasisdatei2="/home/quicklogin/index.phtml";
+require("/home/praktika/etc/gb_config.inc.php");
+
+//pageheader(array('page_title' => 'praktika.de - Login'));
+
+// POST-Variablen
+$login = isset($_POST["login"]) ? $_POST["login"] : "";
+$password = isset($_POST["password"]) ? $_POST["password"] : "";
+
+$err = array();
+for ($i = 0; $i <= 1; $i++) {
+	$err[] = false;
+}
+$checked = false;
+$fehler = true;
+
+if ( isset($_POST['send']) ) {
+	// Checken der Variablen
+	if ( empty($_POST['login']) ) $err[0] = true;
+	if ( empty($_POST['password']) ) $err[1] = true;
+	$checked = true;
+	for ( $i = 0; $i < count($err); $i++ ) {
+		if ($err[$i]) $checked = false;
+	}
+}
+
+if ($checked) {
+	if ( $logincheck = sessionnutzerlogin( $database_db, $login, $password ) == "true" ) {
+		$fehler = false;
+		$loginidemail = $login;
+		$passwort = $password;
+		require("/home/praktika/etc/login_bewerber.inc.php");
+			
+		if (isset ($opener_ref)) {
+			$zielurl = "'".$opener_ref."'";
+		} else {
+			$zielurl = "window.opener.parent.location.href";
+		}
+
+		//agge: kommt der login von einer unserer includes (besondere behandlung wegen firefox und opera)
+		if (isset($_REQUEST['include'])) {
+			$sonstige_headertags = '
+			<script type="text/javascript">
+			<!--
+				window.top.location.href = top.location.href;
+			//-->
+			</script>';
+		} else {
+			$sonstige_headertags = '
+			<script type="text/javascript">
+			<!--
+				setTimeout(\'top.location.reload()\', 2000);
+			//-->
+			</script>';
+		}
+
+		pageheader(array('page_title' => 'praktika.de - Login'));
+?>
+    <p><b>Ihr Login war erfolgreich!</b></p>
+    <p><b>Das Fenster schlie&szlig;t sich automatisch!</b></p>
+<?php
+	} elseif ( $logincheck = sessionlogin( $database_db, $login, $password )  == "true" ) {
+		$fehler = false;
+		$_SESSION['s_loginid'] = $login;
+
+		require("/home/praktika/etc/login_firmen.inc.php");
+		if (isset($_POST['includeLogin'])) {
+			$sonstige_headertags ='<script type="text/javascript">
+			<!--
+				function setLoc() {
+					top.location.href = \'/recruiting/\';
+				}
+				
+				setTimeout(setLoc(), 2000);
+			//-->
+			</script>';
+		} else {
+			$sonstige_headertags ='<script type="text/javascript">
+			<!--
+				setTimeout(\'top.location.reload()\', 2000);
+			//-->
+			</script>';
+		}
+		
+		pageheader(array('page_title' => 'praktika.de - Login'));
+?>
+    <p><b>Ihr Login war erfolgreich!</b></p>
+    <p><b>Das Fenster schlie&szlig;t sich automatisch!</b></p>
+<?php
+	} else {
+		$fehler = true;
+	}
+	
+}
+
+if ($fehler == true) {
+pageheader(array('page_title' => 'praktika.de - Login'));
+
+// TODO - entfernen
+if ($fehler == true && isset($_SESSION["s_loggedin"]) && $_SESSION["s_loggedin"] != true) {
+	//pageheader(array('page_title' => 'praktika.de - Login'));
+
+	// bei Fehlern
+	
+	if (isset($logincheck) && $logincheck == "false") $keinlogin = "yes";
+	if (isset($logincheck) && $logincheck == "passwdfalsch") $passwdfalsch = "yes";
+	if (isset($logincheck) && $logincheck == "gesperrt") $gesperrt = "yes";
+	if (isset($passwdfalsch) && $passwdfalsch == "yes") $ausgabe = '<p class="error">'.$language["strpasswdfalsch"].'</p>';
+	if (isset($gesperrt) && $gesperrt == "yes") $ausgabe = '<p class="error">'.$language["strGesperrt"].'</p>';
+	if (isset($keinlogin) && $keinlogin == "yes") $ausgabe = '<p class="error">'.$language["strKeinLogin"].'</p>';
+?>
+            <?php if (isset($ausgabe)) echo $ausgabe; } ?>
+   <div style="font-size:14px;">F&uuml;r diese und andere Funktionen brauchen Sie einen kostenfreien Account auf unserer Plattform.</div>
+<div id="minilogin">
+    <form action="/minilogin/<?php echo $_REQUEST["loginwer"];?>" method="post">
+    <input name="loginwer" type="hidden" value="<?php echo $_REQUEST["loginwer"];?>" />
+      <fieldset>
+        <p>
+          <label <?= $err[0] ? 'class="error"' : ''; ?> for="login">Login:</label>
+          <input id="login" name="login" type="text" value="<?= $login ?>" />
+        </p>
+        <p>
+          <label <?= $err[1] ? 'class="error"' : ''; ?> for="password">Passwort:</label>
+          <input id="password" name="password" type="password" value=""/>
+        </p>
+      </fieldset>
+      <fieldset class="control_panel">
+        <p>
+          <a href="/home/quicklogin/passwdwindow.phtml">Passwort vergessen? - Jetzt anfordern!</a>
+        </p>
+        <p>
+          <a href="javascript:top.location.href='/neuanmeldung/'">Kein Login? - Neu registrieren!</a>
+        </p>
+      </fieldset>
+          <fieldset class="control_panel">
+			 <p>
+			  <button type="submit" name="send" value="Einloggen"><span><span><span>Einloggen</span></span></span></button>
+			  <?php echo isset($_REQUEST['include']) ? '<input type="hidden" name="include" value="1" />' : '' ?>
+			 </p>
+		</fieldset>
+    </form>
+    </div>
+<?php
+}
+
+bodyoff();
+?>

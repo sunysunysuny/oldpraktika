@@ -1,0 +1,81 @@
+<?
+
+$_SESSION['s_bereich'] = 3;
+$template = _load_view("/home/praktika/etc/vorlagen/kCenterBewerbungenRow_2.phtml");
+
+// K�rzere Bezeichnung
+$s_kcenter = &$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"];
+
+$ordnerquery = 'AND bewerbung.ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];		
+
+# if(!isset($s_kcenter["merkzettelFirmen"])) {
+$bewerbungsFirmen = array();
+$sql = "SELECT firmen.firma, bewerbung.firmenid `id`
+		FROM prakt2.bewerbung
+				LEFT JOIN firmen ON (firmen.id = bewerbung.firmenid)
+		WHERE bewerbung.nutzerid = ".$_SESSION["s_nutzerid"]." AND firmen.firma != '' $ordnerquery
+		GROUP BY bewerbung.firmenid
+		ORDER BY firmen.firma
+		LIMIT 11
+		";
+$firmen = $hDB->query($sql, $praktdbslave);
+
+while($firma = mysql_fetch_assoc($firmen)) {
+	$bewerbungsFirmen[$firma["id"]] = $firma["firma"];
+}
+#	$s_kcenter["merkzettelFirmen"] = $bewerbungsFirmen;
+# }
+
+?>
+
+<script type="text/javascript" src="/scripts/wz_tooltip.js"></script>
+
+<?
+/*
+if(count($bewerbungsFirmen) > 0) { ?>
+	<div id="firmen_filter" class='firmen_filter'>Nur folgende Firma anzeigen:<br />
+	<a href='#' id="filterFirma_0" onclick='kc_setFilter("firmenid", false); return false;'>Alle Firmen</a>, 
+	<? $i = 0;
+	$bewerbungsFirmen["extern"] = "Externe Bewerbungen";
+	foreach ($bewerbungsFirmen as $key => $value) {
+		$i++;
+		echo "<a href='#' id='filterFirma_".$key."' onclick='kc_setFilter(\"firmenid\",\"".$key."\"); return false;'>".htmlentities(stripslashes($bewerbungsFirmen[$key]))."</a>";
+		if($i == 10) break;
+		if(count($bewerbungsFirmen) > $i) {
+			echo ", &nbsp;";
+		}
+	} 
+	if($i == 10 && count($bewerbungsFirmen) > 10) {
+		echo ", <a href='#' onclick='kc.loadFilterBox();return false;'>... mehr</a>";
+	}
+	?></div>
+	<div class="firmenFilter_more" style="display:none;" id="firmenFilter_more">
+	
+	</div>
+<? } */ ?>
+<form method="post" action="#" name="bewerbungsForm">
+<!--	<div class="newExtern">
+		<button type="button" onclick="return GB_showCenter('','/externe_Bewerbung/firmenreg/',700,700)" name="action" value="neues externes Unternehmen anlegen" style="display:inline;"><span><span><span>neues externes Unternehmen anlegen</span></span></span></button>
+		<span onmouseover="Tip('Ihr potentieller n&auml;chster Arbeitgeber ist nicht auf praktika.de vertreten?<br /><b>Kein Problem!</b><br />Auf praktika.de k&ouml;nnen Sie online auch Bewerbungen an Firmen verschicken und verwalten, welche nicht auf unserer Plattform angemeldet sind.<br />Sie bieten diesen Firmen dann einen umfassenden &Uuml;berblick &uuml;ber ihre Person, ohne ihre Profildaten erneut angeben zu m�ssen.', SHADOW, true, SHADOWCOLOR, '#666666', SHADOWWIDTH, 3,WIDTH,-300);" onmouseout="UnTip();">(Was ist das?)</span>
+	</div>-->
+	<div id="posteingang_container"></div>
+</form>
+<script id="tmp_container" type="type/javascript" style="display:none;"><?=$template ?></script>
+
+<script type="text/javascript">
+	kc_lastTemplate = document.getElementById('tmp_container').innerHTML; 
+	kc_page(1);
+</script>
+<script type="text/javascript">
+/*
+document.onkeydown= function(e) {
+	if(e.keyCode >= 65 && e.keyCode <= 90 || e.keyCode == 32) {
+		console.log(String.fromCharCode(e.keyCode));
+	}
+}
+*/
+</script>
+
+<div class="fixedBewerbenButton" style="display:none;" id="sendButtonContainer">
+	<button type="submit" onclick="kc.extbewerbungenSenden(); return false;" name="senden" value="markierte Bewerbungen senden"><span><span><span>MARKIERTE BEWERBUNGEN SENDEN</span></span></span></button>
+</div>

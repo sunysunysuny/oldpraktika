@@ -1,0 +1,10 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+if (isset($_POST['session_delete']) && $_POST['session_delete'] == '1') {
+	unset($_SESSION['detail_refer']);
+	unset($_SESSION['detail_refer_nutzer']);
+	unset($_SESSION['detail_refer_id']);
+	unset($_SESSION['detail_refer_spalte']);
+}
+?>

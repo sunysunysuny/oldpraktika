@@ -1,0 +1,18 @@
+<?php
+require("/home/praktika/etc/dbzugang.inc.php");
+
+session_name("praktika_id");
+session_save_path("/home/praktika/sessions");
+
+session_start();
+
+$praktdbmaster = @mysql_pconnect($dbarray[0][host],$dbarray[0][mysqluser],$dbarray[0][mysqlpassword]);
+
+$nutzerid = intval($_REQUEST['nutzerid']);
+
+if (isset($nutzerid) && !empty($nutzerid)) {
+	mysql_db_query($database_db,'INSERT INTO firmenbookmark SET firmenid = '.$_SESSION['s_firmenid'].', nutzerid = '.$nutzerid.', art = 3, mzbezeichnung = \'Kandidat '.date('d.m.y').'\', datum_eintrag = NOW()',$praktdbmaster);
+}
+
+echo 'merken###'.$nutzerid;
+?>

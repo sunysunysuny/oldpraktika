@@ -1,0 +1,26 @@
+<?
+ $restricted = "nutzer";
+ $gruppe = "praktikanten";
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+ require("/home/praktika/etc/config.inc.php");
+ require("/home/praktika/etc/emailverify.inc.php");
+
+ pageheader(array('page_title' => 'Account best&auml;tigen')); 
+
+$objUser = new Praktika_User((int)$_GET["id"]);
+
+?>
+<br /><br />
+	<p>
+		<strong>Ihr Account ist leider noch nicht aktiviert wurden.</strong><br /><br />
+		Eine Email ist Ihnen an Ihre angegebene eMail-Adresse zugegangen.<br />
+	</p>
+	<p class="hint info">Bitte pr&uuml;fen Sie Ihr Postfach und evtl. den SPAM-Ordner und best&auml;tigen Sie Ihren Account durch Klick auf den angegebenen Link.</p>
+<br />
+<a class="button small" href="/home/praktikanten/verify_email.phtml?id=<?=(int)$_GET["id"] ?>">Best&auml;tigungsmail erneut zusenden</a><a href='/' class="button small alternative">Zur&uuml;ck</a>
+<br /><br />
+
+
+
+<? bodyoff(); ?>

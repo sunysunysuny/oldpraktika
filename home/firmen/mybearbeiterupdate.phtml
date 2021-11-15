@@ -1,0 +1,215 @@
+<?
+$sprachbasisdatei = "/home/firmen/anmeldung2.phtml";
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+$id = $_REQUEST['id'];
+
+if (isset($_POST['save'])) {
+	/* email checken */
+	$firmen = mysql_db_query($database_db,'SELECT email FROM bearbeiter WHERE id = '.$_SESSION['s_loginid'],$praktdbmaster);
+	$oldemail = mysql_result($firmen, 0, 'email');
+
+	if (empty($_POST['email2'])) {
+		$_POST['email2'] = mysql_result($firmen, 0, 'email');
+	} else {
+		$validtext = ValidateMail($_POST['email2']);
+
+		if (empty($validtext[0])) {
+			$_POST['email2'] = mysql_result( $firmen, 0, 'email');
+		}
+	}
+
+	/* datensatz als aktiv setzen */
+	$inactive = 'false';
+
+ 	$vname = addslashes($_POST['vname']);
+	$lname = addslashes($_POST['lname']);
+
+ 	/* einfuegestring ansprechpartner zusammensetzen */
+	$updatestring2 = '	UPDATE bearbeiter SET
+							titel = \''.mysql_real_escape_string($_POST['titel']).'\',
+							anrede = \''.mysql_real_escape_string($_POST['anrede']).'\',
+							vname = \''.mysql_real_escape_string($vname).'\',
+							name = \''.mysql_real_escape_string($lname).'\',
+							abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+							funktion = \''.mysql_real_escape_string($_POST['funktion']).'\',
+							tel = \''.mysql_real_escape_string($_POST['tel1']).'\',
+							fax = \''.mysql_real_escape_string($_POST['fax1']).'\',
+							email = \''.mysql_real_escape_string($_POST['email2']).'\',
+							host = \''.mysql_real_escape_string($host).'\',
+							ip = \''.mysql_real_escape_string($ip).'\',
+							modify = NOW(),
+							anredeabt = \''.mysql_real_escape_string($_POST['anredeabt']).'\',
+							abtname = \''.mysql_real_escape_string($_POST['abtname']).'\',
+							abttelefon = \''.mysql_real_escape_string($_POST['abttelefon']).'\',
+							abtemail = \''.mysql_real_escape_string($_POST['abtemail']).'\',
+							callcenter = \'false\'
+						WHERE id = '.intval($_POST['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+
+	if (!empty($vname) && !empty($lname)) {
+
+		// datensatz einfuegen
+		mysql_db_query($database_db,$updatestring2,$praktdbmaster);
+
+		if ($_POST['id'] == $_SESSION['s_loginid']) {
+			$_SESSION['s_vname'] = $vname;
+			$_SESSION['s_name'] = $lname;
+		}
+
+		/* Logfile eintragen */
+		$fp = fopen( $logfile, "a" );
+		fputs( $fp, $updatestring2);
+		fputs( $fp, "\n");
+		fclose( $fp);
+
+		/* infomail zusammenbauen */
+		$subject = "praktika.de Bearbeiter-&Auml;nderung: ".$vname." ".$lname." - ID: ".$id;
+		$mailstring = "BEARBEITERDATENBANK - &Auml;NDERUNG\n\n";
+		$mailstring = $mailstring."ID: ".$id."\n\n";
+		$mailstring = $mailstring."Bearbeiter: ".$_POST['anrede']." ".$vname." ".$lname."\n";
+		$mailstring = $mailstring."Abteilung: ".$_POST['abteilung']."\n";
+		$mailstring = $mailstring."Funktion: ".$_POST['funktion']."\n";
+		$mailstring = $mailstring."Durchwahl: ".$_POST['tel1']."\n";
+		$mailstring = $mailstring."PersonalFax: ".$_POST['fax1']."\n";
+		$mailstring = $mailstring."PersonalMail: ".$_POST['email2']."\n";
+		$mailstring = $mailstring."Abteilungsleiter: ".$_POST['anredeabt']." ".$_POST['abtname']."\n";
+		$mailstring = $mailstring."Abteilungsleiter Telefon: ".$_POST['abttelefon']."\n";
+		$mailstring = $mailstring."Abteilungsleiter eMail: ".$_POST['abtemail']."\n";
+		$mailstring = $mailstring."Host: ".$host."\n";
+		$mailstring = $mailstring."IP: ".$ip."\n";
+		$mailstring = $mailstring."\n\nDATENBANKSTRING:\n";
+		$mailstring = $mailstring.$updatestring2."\n";
+
+		/* infomail verschicken */
+		mail($infomail, $subject, $mailstring, "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+	}
+}
+
+pageheader(array('page_title' => 'Bearbeiter &auml;ndern'));
+
+echo '<form action="/firmen/bearbeiter_update/'.$_GET['id'].'/" method="post">'."\n";
+
+if (isset($_POST['save'])) {
+	$titel = $_POST['titel'];
+	$anrede = $_POST['anrede'];
+	$vname = $vname;
+	$lname = $lname;
+	$abteilung = $_POST['abteilung'];
+	$funktion = $_POST['funktion'];
+	$tel1 = $_POST['tel1'];
+	$fax1 = $_POST['fax1'];
+	$email2 = $_POST['email2'];
+	$anredeabt = $_POST['anredeabt'];
+	$abtname = $_POST['abtname'];
+	$abttelefon = $_POST['abttelefon'];
+	$abtemail = $_POST['abtemail'];
+	
+	echo '<p class="success">Die Bearbeiterdaten wurden erfolgreich gespeichert!</p>'."\n";
+} else {
+	mysql_select_db ($database_db,$praktdbmaster);
+
+	$bearbeitersel = mysql_query('SELECT * FROM bearbeiter WHERE id = '.$id,$praktdbmaster);
+	$titel = mysql_result($bearbeitersel,0,'titel');
+	$anrede = mysql_result($bearbeitersel,0,'anrede');
+	$vname = mysql_result($bearbeitersel,0,'vname');
+	$lname = mysql_result($bearbeitersel,0,'name');
+	$abteilung = mysql_result($bearbeitersel,0,'abteilung');
+	$funktion = mysql_result($bearbeitersel,0,'funktion');
+	$tel1 = mysql_result($bearbeitersel,0,'tel');
+	$fax1 = mysql_result($bearbeitersel,0,'fax');
+	$email2 = mysql_result($bearbeitersel,0,'email');
+	$anredeabt = mysql_result($bearbeitersel,0,'anredeabt');
+	$abtname = mysql_result($bearbeitersel,0,'abtname');
+	$abttelefon = mysql_result($bearbeitersel,0,'abttelefon');
+	$abtemail = mysql_result($bearbeitersel,0,'abtemail');
+}
+
+$einruecken = '&nbsp;';
+
+/* pers&ouml;nliche Firmendaten des Bearbeiters*/
+echo '	<h4>'.$language['strNutzerdaten'].'</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="titel">'.$language['strTitel2'].':</label>'."\n";
+echo '			<input id="titel" name="titel" maxlength="50" value="'.$titel.'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="anrede">'.$language['strAnrede'].':</label>'."\n";
+echo '			<select id="anrede" name="anrede">'."\n";
+echo '				<option value="Herr"'.($anrede == 'Herr' ?  'selected="selected"' : '').'>'.$language['strHerr'].'</option>'."\n";
+echo '				<option value="Frau"'.($anrede == 'Frau' ?  'selected="selected"' : '').'>'.$language['strFrau'].'</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="vname"'.((isset($_POST['save']) && empty($vname)) ? ' class="error"' : '').'>'.$language['strVorname'].':</label>'."\n";
+echo '			<input id="vname" name="vname" maxlength="50" value="'.htmlspecialchars($vname).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="lname"'.((isset($_POST['save']) && empty($lname)) ? ' class="error"' : '').'>Nachname:</label>'."\n";
+echo '			<input id="lname" name="lname" maxlength="50" value="'.htmlspecialchars($lname).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abteilung"'.((isset($_POST['save']) && empty($abteilung)) ? ' class="error"' : '').'>'.$language['strAbteilung'].':</label>'."\n";
+echo '			<input id="abteilung" name="abteilung" maxlength="50" value="'.htmlspecialchars($abteilung).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="funktion"'.((isset($_POST['save']) && empty($funktion)) ? ' class="error"' : '').'>'.$language['strFunktion'].':</label>'."\n";
+echo '			<input id="funktion" name="funktion" maxlength="50" value="'.htmlspecialchars($funktion).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel1"'.((isset($_POST['save']) && empty($tel1)) ? ' class="error"' : '').'>'.$language['strTelefon'].':</label>'."\n";
+echo '			<input id="tel1" name="tel1" maxlength="50" value="'.htmlspecialchars($tel1).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="fax1"'.((isset($_POST['save']) && empty($fax1)) ? ' class="error"' : '').'>'.$language['strFax'].':</label>'."\n";
+echo '			<input id="fax1" name="fax1" maxlength="50" value="'.htmlspecialchars($fax1).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email2"'.((isset($_POST['save']) && (empty($email2) || empty($validtext[0]))) ? ' class="error"' : '').'>'.$language['strpMail'].':</label>'."\n";
+echo '			<input id="email2" name="email2" maxlength="100" value="'.htmlspecialchars($email2).'" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<h4>'.$language['strAbteilungsleitung'].'</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'.$language['strAbteilungsleitertext2'].'</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="anredeabt">'.$language['strAnrede'].':</label>'."\n";
+echo '			<select id="anredeabt" name="anredeabt">'."\n";
+echo '				<option value="Herr"'.($anrede == 'Herr' ?  'selected="selected"' : '').'>'.$language['strHerr'].'</option>'."\n";
+echo '				<option value="Frau"'.($anrede == 'Frau' ?  'selected="selected"' : '').'>'.$language['strFrau'].'</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abtname">'.$language['strAbteilungsleiter'].':</label>'."\n";
+echo '			<input id="abtname" name="abtname" value="'.$abtname.'" maxlength="100" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abttelefon">'.$language['strTelefonAbt'].':</label>'."\n";
+echo '			<input id="abttelefon" name="abttelefon" value="'.$abttelefon.'" maxlength="50" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abtemail">'.$language['strEMailAbt'].':</label>'."\n";
+echo '			<input id="abtemail" name="abtemail" value="'.$abtemail.'" maxlength="100" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="speichern"><span><span><span>SPEICHERN</span></span></span></button>'."\n";
+echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<button type="button" name="back" value="zur&uuml;ck zur Bearbeiter&uuml;bersicht" onclick="location.href=\'/firmen/bearbeiter/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+
+bodyoff();

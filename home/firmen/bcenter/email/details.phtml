@@ -1,0 +1,33 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Anzeige der gesendeten Email'));
+
+$results = mysql_db_query($database_db,'SELECT sender,recipient,subject AS betreff,body AS nachricht,date_format(t_stamp, \'%d.%m.%Y\') AS datumeintrag FROM maillog WHERE id = '.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']),$praktdbslave);
+	
+$nutzeremail = mysql_result($results,0,'recipient');
+
+$nutzer = mysql_db_query($database_db,'SELECT anrede,vname,name FROM nutzer WHERE email='.mysql_real_escape_string($nutzeremail),$praktdbslave);
+
+$nutzername = mysql_result($nutzer,0,'anrede').' '.mysql_result($nutzer,0,'vname').' '.mysql_result($nutzer,0,'name');
+
+echo '<p>Nachricht an: <strong>'.$nutzername.'</strong></p>'."\n";
+echo '<p>Nachricht von: '.mysql_result($results,0,'sender').'</p>'."\n";
+echo '<p>gesendet am: '.mysql_result($results,0,'datumeintrag').'</p>'."\n";
+echo '<p>Betreff: '.mysql_result($results,0,'betreff').'</p>'."\n";
+echo '<p>Nachricht: '.mysql_result($results,0,'nachricht').'</p>'."\n";
+
+echo '<div class="control_panel">'."\n";
+echo '	<p>'."\n";
+echo '		<a href="javascript: history.back();">Zur&uuml;ck</a>'."\n";
+echo '	</p>'."\n";
+echo '</div>'."\n";
+
+bodyoff();

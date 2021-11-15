@@ -1,0 +1,248 @@
+<?
+ $gruppe = "unternehmen";
+ $sprachbasisdatei = "/home/firmen/studiengang.phtml";
+ $sprachbasisdatei2 = "/home/firmen/volltext.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuche.inc.php"); 
+ 
+ if (!$s_kandidatentable)  require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+ 
+pageheader(session_id(), session_name()); 
+
+//echo $s_kandidatentable;
+?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Suchergebnis: Kandidaten Volltextsuche</h1>
+            <table width="100%">
+<?
+
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=20";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+if ($suchstring == "") { ?>
+              <tr> 
+                <td><? echo $language["strFormulieren"]; ?>
+                  <form>
+                    <hr>
+                    <input type="BUTTON" value="<? echo $language["strZurueck"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?<?=session_name()."=".session_id()?>')>
+                    <hr>
+                  </form>
+                </td>
+              </tr>
+            </table>
+<?
+} else { 
+
+$s_suchstring=$suchstring;
+
+echo "<form name=\"volltextsuche\" action=\"volltext.phtml\" method=\"get\">";
+echo "Sucheingabe &auml;ndern: <input type=\"Text\" name=\"suchstring\" value=\"".$s_suchstring."\" size=\"18\" class=eingabe156>";
+?>
+                    <input type="submit" value="suchen">
+	            <input type="hidden" value="<? echo session_id() ?>" name="<? echo session_name() ?>">
+	            <input type="hidden" value="yes" name="newsearch">
+</form>
+
+<?
+
+// Suchwerte dem Array hinzuf&uuml;gen
+$s_ergebnisarry[sucheingabe][suchart]=3;
+
+// uebergabevariablen konvertieren //
+$ds_count = intval( $ds_count);
+$ds_pro_seite = intval( $ds_pro_seite);
+
+if (count($bereiche)==0 || count($s_ergebnisarry["bereiche"])==0) {
+	$bereiche[0]=1;
+	$bereiche[1]=2;
+	$bereiche[2]=3;
+	$bereiche[3]=4;
+	$bereiche[4]=5;
+}	
+if (!$bereiche) $bereiche=$s_ergebnisarry["bereiche"];
+
+// Arrays zusammenbauen
+
+$check=mysql_db_query($database_temp,"SELECT id from $s_kandidatentable",$praktdbmaster);
+if (mysql_numrows($check) == 0 || $newsearch == "yes") {
+	
+if ($newsearch == "yes") mysql_db_query($database_temp,"TRUNCATE TABLE $s_kandidatentable",$praktdbmaster);
+
+$modifydate = date("YmdHis", mktime(0, 0, 0, date("m"), date("d"), (date("Y")-1)));
+
+$sucharray = explode(" ",$suchstring);
+foreach ($sucharray as $suchvalpart) {
+	if ($suchvalpart{0} != "+" && $suchvalpart{0} != "-" && $suchvalpart{0} != "~"  && $suchvalpart{0} != "*")
+		$suchvalpart = "+".$suchvalpart;
+	$sucharrayfinal[] = $suchvalpart;
+}
+	
+$suchstringfinal = implode(" ", $sucharrayfinal);
+
+if (in_array ("1",$bereiche)) {
+$sqlabfrage = mysql_db_query($database_temp,"INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,bundesland,grossraum,land,studiengang,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,lastlogin) SELECT t2.id as stellenid,t1.id as nutzerid,t1.geburtsdatum,t1.karierrestatus,t2.taetigkeit,t2.berufsfeld,t1.bundesland,t1.grossraum,t1.land, t2.studiengang,t2.sprachkenntnisse1,t2.sprachkenntnisse2,t2.sprachkenntnisse3,t1.lastloginunix FROM $database_db.nutzer AS t1, $database_db.praktikanten AS t2 WHERE (t2.inactive <> 'true') AND (t1.inactive <> 'true') AND (t2.nutzerid = t1.id) AND t2.modify > '$modifydate' AND MATCH (t2.beschreibung,t2.taetigkeit,t1.name,t1.vname,t1.ort) AGAINST ('$suchstringfinal' IN BOOLEAN MODE)",$praktdbmaster);
+$sqlupdate=mysql_db_query($database_temp,"UPDATE $s_kandidatentable set spalte=1,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0",$praktdbmaster);
+}
+
+if (in_array ("2",$bereiche)) {
+$sqlabfrage = mysql_db_query($database_temp,"INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,studiengang,land,bundesland,grossraum,lastlogin) select t2.id as stellenid,t2.nutzerid,t1.geburtsdatum,t1.karierrestatus,t2.titel as taetigkeit,t2.studiengang,t1.land,t1.bundesland,t1.grossraum,t1.lastloginunix FROM $database_db.diplomgesuch as t2,$database_db.nutzer as t1,$database_db.land WHERE (t1.inactive <> 'true') AND (t2.nutzerid = t1.id) AND (land.id = t1.land) AND t2.inactive='false' AND (t1.land <> 0) AND t2.modify > '$modifydate' AND MATCH (t2.beschreibung,t2.schlagwort,t2.studienort,t2.titel,t1.name,t1.vname,t1.ort) AGAINST ('$suchstringfinal' IN BOOLEAN MODE)",$praktdbmaster);
+$sqlupdate=mysql_db_query($database_temp,"UPDATE $s_kandidatentable set spalte=2,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0",$praktdbmaster);
+}
+
+if (in_array ("3",$bereiche)) {
+$sqlabfrage = mysql_db_query($database_temp,"INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,lastlogin) select t2.id as stellenid,t2.nutzerid,t1.geburtsdatum,t1.karierrestatus,t2.taetigkeit,t2.berufsfeld,t2.sprachkenntnisse1,t2.sprachkenntnisse2,t2.sprachkenntnisse3,t1.land,t1.bundesland,t1.grossraum,t1.lastloginunix FROM $database_db.nutzer AS t1, $database_db.nebenjobgesuch as t2 WHERE (t2.inactive = 'false') AND (t1.inactive = 'false') AND (t2.nutzerid = t1.id) AND t2.modify > '$modifydate' AND MATCH (t2.sonst_qualifikation, t2.arbeitsort, t2.kenntnisse, t2.vorh_unternehmen, t2.zeitraum, t2.beschreibung, t2.taetigkeit,t1.name,t1.vname,t1.ort) AGAINST ('$suchstringfinal' IN BOOLEAN MODE)",$praktdbmaster);
+$sqlupdate=mysql_db_query($database_temp,"UPDATE $s_kandidatentable set spalte=3,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0",$praktdbmaster);
+}
+
+if (in_array ("4",$bereiche)) {
+$sqlabfrage = mysql_db_query($database_temp,"INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,lastlogin) select t2.id as stellenid,t1.id as nutzerid,t1.geburtsdatum,t1.karierrestatus,t2.taetigkeit,t2.berufsfeld,t2.sprachkenntnisse1,t2.sprachkenntnisse2,t2.sprachkenntnisse3,t1.land,t1.bundesland,t1.grossraum,t1.lastloginunix FROM $database_db.nutzer AS t1, $database_db.ausbildungsgesuch AS t2 WHERE (t1.inactive <> 'true') AND (t2.nutzerid = t1.id) AND t2.modify > '$modifydate' AND MATCH (t2.taetigkeit, t2.beschreibung,t1.name,t1.vname,t1.ort) AGAINST ('$suchstringfinal' IN BOOLEAN MODE)",$praktdbmaster);
+$sqlupdate=mysql_db_query($database_temp,"UPDATE $s_kandidatentable set spalte=4,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0",$praktdbmaster);
+}
+
+if (in_array ("5",$bereiche)) {
+$sqlabfrage = mysql_db_query($database_temp,"INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,studiengang,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,lastlogin) select t2.id as stellenid,t2.nutzerid,t1.geburtsdatum,t1.karierrestatus,t2.bezeichnung as taetigkeit,t2.berufsfeld,t2.studiengang,t2.sprachkenntnisse1,t2.sprachkenntnisse2,t2.sprachkenntnisse3,t1.land,t1.bundesland,t1.grossraum,t1.lastloginunix FROM $database_db.nutzer as t1, $database_db.berufseinstieggesuch as t2 WHERE (t1.inactive <> 'true') AND (t2.nutzerid = t1.id) AND t2.modify > '$modifydate' AND MATCH (t2.bezeichnung, t2.beschreibung, t2.beschaeftigung, t2.regionales, t1.name,t1.vname,t1.ort) AGAINST ('$suchstringfinal' IN BOOLEAN MODE)",$praktdbmaster);
+$sqlupdate=mysql_db_query($database_temp,"UPDATE $s_kandidatentable set spalte=5,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0",$praktdbmaster);
+}
+}
+
+if ($wkvalue) inbasket($wknutzerid,$wkvalue);
+
+if ($finesearch) {
+	if ($berufsfeld != "") {
+		$s_ergebnisarry[sucheingabe][berufsfeld]=array($berufsfeld);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE berufsfeld <> $berufsfeld",$praktdbmaster);
+	}
+	if ($spalte != "") {
+		$s_ergebnisarry["bereiche"]=array($spalte);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE spalte <> $spalte",$praktdbmaster);
+	}
+	if ($bundesland != "") {
+		$s_ergebnisarry[sucheingabe][bundesland]=array($bundesland);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE bundesland <> $bundesland",$praktdbmaster);
+	}
+	if ($sprache != "") {
+		$s_ergebnisarry[sucheingabe][sprache]=array($sprache);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE (sprachkenntnisse1 <> $sprache AND sprachkenntnisse2 <> $sprache AND sprachkenntnisse3 <> $sprache )",$praktdbmaster);
+	}
+	if ($grossraum != "") {
+		$s_ergebnisarry[sucheingabe][grossraum]=array($grossraum);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE grossraum <> $grossraum",$praktdbmaster);
+	}
+	if ($suchlastlogin != "") {
+		switch ($suchlastlogin) {
+		case "7d":
+		   $timeoutlogin = time()-604800;
+		   break;
+		case "14d":
+		   $timeoutlogin = time()-1209600;
+		   break;
+		case "1m":
+		   $timeoutlogin = time()-2592000;
+		   break;
+		case "2m":
+		   $timeoutlogin = time()-5184000;
+		   break;
+		case "3m":
+		   $timeoutlogin = time()-7776000;
+		   break;
+		case "6m":
+		   $timeoutlogin = time()-15552000;
+		   break;
+		}
+
+		$s_ergebnisarry[sucheingabe][suchlastlogin]=array($suchlastlogin);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE lastlogin < '$timeoutlogin'",$praktdbmaster);
+	}
+}
+
+
+// Arrays zusammenfassen
+$s_ergebnisarry["bereiche"]=$bereiche;
+
+
+$query="SELECT * FROM $s_kandidatentable";
+//echo $query."<br>";
+
+$results=mysql_db_query($database_temp,$query,$praktdbmaster);
+
+//echo $results;
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows( $results );
+
+if ( $num_rows  > 0) {
+
+$rueckgabe = suchergebnis($ds_count,$ds_pro_seite,$num_rows);
+
+$ds_value=($ds_count);
+$ds_count = $rueckgabe[0];
+$ds_pro_seite = $rueckgabe[1];
+?> 
+              <hr>
+              <table width="100%">
+                <tr> 
+                  <td align="left"> 
+                  <? if ($ds_count > $ds_pro_seite) { ?> 
+                    <form action="volltext.phtml" method="POST">
+                      	<input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+			<input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      	<input type="HIDDEN" name="ds_count" value=<? echo ($ds_value-$ds_pro_seite); ?>>
+                      	<input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      	<input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      	<input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      	<input type="SUBMIT" value="zur&uuml;ck">
+                    </form><? } else {?>
+
+                    <form>
+                     <input type="BUTTON" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=volltext&<?=session_name()."=".session_id()?>')>
+                    </form> <? } ?>
+                  </td>
+                  <? if ($ds_count < $num_rows) { ?> 
+                  <td align="right"> 
+                    <form action="volltext.phtml" method="POST">
+                      <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+                      <input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      <input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      <input type="HIDDEN" name="ds_count" value=<? echo $ds_count ?>>
+                      <input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      <input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      <input type="SUBMIT" value="<? echo $language["strNaechsten"]; ?> <? echo min( $ds_pro_seite, ($num_rows - $ds_count) ) ?> <? echo $language["strErgebnisse"]; ?>" style="width:185px">
+                    </form>
+                  </td>
+                  <? }
+                  if ($ds_count == $num_rows && $ds_count > 5) { ?>
+                  <td align="right"> 
+                  <form>
+                      <input type="BUTTON" name="y" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=volltext&<?=session_name()."=".session_id(); ?>')>
+                  </form>
+                  </td> <? } ?> </tr>
+
+                  <? if ($ds_count > $ds_pro_seite && $ds_count != $num_rows) { ?> 
+	        <tr><td colspan=2><form><input type="BUTTON" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=volltext&<?=session_name()."=".session_id()?>')></form></td></tR>
+                  <? } ?>
+<? unterelinks() ?>
+              </table>
+              <hr>
+              <? } else { ?> 
+              <tr> 
+                <td><font color="red"><? echo $language["strKeine"]; ?></font>
+                  <form>
+                    <hr>
+                    <input type="BUTTON" value="<? echo $language["strZurueck"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=volltext&<?=session_name()."=".session_id(); ?>')>
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? }} 
+if (!$s_loginid) {$bearbeiterid=$c_lid;} else {$bearbeiterid=$s_loginid;}
+if ($s_suchstring != "") mysql_db_query($database_comm,"INSERT INTO kssuchstring (bearbeiterid,suchstring) VALUES ('$bearbeiterid','$s_suchstring')",$praktdbmaster);
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+            ?> </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

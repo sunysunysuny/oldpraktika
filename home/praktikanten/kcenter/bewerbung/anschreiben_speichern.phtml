@@ -1,0 +1,54 @@
+<?php
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+mysql_set_charset('utf8', $praktdbslave); 
+mysql_set_charset('utf8', $praktdbmaster); 
+
+$_POST["values"][1] = str_replace($_POST["anrede"], "{anrede}", $_POST["values"][1]);
+
+for($a = 0;$a < count($_POST["values"]); $a++) {
+	$_POST["values"][$a] = Praktika_String::getUtf8String($_POST["values"][$a]);
+}
+
+$hDB = new Praktika_Db();
+
+// Sollen die Standard-Einstellungen gesetzt werden, oder ein Anschreibentext gespeichert werden?
+if($_POST["mode"] == "std") {
+	$abfrage = mysql_query("SELECT id FROM prakt2_bprofil.profil_kurzbewerbung WHERE nutzerid = ".$_SESSION["s_nutzerid"]." AND sprachid = ".$_GET["sprachid"], $praktdbslave);
+	if(mysql_num_rows($abfrage) > 0) {
+		$sql = 'UPDATE prakt2_bprofil.profil_kurzbewerbung 
+					SET 
+
+						betreffzeile = "'.mysql_real_escape_string($_POST["values"][0]).'",
+						anreden = "'.mysql_real_escape_string($_POST["values"][1]).'",
+						einleitungen = "'.mysql_real_escape_string($_POST["values"][2]).'",
+						bewerbungen = "'.mysql_real_escape_string($_POST["values"][3]).'",
+						zeitraumalle = "'.mysql_real_escape_string($_POST["values"][4]).'",
+						schlussalle = "'.mysql_real_escape_string($_POST["values"][5]).'"
+					WHERE	
+						nutzerid = '.$_SESSION["s_nutzerid"].' AND
+						sprachid = '.(int)$_GET["sprachid"].'';
+
+	} else {
+		$sql = 'INSERT INTO prakt2_bprofil.profil_kurzbewerbung 
+				SET 
+					nutzerid = '.$_SESSION["s_nutzerid"].',
+					sprachid = '.(int)$_GET["sprachid"].',
+					betreffzeile = "'.mysql_real_escape_string($_POST["values"][0]).'",
+					anreden = "'.mysql_real_escape_string($_POST["values"][1]).'",
+					einleitungen = "'.mysql_real_escape_string($_POST["values"][2]).'",
+					bewerbungen = "'.mysql_real_escape_string($_POST["values"][3]).'",
+					zeitraumalle = "'.mysql_real_escape_string($_POST["values"][4]).'",
+					schlussalle = "'.mysql_real_escape_string($_POST["values"][5]).'"';
+
+	}
+		
+	
+	$hDB->query($sql, $praktdbmaster);
+	echo "OK";
+}

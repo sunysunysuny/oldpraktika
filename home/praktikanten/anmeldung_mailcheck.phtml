@@ -1,0 +1,23 @@
+<?
+/**
+ * Ajax - Validierungsfile einer Mailadresse der Praktikantenanmeldung
+ */
+
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+$checkValue = Praktika_Validate::checkMailForRegistration($_POST["email"], "praktikant");
+
+switch($checkValue) {
+	case 1:
+		die("Die eMail besitzt kein g&uuml;ltiges Format.");
+		break;
+	case 2:
+		die("eMail konnte nicht verifiziert werden.");
+		break;
+	case 3:
+		die("`".htmlentities($_POST['email'])."` wird schon verwendet!");
+		break;
+	case 4:
+		die("`".htmlentities($_POST['email'])."` darf auf dieser Plattform nicht verwendet werden!");
+		break;
+}

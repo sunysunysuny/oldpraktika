@@ -1,0 +1,29 @@
+/*
+    Document   : liste_top_kandidaten
+    Created on : 01.03.2010, 14:33:23
+    Author     : swarnat
+    Description:
+        Style für Liste-Top-Kandidaten
+*/
+
+.ltk_pic {
+	float:left;
+	margin-right:12px;
+}
+.ltk_ul li {
+	padding: 0px;
+	font-size:11px;
+}
+.ltk_ul li .name {
+	font-weight:bold;
+	font-size:12px;
+}
+.ltk_ul li {
+	line-height:16px;
+}
+.ltk_ul li .grossraum {
+	color:#777;
+}
+.ltk_ul div.ltk_container {
+	margin-top:12px !important;
+}

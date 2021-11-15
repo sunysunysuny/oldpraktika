@@ -1,0 +1,88 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_GET['id'])) {
+	$id = intval($_GET['id']);
+} else {
+	$id = intval($_POST['id']);
+}
+
+pageheader(array('page_title' => 'Diesen Eintrag verschieben'));
+
+if (isset($_POST['action'])) {
+	if (!empty($_POST['newfolder'])) {
+		mysql_query('INSERT INTO firmenordner (firmenid, name, bereich, reihenfolge) VALUES ('.$_SESSION['s_firmenid'].',\''.mysql_real_escape_string($_POST['newfolder']).'\','.$_SESSION['s_bereich'].',\'100\')', $praktdbmaster);
+		$_POST['ordnerid'] = mysql_insert_id($praktdbmaster);
+	}
+
+	if (intval($_SESSION['s_bereich']) == 1) {
+		$dbstring = 'UPDATE prakt2.bewerbung SET fordner = '.intval($_POST['ordnerid']).' WHERE id = '.$id.' AND firmenid = '.$_SESSION['s_firmenid'];
+	} elseif (intval($_SESSION['s_bereich']) == 2) {
+		$dbstring = 'UPDATE prakt2.firmenkontakte SET ordner = '.intval($_POST['ordnerid']).' WHERE id = '.$id.' AND firmenid = '.$_SESSION['s_firmenid'];
+	} elseif (intval($_SESSION['s_bereich']) == 3) {
+		$dbstring = 'UPDATE prakt2.bewerberkontakte SET fordner = '.intval($_POST['ordnerid']).' WHERE id = '.$id.' AND firmenid = '.$_SESSION['s_firmenid'];
+	} elseif (intval($_SESSION['s_bereich']) == 4) {
+		$dbstring = 'UPDATE prakt2.firmenbookmark SET ordner = '.intval($_POST['ordnerid']).' WHERE id = '.$id.' AND firmenid = '.$_SESSION['s_firmenid'];
+	} else {
+		// Tue nichts
+	}
+	mysql_db_query($database_db,$dbstring,$praktdbmaster);
+
+	if (mysql_affected_rows($praktdbmaster) != 0) {
+		echo '<p class="success">Der Eintrag wurde erfolgreich verschoben.</p>';
+		echo '<script type="text/javascript">'."\n";
+		echo '	top.loadContent("messaging/index"); document.write = setTimeout(\'top.GB_hide()\', 3000);'."\n";
+		echo '</script>'."\n";	
+	} else {
+		echo '<p class="error">Der Eintrag wurde nicht verschoben.</p>';
+		echo '<script type="text/javascript">'."\n";
+		echo '	top.loadContent("messaging/index"); document.write = setTimeout(\'top.GB_hide()\', 3000);'."\n";
+		echo '</script>'."\n";			
+	}
+} else {
+
+	echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="ordnerid">Den Eintrag in folgenden Ordner verschieben:</label>'."\n";
+	echo '			<select id="ordnerid" name="ordnerid">'."\n";
+	
+	$bereichvars[1] = 'Bewerbungen';
+	$bereichvars[2] = 'Posteingang';
+	$bereichvars[3] = 'gesendete Mitteilungen';
+	$bereichvars[4] = 'Merkzettel Kandidaten';
+	
+	$result = mysql_query('SELECT id, name FROM prakt2.firmenordner WHERE firmenid = '.$_SESSION['s_firmenid'].' AND bereich = '.$_SESSION['s_bereich'].' ORDER BY reihenfolge',$praktdbslave);
+	
+	echo '				<option value="0">'.$bereichvars[$_SESSION['s_bereich']].'</option>'."\n";
+	
+	while ($result_row = mysql_fetch_array($result)) {
+		echo '<option value="'.$result_row['id'].'">-'.$result_row['name'].'</option>'."\n";
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p style="clear: both;">'."\n";
+	echo '			<label for="newfolder">oder in einen neuen Ordner legen:</label>'."\n";
+	echo '			<input class="stdStyle" type="text" id="newfolder" name="newfolder" value="" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="submit" name="action" value="Eintrag verschieben"><span><span><span>EINTRAG VERSCHIEBEN</span></span></span></button>'."\n";
+	echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+}
+
+bodyoff();
+?>

@@ -1,0 +1,301 @@
+<?
+// Kann weg (by Stefan)
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_MY_PRAKTIKA;
+
+if (isset($_REQUEST["DELETE"])) {
+
+pageheader(array('page_title' => 'L&ouml;schung Ihrer Mitgliedschaft')); ?>
+<h4><? echo $language["strGeloescht"]; ?></h4>
+<? 
+
+$s_nutzerid = $_SESSION["s_loginid"];
+
+/* datensatz f&uuml;r eMail auslesen */
+$suche = mysql_db_query($database_db,"select * from nutzer where id='$s_nutzerid'",$praktdbslave);
+$eintrag = mysql_fetch_array( $suche );
+$emailnutzer=$eintrag["email"];
+
+if (!empty($_REQUEST["feedback"])) mail('team@praktika.de','Nutzerlöschung - Feedback',$_REQUEST["feedback"],"From: $emailnutzer\nX-Mailer: praktika.de Mailscript PHP");
+
+/* &Uuml;berpr&uuml;fung ob ein Newslettereintrag existiert */
+$results = mysql_db_query($database_db,"SELECT email FROM newsletter WHERE email = '$emailnutzer'",$praktdbslave);
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0; 
+
+
+/* Nutzer in die DELETE Tabelle &uuml;bertragen */
+$id=$eintrag["id"];
+$titel=$eintrag["titel"];
+$anrede=$eintrag["anrede"];
+$vname=$eintrag["vname"];
+$name=$eintrag["name"];
+$strasse=$eintrag["strasse"];
+$plz=$eintrag["plz"];
+$ort=$eintrag["ort"];
+$grossraum=$eintrag["grossraum"];
+$bundesland=$eintrag["bundesland"];
+$land=$eintrag["land"];
+$tel=$eintrag["tel"];
+$fax=$eintrag["fax"];
+$funktel=$eintrag["funktel"];
+$email=$eintrag["email"];
+$homepage=$eintrag["homepage"];
+$geburtsdatum=$eintrag["geburtsdatum"];
+$karierrestatus=$eintrag["karierrestatus"];
+$gebort=$eintrag["gebort"];
+$famstand=$eintrag["famstand"];
+$geschlecht=$eintrag["geschlecht"];
+$sprache=$eintrag["sprache"];
+$hochschule=$eintrag["hochschule"];
+$hochschuletext=$eintrag["hochschuletext"];
+$datum_eintrag=$eintrag["datum_eintrag"];
+$passwort=$eintrag["passwort"];
+$passwort_plain=$eintrag["passwort_plain"];
+$modify = date("YmdHis");
+
+// prakt2
+$insertstring="INSERT INTO nutzer_delete (id, titel, anrede, vname, name, strasse, plz, ort, grossraum, bundesland, land, tel, fax, funktel, email, homepage, geburtsdatum, karierrestatus, gebort, famstand, geschlecht, sprache, hochschule, hochschuletext, datum_eintrag, passwort, passwort_plain, modify) VALUES ('$id', '$titel', '$anrede', '$vname', '$name', '$strasse', '$plz', '$ort', '$grossraum', '$bundesland', '$land', '$tel', '$fax', '$funktel', '$email', '$homepage', '$geburtsdatum', '$karierrestatus', '$gebort', '$famstand', '$geschlecht', '$sprache', '$hochschule', '$hochschuletext', '$datum_eintrag', '$passwort', '$passwort_plain', '$modify')";
+$deletenutzer="DELETE FROM nutzer where id=$s_nutzerid"; 
+$deletenutzer2="DELETE FROM nutzer_prop_assign where nutzerid=$s_nutzerid"; 
+
+$deletestelle1="DELETE FROM praktikanten where nutzerid=$s_nutzerid";
+$deletestelle2="DELETE FROM diplomgesuch where nutzerid=$s_nutzerid"; 
+$deletestelle3="DELETE FROM nebenjobgesuch where nutzerid=$s_nutzerid"; 
+$deletestelle4="DELETE FROM ausbildungsgesuch where nutzerid=$s_nutzerid"; 
+$deletestelle5="DELETE FROM berufseinstieggesuch where nutzerid=$s_nutzerid"; 
+
+$deletesonst1="DELETE FROM bewerbungsfoto where nutzerid=$s_nutzerid"; 
+$deletesonst2="DELETE FROM ext_firmen where nutzerid=$s_nutzerid";
+$deletesonst4="DELETE FROM nutzerbookmark where nutzerid=$s_nutzerid"; 
+$deletesonst5="DELETE FROM viewstatspraktikanten where nutzerid=$s_nutzerid"; 
+$deletesonst6="DELETE FROM jobmailsend where nutzerid=$s_nutzerid"; 
+$deletesonst7="DELETE FROM jobmail where nutzerid=$s_nutzerid"; 
+$deletesonst8="delete from firmenbookmark where nutzerid=$s_nutzerid";
+$deletesonst9="delete from sessions where nutzerid=$s_nutzerid"; 
+
+$updatebewerbung="UPDATE bewerbung set inactive='true', ninactive='true' where nutzerid=$s_nutzerid";
+$updatebewerberkontakte="UPDATE bewerberkontakte set inactive='true' where nutzerid=$s_nutzerid";
+$updatefirmenkontakte="UPDATE firmenkontakte set inactive='true' where nutzerid=$s_nutzerid";
+
+// prakt2_profil
+$deleteprofil1="DELETE FROM anschreiben where nutzerid=$s_nutzerid"; 
+$deleteprofil2="DELETE FROM einstellungen where nutzerid=$s_nutzerid"; 
+$deleteprofil3="DELETE FROM profil_berufsausbildung where nutzerid=$s_nutzerid";
+$deleteprofil4="DELETE FROM profil_dateien where nutzerid=$s_nutzerid";
+$deleteprofil5="DELETE FROM profil_hobby where nutzerid=$s_nutzerid";
+$deleteprofil6="DELETE FROM profil_kurzbewerbung where nutzerid=$s_nutzerid";
+$deleteprofil7="DELETE FROM profil_leistung where nutzerid=$s_nutzerid";
+$deleteprofil8="DELETE FROM profil_praktika where nutzerid=$s_nutzerid";
+$deleteprofil9="DELETE FROM profil_schule where nutzerid=$s_nutzerid";
+$deleteprofil9="DELETE FROM profil_studium where nutzerid=$s_nutzerid"; 
+$deleteprofil9="DELETE FROM profil_zukunft where nutzerid=$s_nutzerid";
+
+// L&ouml;schung aus den Auslandsprogrammen
+$update40="delete from usnutzer where email=$emailnutzer";
+mysql_db_query($database_us,$update40,$praktdbmaster);
+$update41="delete from cnnutzer where email=$emailnutzer";
+mysql_db_query($database_us,$update41,$praktdbmaster);
+$update41="delete from clnutzer where email=$emailnutzer";
+mysql_db_query($database_us,$update41,$praktdbmaster);
+$update42="delete from uknutzer where email=$emailnutzer";
+mysql_db_query($database_uk,$update42,$praktdbmaster);
+$update42="delete from ukstatus where email=$emailnutzer";
+mysql_db_query($database_uk,$update42,$praktdbmaster);
+
+$update43="delete from spainnutzer where email=$emailnutzer";
+mysql_db_query($database_spain,$update43,$praktdbmaster);
+$update43="delete from status where email=$emailnutzer";
+mysql_db_query($database_spain,$update43,$praktdbmaster);
+$update44="delete from frznutzer where email=$emailnutzer";
+mysql_db_query($database_frz,$update44,$praktdbmaster);
+$update45="delete from denutzer where email=$emailnutzer";
+mysql_db_query($database_frz,$update45,$praktdbmaster);
+$update45="delete from status where email=$emailnutzer";
+mysql_db_query($database_frz,$update45,$praktdbmaster);
+
+// Sonstige L&ouml;schungen
+$update="delete from gewinn_gesendet where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+$update="delete from gewinnhotlist where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+$update="delete from gewinnspiel where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+$update="delete from keytable where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+$update="delete from nutzerordner where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+$update="delete from ext_firmen where nutzerid=$s_nutzerid";
+mysql_db_query($database_db,$update,$praktdbmaster);
+
+$update="delete from callcenter where nutzerid=$s_nutzerid";
+mysql_db_query($database_programs,$update,$praktdbmaster);
+$update="delete from users where nutzerid=$s_nutzerid";
+mysql_db_query($database_programs,$update,$praktdbmaster);
+
+$update="delete from anzeigen where nutzerid=$s_nutzerid";
+mysql_db_query($database_km,$update,$praktdbmaster);
+$update="delete from flirtfoto where nutzerid=$s_nutzerid";
+mysql_db_query($database_km,$update,$praktdbmaster);
+$update="delete from flirtprofil where nutzerid=$s_nutzerid";
+mysql_db_query($database_km,$update,$praktdbmaster);
+
+$update="delete from moneysearch where nutzerid=$s_nutzerid";
+mysql_db_query($database_comm,$update,$praktdbmaster);
+$update="delete from nutzerbuchungen where nutzerid=$s_nutzerid";
+mysql_db_query($database_comm,$update,$praktdbmaster);
+
+
+// prakt2_anzeigen
+$deleteanzeige1="DELETE FROM anzeigen where nutzerid=$s_nutzerid";
+$deleteanzeige2="DELETE FROM flirtfoto where nutzerid=$s_nutzerid";
+$deleteanzeige3="DELETE FROM flirtprofil where nutzerid=$s_nutzerid";
+
+// prakt2_comm
+$updatenutzerbuchungen="update nutzerbuchungen set inactive='true' where nutzerid=$s_nutzerid";
+
+// Auslandsprogramme
+$deleteprogramm1="";
+
+// L&ouml;schung
+echo "<table>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>Mitgliedschaft beenden</FONT></td></tr>\n";
+echo "<tr><td><br></td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\">" . $language["strgeloescht"] . "</td></tr>\n";
+echo "<tr><td><br></td></tr>\n";  
+
+// datensatz l&ouml;schen 
+if ( $num_rows  > 0) { 
+$deletestring = "DELETE FROM newsletter where email='$emailnutzer'"; 
+mysql_db_query($database_db,$deletestring,$praktdbmaster);
+}
+if ($s_nutzerid > 0) {
+mysql_db_query($database_db,$insertstring,$praktdbmaster);
+mysql_db_query($database_db,$deletenutzer,$praktdbmaster);
+mysql_db_query($database_db,$deletenutzer2,$praktdbmaster);
+
+mysql_db_query($database_db,$deletestelle1,$praktdbmaster);
+mysql_db_query($database_db,$deletestelle2,$praktdbmaster);
+mysql_db_query($database_db,$deletestelle3,$praktdbmaster);
+mysql_db_query($database_db,$deletestelle4,$praktdbmaster);
+mysql_db_query($database_db,$deletestelle5,$praktdbmaster);
+
+mysql_db_query($database_db,$updatebewerbung,$praktdbmaster);
+mysql_db_query($database_db,$updatebewerberkontakte,$praktdbmaster);
+mysql_db_query($database_db,$updatefirmenkontakte,$praktdbmaster);
+
+mysql_db_query($database_db,$deletesonst1,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst2,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst4,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst5,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst6,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst7,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst8,$praktdbmaster);
+mysql_db_query($database_db,$deletesonst9,$praktdbmaster);
+
+mysql_db_query($database_db,$deleteprofil1,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil2,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil3,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil4,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil5,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil6,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil7,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil8,$praktdbmaster);
+mysql_db_query($database_db,$deleteprofil9,$praktdbmaster);
+
+mysql_db_query($database_db,$deleteanzeige1,$praktdbmaster);
+mysql_db_query($database_db,$deleteanzeige2,$praktdbmaster);
+mysql_db_query($database_db,$deleteanzeige3,$praktdbmaster);
+}
+
+/*
+$subject = "praktika.de Praktikanten-Mitgliedsl&ouml;schung: " . $s_nutzerid;
+$mailstring = $mailstring . "Soeben hat ein Nutzer von praktika.de seine Mitgliedschaft beendet!\n";
+
+// infomail verschicken
+mail($infomail, $subject, $mailstring,
+         "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+*/       
+$emailobj = new emailtemplate(34);
+$emailobj->replace("{id}",$s_nutzerid);
+$emailobj->send_email();
+unset($emailobj);       
+
+unset($s_loggedinnutzer);
+unset($s_nutzerid);
+
+session_destroy();
+?>
+            </table>
+            <form name="x">
+              <fieldset class="control_panel">
+              <p><button type="submit" value="<? echo $language["strZurueck"]; ?>" name="<? echo $language["strZurueck"]; ?>" onclick="location.replace('/');"><span><span><span><? echo $language["strZurueck"]; ?></span></span></span></button></p>
+			  </fieldset>
+            </form>
+
+
+<?
+} else {
+
+pageheader(array('page_title' => 'Beendigung Ihrer Mitgliedschaft'));
+
+$grossraum = mysql_db_query($database_db,"select grossraum,id from grossraum order by grossraum",$praktdbslave);
+$anz_grossraum = ($grossraum != false) ? mysql_NumRows($grossraum) : 0;
+
+$nutzer = mysql_db_query($database_db,"select * from nutzer where id = ".$_SESSION["s_loginid"],$praktdbslave);
+$titel = mysql_result($nutzer,0,"titel");
+$anrede = mysql_result($nutzer,0,"anrede");
+
+$landid=mysql_result($nutzer,0,"land");
+$land=mysql_db_query($database_db,"select $s_sprache from land where id=$landid",$praktdbslave);
+if ($s_sprache == "german") {
+$grossraumid=mysql_result($nutzer,0,"grossraum");
+$grossraum=mysql_db_query($database_db,"select grossraum from grossraum where id=$grossraumid",$praktdbslave);
+
+$bundesland = mysql_result($nutzer,0,bundesland);
+$bland=mysql_db_query($database_db,"select $s_sprache from bundesland where id=$bundesland",$praktdbslave);
+}
+
+/* Praktikumsbeschreibung */
+echo "<h4>".$language ["strNutzerdaten"]."</h4><form action=\"mymitglied.phtml\"><fieldset><table>\n";
+
+echo "<tr valign=\"baseline\"><td width=130>".$language ["strAnrede"] . ":</td> <td>$anrede</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$language ["strVorname"] . ":</td> <td>" . mysql_result($nutzer,0,"vname") . "</td></tr>\n";     
+echo "<tr valign=\"baseline\"><td>".$language ["strNachname"] . ":</td> <td>" . mysql_result($nutzer,0,"name") . "</td></tr>\n";     
+echo "<tr valign=\"baseline\"><td>".$language ["strStrasse"] . ":</td> <td>" . mysql_result($nutzer,0,"strasse") . "</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$language ["strPLZ"] . ":</td> <td>" . mysql_result($nutzer,0,"plz") . " " . mysql_result($nutzer,0,"ort") . "</td></tr>\n";
+if ($s_sprache == "german") {
+echo "<tr valign=\"baseline\"><td>".$language ["strGrossraum"] . ":</td> <td>" . mysql_result($grossraum,0,"grossraum") . "</td></tr>\n";
+
+
+echo "<tr valign=\"baseline\"><td>".$language ["strBundesland"] . ":</td> <td>".mysql_result($bland,0,$s_sprache)."</td></tr>\n";
+}
+echo "<tr valign=\"baseline\"><td>".$language ["strLand"] . ":</td> <td>" . mysql_result($land,0,$s_sprache) . "</td></tr>\n";
+if (mysql_result($nutzer,0,"tel")!= "" ) {
+echo "<tr valign=\"baseline\"><td>".$language ["strTNR"] . ":</td> <td>" . mysql_result($nutzer,0,"tel") . "</td></tr>\n";
+}
+if (mysql_result($nutzer,0,"fax")!= "" ) {
+echo "<tr valign=\"baseline\"><td>".$language ["strFNR"] . ":</td> <td>" . mysql_result($nutzer,0,"fax") . "</td></tr>\n";
+}
+if (mysql_result($nutzer,0,"funktel")!= "" ) {
+echo "<tr valign=\"baseline\"><td>".$language ["strMobil"] . ":</td> <td>" . mysql_result($nutzer,0,"funktel") . "</td></tr>\n";
+}
+echo "<tr valign=\"baseline\"><td>".$language ["strEmail"] . ":</td> <td>" . mysql_result($nutzer,0,"email") . "</td><tr> \n";
+if (mysql_result($nutzer,0,"homepage")!= "" ) {
+echo "<tr valign=\"baseline\"><td>".$language ["strHP"] . ":</td> <td>" . mysql_result($nutzer,0,"homepage") . "</td></tr>\n";
+}
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><br /><br />Warum möchten Sie Ihre Mitgliedschaft auf praktika.de beenden? <br /><textarea style=\"width:100%\" name=\"feedback\"></textarea></td></tr>\n";
+?>
+            </table></fieldset>
+           <fieldset class="control_panel">Wollen Sie Ihren Account wirklich l&ouml;schen?<br /><br />
+           <p><button type="submit" value="YES" name="DELETE"><span><span><span>Mitgliedschaft beenden</span></span></span></button>
+           <button type="button" onclick="location.replace('/home/praktikanten/mystammdaten.phtml')"><span><span><span>Abbrechen</span></span></span></button></p>
+           </fieldset></form>
+<? } ?>
+<? bodyoff(); ?>

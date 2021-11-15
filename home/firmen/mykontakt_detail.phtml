@@ -1,0 +1,163 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+# pageheader(array('page_title' => 'Die Nachricht des Bewerbers an Sie'));
+
+mysql_select_db($database_db, $praktdbslave);
+
+// Uebergabevariable konvertieren //
+$id = intval($_GET['id']);
+
+$_SESSION['detail_refer'] = true;
+$_SESSION['detail_refer_nutzer'] = intval($_GET['nutzerid']);
+$_SESSION['detail_refer_id'] = $id;
+$_SESSION['detail_refer_spalte'] = intval($_GET['spalte']);
+
+// datensatz abfragen //
+$result = mysql_db_query($database_db,'SELECT * FROM nutzer WHERE id = '.intval($_GET['nutzerid']).' AND inactive != \'true\'',$praktdbslave);
+
+$result2 = mysql_query('SELECT *,date_format(datum, \'%d.%m.%Y\') AS datumvon FROM firmenkontakte WHERE id = '.$id,$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($result);
+$eintrag2 = mysql_fetch_array($result2);
+
+?>
+
+<style type="text/css">
+table tr td {
+	width:auto;
+}
+</style>
+<?
+// datensatzausgabe //
+echo '<div style="margin:10px; width:500px;"><h4>Bewerberdaten</h4><table>'."\n";
+echo '	<colgroup>'."\n";
+echo '		<col width="40%" />'."\n";
+echo '		<col width="60%" />'."\n";
+echo '	</colgroup>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Name:</td>'."\n";
+echo '		<td>'.$eintrag2['name'].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Anschrift:</td>'."\n";
+echo '		<td>'.$eintrag['strasse'].", ".$eintrag['plz']." ".$eintrag['ort'].'</td>'."\n";
+echo '	</tr>'."\n";
+
+$landid = $eintrag['land'];
+$land = mysql_query('SELECT '.$_SESSION['s_sprache'].' FROM prakt2.land WHERE id = '.intval($landid), $praktdbslave);
+
+$string = mysql_result($land, 0, $_SESSION['s_sprache']) . ', ';
+
+$bundeslandid = $eintrag['bundesland'];
+if ($bundeslandid > 0) {
+	$bland = mysql_query('SELECT '.$_SESSION['s_sprache'].' FROM prakt2.bundesland WHERE id = '.intval($bundeslandid),$praktdbslave);
+	
+	if (mysql_num_rows($bland) > 0) {
+		$string .= mysql_result($bland, 0, $_SESSION['s_sprache']).', ';
+	}
+}
+
+if ($eintrag['grossraum'] > 0 && $eintrag['grossraum'] != 94) {
+	$grossraumid = $eintrag['grossraum'];
+	$grossraum = mysql_query('SELECT grossraum FROM prakt2.grossraum WHERE id = '.intval($grossraumid),$praktdbslave);
+
+	$string .= mysql_result($grossraum, 0, 'grossraum');
+}
+
+echo '	<tr>'."\n";
+echo '		<td>Gebiet:</td>'."\n";
+echo '		<td>'.htmlentities($string).'</td>'."\n";
+echo '	</tr>'."\n";
+echo '</table>'."\n";
+echo '<h4>die Mitteilung an Sie</h4>';
+echo '<table>'."\n";
+echo '	<colgroup>'."\n";
+echo '		<col width="40%" />'."\n";
+echo '		<col width="60%" />'."\n";
+echo '	</colgroup>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>vom:</td>'."\n";
+echo '		<td>'.$eintrag2['datumvon'].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Betreff:</td>'."\n";
+echo '		<td><b>'.htmlentities(stripslashes($eintrag2['betreff'])).'</b></td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Nachricht:</td>'."\n";
+echo '		<td>'.nl2br(stripslashes($eintrag2['nachricht'])).'</td>'."\n";
+echo '	</tr>'."\n";
+
+if (!empty($eintrag2['oldnachricht'])) {
+	echo '	<tr><td colspan="2"><hr /></td></tr><tr>'."\n";
+	echo '		<td width="30%"><b>Ihre vorherige Nachricht:</b></td>'."\n";
+	echo '		<td>'.nl2br(stripslashes($eintrag2['oldnachricht'])).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '</table>'."\n";
+
+echo '<p class="control_panel clearfix">'."\n";
+echo '	<a class="button small" onclick="window.open(\'/recruiting/email_antwort/'.$eintrag2['nutzerid'].'/'.intval($_GET['spalte']).'/\',\'\',\'width=600,height=800\'); return false;" value="dem Bewerber antworten">Dem Bewerber antworten</a>'."\n";
+# echo '	<a class="button small" onclick="location.href=\'//recruiting/weiterleitung_kurzmitteilung/'.$eintrag2['id'].'/'.intval($_GET['spalte']).'/\'" value="dem Bewerber antworten">Nachricht weiterleiten</a>'."\n";
+echo '</p></div>'."\n";
+
+
+/* Best&auml;tigungsmail zusammenbauen */
+$mailBeweber = mysql_db_query($database_db,'SELECT * FROM firmenkontakte WHERE firmenid = '.$_SESSION['s_firmenid'].' AND spalte = '.intval($_GET['spalte']).' AND nutzerid = '.intval($_GET['nutzerid']).' AND id = '.$id,$praktdbslave);
+
+if (mysql_result($mailBeweber,0,'bewerber_lesebestaetigt') == 'false') {
+	$fid = $eintrag2['firmenid'];
+	$firmchen = mysql_db_query($database_db,'SELECT firma FROM firmen WHERE id = '.$fid.' AND inactive != \'true\'',$praktdbslave);
+	$nutzermail = $eintrag['email'];
+
+	$subject = 'Statusmitteilung zu Ihrer Kurzmitteilung';
+
+	if ($eintrag['anrede'] == 'Frau') {
+		$Anrede = 'geehrte Frau';
+	} else {
+		$Anrede = 'geehrter Herr';
+	}
+
+	$mailstring = 'Sehr '.$Anrede.' '.$eintrag['vname'].' '.$eintrag['name'].','."\n\n";
+	$mailstring = $mailstring.'nur praktika.de informiert Sie �ber Ihren Kurzmitteilungsstatus!'."\n\n";
+	$mailstring = $mailstring.'Sie haben �ber praktika.de eine Kurzmitteilung an das Unternehmen "'.mysql_result($firmchen,0,'firma').'" gesendet.'."\n";
+	$mailstring = $mailstring.'Soeben hat das Unternehmen Ihre Kurzmitteilung  gelesen.'."\n\n";
+	$mailstring = $mailstring.'F�r die weitere Bearbeitung ist das Unternehmen verantwortlich. praktika.de kann ab diesem Zeitpunkt nicht mehr auf den Bearbeitungsprozess einwirken.'."\n\n";
+	$mailstring = $mailstring.'Erfahrungsgem�� kann es bis zu 8 Werktagen dauern, bevor Sie eine entsprechende Antwort von dem Unternehmen erhalten.'."\n\n";
+	$mailstring = $mailstring.'Tipps zur Praktikumplanung f�r Bewerbung finden Sie hier:'."\n";
+	$mailstring = $mailstring.'http://praktika.de/cms/Bewerberratgeber.128.0.html'."\n\n";
+	$mailstring = $mailstring.'Das praktika.de Team w�nscht Ihnen viel Erfolg.'."\n\n\n";
+	$mailstring = $mailstring.'---------------------------'."\n";
+	$mailstring = $mailstring.'praktika.de - die Karriereplattform f�r den Berufseinstieg'."\n".'Wir halten Unternehmen jung!'."\n\n";
+	$mailstring = $mailstring.'praktika.de einem Freund empfehlen: http://praktika.de/home/sendtofriend/'."\n";
+	#$mailstring = $mailstring.'Newsletter abonnieren: http://praktika.de/home/newsletter/'."\n";
+	#$mailstring = $mailstring.'SMS Service: http://praktika.de/home/sms/'."\n";
+	$mailstring = $mailstring.'Hinweise und Anregungen schreiben: http://praktika.de/home/feedback/'."\n";
+
+	/* Bestaetigunsmail verschicken */
+	$replaymail = "IhreKurzmitteilung@praktika.de";
+	
+	mail($nutzermail, $subject, $mailstring, "From: $replaymail\nX-Mailer: praktika.de Mailscript PHP"); 
+
+	$myupdate = 'UPDATE firmenkontakte SET bewerber_lesebestaetigt = \'true\', gelesen = \'true\' WHERE id = '.$_GET['id'].' AND nutzerid = '.$_GET['nutzerid'].' AND firmenid = '.$_SESSION['s_firmenid'];
+	mysql_db_query($database_db,$myupdate,$praktdbmaster);
+
+	/* Logfile eintragen */
+	$fp = @fopen($logfile, 'a');
+	@fputs($fp, $myupdate);
+	@fputs($fp, "\n");
+	@fclose($fp);
+}
+
+bodyoff();

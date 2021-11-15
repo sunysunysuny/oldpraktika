@@ -1,0 +1,239 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_GET['nutzerid'])) {
+	$nutzerid = intval($_GET['nutzerid']);
+} else {
+	$nutzerid = intval($_POST['nutzerid']);
+}
+
+if (isset($_GET['gesuchid'])) {
+	$gesuchid = intval($_GET['gesuchid']);
+} else {
+	$gesuchid = intval($_POST['gesuchid']);
+}
+
+if (isset($_GET['spaltenid'])) {
+	$spaltenid = intval($_GET['spaltenid']);
+} else {
+	$spaltenid = intval($_POST['spaltenid']);
+}
+
+/* &Uuml;berpr&uuml;fung der Daten aus der &Uuml;bergabeseite */
+$result = mysql_db_query($database_db,'SELECT id,anrede,vname,name,email FROM nutzer WHERE id = '.$nutzerid,$praktdbslave);
+$result2 = mysql_db_query($database_db,'SELECT firmen.firma,firmen.strasse,firmen.plz,firmen.ort,bearbeiter.anrede,bearbeiter.vname,bearbeiter.name,bearbeiter.email FROM firmen,bearbeiter WHERE firmen.id = '.$_SESSION['s_firmenid'].' AND bearbeiter.id = '.$_SESSION['s_loginid'],$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($result);
+$eintrag2 = mysql_fetch_array($result2);
+
+$email = $eintrag2['email'];
+$email2 = $eintrag['email'];
+$firma = $eintrag2['firma'];
+$bearbeiterid = $_SESSION['s_loginid'];
+$nfalsch = false;
+$bfalsch = false;
+$betreffLeer = false;
+$nachrichtLeer = false;
+
+if (!isset($_POST['send'])) {
+	$fertig = false;
+} else {
+	$fertig = true;
+}
+
+if (isset($_POST['nachricht']) && empty($_POST['nachricht'])) {
+	$fertig = false;
+}
+if (isset($_POST['betreff']) && empty($_POST['betreff'])) {
+	$fertig = false;
+}
+
+if (isset($_POST['send']) && (substr_count($_POST['nachricht'],'@') > 0 || substr_count($_POST['betreff'],'@') > 0)) {
+	$fertig = false;
+	$nfalsch = true;
+}
+
+if (isset($_POST['send']) && empty($_POST['nachricht'])) {
+	$fertig = false;
+	$nachrichtLeer = true;
+}
+
+if (isset($_POST['send']) && empty($_POST['betreff'])) {
+	$fertig = false;
+	$betreffLeer = true;
+}
+
+pageheader(array('page_title' => 'Kontakt zu Bewerber: '.$eintrag['vname'].' '.$eintrag['name']));
+
+if ($fertig == false) {
+	if (isset($_POST['send']) && ($nfalsch == true || $bfalsch == true)) {
+		echo '<p class="error">Die Versendung der eMail-Adresse ist aus Datenschutzgr&uuml;nden nicht gestattet. Bitte entfernen Sie Ihre eMail-Adresse aus dem Text.</p>'."\n";
+	}
+	
+	if ($betreffLeer == true) {
+		echo '<p class="error">Bitte geben Sie einen Betreff an.</p>'."\n";
+	}
+	
+	if ($nachrichtLeer == true) {
+		echo '<p class="error">Bitte geben Sie eine Nachricht ein.</p>'."\n";
+	}
+
+	echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+	echo '	<h4>Ihre Mitteilung an den Bewerber</h4>'."\n";
+	echo '	<table>'."\n";
+	echo '		<colgroup>'."\n";
+	echo '			<col style="width: 50%;" />'."\n";
+	echo '			<col style="width: 50%;" />'."\n";
+	echo '		</colgroup>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td>Firma:</td><td>'.$eintrag2['firma'].'<br />'.$eintrag2['strasse'].'<br />'.$eintrag2['plz'].' '.$eintrag2['ort'].'</td>'."\n";
+	echo '		</tr>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td>Bearbeiter eMail:</td><td>'.$eintrag2['email'].'</td>'."\n";
+	echo '		</tr>'."\n";
+	echo '	</table>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="ansprechpartner">Ansprechpartner:</label>'."\n";
+	echo '			<input class="stdStyle"  type="text" id="ansprechpartner" name="ansprechpartner" value="'.((isset($eintrag2['name']) && empty($eintrag2['name'])) ? '' : $eintrag2['anrede'].' '.$eintrag2['vname'].' '.$eintrag2['name']).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="betreff">Betreff<sup>*</sup>:</label>'."\n";
+	echo '			<input class="stdStyle" type="text" id="betreff" name="betreff" value="'.((isset($_POST['betreff']) && !empty($_POST['betreff'])) ? $_POST['betreff'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="nachricht">Nachricht<sup>*</sup>:</label>'."\n";
+	echo '			<textarea class="stdStyle"  id="nachricht" name="nachricht" cols="20" rows="6">'.((isset($_POST['nachricht']) && !empty($_POST['nachricht'])) ? $_POST['nachricht'] : '').'</textarea>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<p class="hint">Die Felder mit (*) m&uuml;ssen ausgef&uuml;llt werden.</p>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="submit" name="send" value="senden"><span><span><span>SENDEN</span></span></span></button>'."\n";
+	echo '			<input type="hidden" name="nutzerid" value="'.$nutzerid.'" />'."\n";
+	echo '			<input type="hidden" name="gesuchid" value="'.$gesuchid.'" />'."\n";
+	echo '			<input type="hidden" name="spaltenid" value="'.$spaltenid.'" />'."\n";
+	//echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+	echo '			<input type="hidden" name="bearbeiterid" value="'.$bearbeiterid.'" />'."\n";
+	echo '			<input type="hidden" name="firma" value="'.$firma.'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+} else { 
+	/* aktuelles Datum betimmen */
+	$datum_eintrag = date("Y-m-d");
+	$modify = date("YmdHis");
+	
+	$nachricht = ereg_replace ("'", "", $_POST['nachricht']);
+	//$oldnachricht = ereg_replace ("'", "", $oldnachricht);
+	$betreff = ereg_replace ("'", "", $_POST['betreff']);
+	$versendet = true;
+		
+	/* einfuegestring zusammensetzen */
+	$insertstring = '	INSERT INTO bewerberkontakte (
+							nutzerid,
+							firmenid,
+							bearbeiterid,
+							gesuche_id,
+							spalte,
+							versendet,
+							betreff,
+							firma,
+							nachricht,
+							ansprechpartner,
+							email,
+							datum,
+							modify
+						) VALUES (
+							'.intval($nutzerid).',
+							'.intval($_SESSION['s_firmenid']).',
+							'.intval($_POST['bearbeiterid']).',
+							'.intval($gesuchid).',
+							'.intval($spaltenid).',
+							\''.$versendet.'\',
+							\''.mysql_real_escape_string($betreff).'\',
+							\''.mysql_real_escape_string($firma).'\',
+							\''.mysql_real_escape_string($nachricht).'\',
+							\''.mysql_real_escape_string($_POST['ansprechpartner']).'\',
+							\''.mysql_real_escape_string($email).'\',
+							\''.$datum_eintrag.'\',
+							\''.$modify.'\'
+						)';
+	
+	/* datensatz einfuegen */
+	mysql_db_query($database_db,$insertstring,$praktdbmaster); 
+	
+	/* Logfile eintragen */
+	$fp = fopen($logfile, 'a');
+	fputs($fp, $insertstring);
+	fputs($fp, "\n");
+	fclose($fp);
+	
+	if (mysql_affected_rows() > 0) {
+		$subject = 'Wichtig - Sie haben eine Kurzmitteilung auf Ihr Praktikumsgesuch';
+		$mailtoaddr = $email2;
+
+		$spaltenname = '';
+		
+		// Ausgabe des Bereichs
+		if ($_POST['spaltenid'] == SECTION_PRAKTIKUM) {
+			$spaltenname = SECTION_PRAKTIKUM_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_DIPLOM) {
+			$spaltenname = SECTION_DIPLOM_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_NEBENJOB) {
+			$spaltenname = SECTION_NEBENJOB_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_AUSBILDUNG) {
+			$spaltenname = SECTION_AUSBILDUNG_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_BERUFSEINSTIEG) {
+			$spaltenname = SECTION_BERUFSEINSTIEG_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_PROJEKT) {
+			$spaltenname = SECTION_PROJEKT_ALPHA;
+		} elseif ($_POST['spaltenid'] == SECTION_TRAINEE) {
+			$spaltenname = SECTION_TRAINEE_ALPHA;
+		}
+		
+		if ($eintrag['anrede'] == 'Frau') {
+			$Anrede = 'geehrte Frau';
+		} else {
+			$Anrede = 'geehrter Herr';
+		}
+
+		$mailstring = 'Sehr '.$Anrede.' '.$eintrag['vname'].' '.$eintrag['name'].','."\n\n";
+		$mailstring = $mailstring.'Es freut uns Ihnen mitzuteilen, dass praktika.de f&uuml;r Sie erfolgreich war.'."\n\n";
+		$mailstring = $mailstring.'Auf eines Ihrer ver&ouml;ffentlichten Gesuche im Bereich "'.$spaltenname.'" hat das Unternehmen '.$firma.' eine Kurzmitteilung im Posteingang hinterlegt (Ihr Login: '.$nutzerid.').'."\n\n";
+		$mailstring = $mailstring.'Bitte beantworten Sie diese Nachricht innerhalb der n&auml;chsten zwei Tage.'."\n\n";
+		$mailstring = $mailstring.'Direktlink: http://praktika.de/home/praktikanten/kcenter/index.phtml?bereich=1'."\n\n";
+		$mailstring = $mailstring.'Tipps zur Praktikumplanung f&uuml;r Bewerbung finden Sie hier:'."\n";
+		$mailstring = $mailstring.'http://praktika.de/cms/Bewerberratgeber.128.0.html/'."\n\n";
+		$mailstring = $mailstring.'Das praktika.de Team w&uuml;nscht Ihnen viel Erfolg.'."\n\n\n";
+		$mailstring = $mailstring.'---------------------------'."\n";
+		$mailstring = $mailstring.'praktika.de - die Karriereplattform f&uuml;r den Berufseinstieg'."\n".'Wir halten Unternehmen jung!'."\n\n";
+		$mailstring = $mailstring.'praktika.de einem Freund empfehlen: http://praktika.de/home/sendtofriend/'."\n";
+		$mailstring = $mailstring.'Newsletter abonnieren: http://praktika.de/home/newsletter/'."\n";
+		$mailstring = $mailstring.'Hinweise und Anregungen schreiben: http://praktika.de/home/feedback/'."\n";
+		
+		/* Bestaetigunsmail verschicken */
+		$replaymail = 'IhreKurzmitteilung@praktika.de';
+		
+		/* Bestaetigunsmail verschicken */
+		mail($mailtoaddr, $subject, $mailstring, "From: $replaymail\nX-Mailer: praktika.de Mailscript PHP\nX-Priority: 1\nX-MSMail-Priority: High\nImportance: High");
+	}
+	/* ---------------------------------------------------------------------------------------------- */
+
+	echo '<p class="success">Ihre Nachricht an den Bewerber wurde erfolgreich versendet.</p>'."\n";
+	echo '<script type="text/javascript">'."\n";
+	echo '	document.write = setTimeout(\'top.GB_hide()\', 3000);'."\n";
+	echo '</script>'."\n";	
+}
+
+bodyoff();
+?>

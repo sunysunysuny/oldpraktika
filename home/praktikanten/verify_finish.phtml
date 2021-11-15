@@ -1,0 +1,62 @@
+<?
+ require("/home/praktika/etc/config.inc.php");
+
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$key = $_GET["key"];
+ 
+// abfrage ausfuehren //
+$results = $hDB->query("SELECT id FROM ".$database_db.".nutzer WHERE id_md5 = '".$key."'",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows( $results );
+
+if ($num_rows > 0) {
+	$action = "true";
+	$daten = mysql_fetch_array( $results );
+
+    $objUser = new Praktika_User((int)$daten["id"]);
+    $data = $objUser->getData();
+
+    // Nutzer zu Optivo hinzuf�gen
+    $objOptivo = new Praktika_Optivo();
+    $data = array("anrede" => $data["anrede"],
+        "vname" => $data["vname"],
+        "name" => $data["name"],
+        "plz" => $data["plz"],
+        "ort" => $data["ort"],
+        "land" => Praktika_Listen::getTextById("einsatzland", $data["land"]),
+        "bundesland" => Praktika_Listen::getTextById("bundesland", $data["bundesland"]),
+        "grossraum" => Praktika_Listen::getTextById("grossraum", $data["grossraum"]),
+        "geburtsdatum" => $data["geburtsdatum"],
+        "studium" => Praktika_Listen::getTextById("studiengang",$data["studiengang"]),
+        "uni" => $data["hochschule"],
+        "semester" => $data["semester"],
+        "email" => $data["email"]
+        );
+	# error_log(var_dump($data));
+        $objOptivo->addUser($data, "praktika");
+
+	mysql_db_query($database_db,"UPDATE nutzer SET emailverify = 'true', inactive = 'false' WHERE id = '".$daten["id"]."'",$praktdbmaster);
+	mysql_db_query($database_comm,"INSERT INTO nutzeremailverify ( `nutzerid` , `key` , `host` , `ip` , `datum_eintrag` ) VALUES ('".$daten["id"]."', '".$key."', '".$host."', '".$ip."', NOW( ) )",$praktdbmaster);
+	session_register('s_samesite','s_uri');
+	$s_samesite = true;
+} else {
+	$action = "false";
+}
+
+pageheader(array('page_title' => 'Account Verifikation'));
+
+if ($action == "true") {
+	echo "<p class='hint success'>Vielen Dank - Ihr Account wurde verifiziert.</p><p>Sie k&ouml;nnen sich nun bei praktika.de als Bewerber einloggen.<br><br></p>";
+}else {
+	echo "<p class='hint error'>Achtung: Leider ist Ihre Verifikation fehlgeschlagen</p><p>Bitte senden Sie sich eine neue Mail zur Freischaltung zu.<br /><br /><a href=\"/home/praktikanten/verify_email.phtml\" class='button small alternative'>Verifikationsmail erneut zusenden</a><br><br>";
+}
+
+?>
+
+	<br>
+	<a class="button" name="search" href="/">zur Hauptseite</a>
+
+
+<? bodyoff(); ?>

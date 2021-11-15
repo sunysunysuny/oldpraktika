@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <script src="http://maps.google.com/maps?file=api&v=1&key=ABQIAAAAzdzyL_wQe6L5Zzajnr1pZxQvmA2GV4nkX98NEKUZ1asWWzOVEhQAPbb0DphiU63SznBD9ODSjsLKJw" type="text/javascript"></script>
+  </head>
+  <body onload="addPoints();">
+    <div id="map" style="width: 450px; height: 400px"></div>
+    <script type="text/javascript">
+    //<![CDATA[
+    
+    var map = new GMap(document.getElementById("map"));
+    map.addControl(new GLargeMapControl());
+    map.addControl(new GMapTypeControl());
+    map.centerAndZoom(new GPoint(0.0, 0.0), 16); 
+ 
+// Creates a marker whose info window displays the given number
+function createMarker(point, number, text) {
+
+	var marker = new GMarker(point);
+
+	// Show this marker's index in the info window when it is clicked
+	var html = text;
+	GEvent.addListener(marker, "click", function() { 
+		marker.openInfoWindowHtml(html); 
+	});
+
+	return marker;
+}
+
+// plot ip points
+function addPoints() {
+	var point = new GPoint(12.3333333,51.3);
+var marker = createMarker(point, 1, '<b>Leipzig</b><br>Time: September 5, 2005 12:04 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-0.104999996721745,51.5169982910156);
+var marker = createMarker(point, 2, '<b>LONDON, ENGLAND</b><br>Time: September 5, 2005 12:04 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-91.2072982788086,35.567798614502);
+var marker = createMarker(point, 3, '<b>NEWPORT, ARKANSAS</b><br>Time: September 5, 2005 12:04 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(5.71700000762939,45.1669998168945);
+var marker = createMarker(point, 4, '<b>GRENOBLE, RHONE-ALPES</b><br>Time: September 5, 2005 12:03 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-88.4208984375,44.279598236084);
+var marker = createMarker(point, 5, '<b>APPLETON, WISCONSIN</b><br>Time: September 5, 2005 12:02 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-97.7581024169922,30.3810997009277);
+var marker = createMarker(point, 6, '<b>AUSTIN, TEXAS</b><br>Time: September 5, 2005 12:02 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-73.4188995361328,41.1092987060547);
+var marker = createMarker(point, 7, '<b>NORWALK, CONNECTICUT</b><br>Time: September 5, 2005 12:01 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-117.571998596191,34.1236991882324);
+var marker = createMarker(point, 8, '<b>RANCHO CUCAMONGA, CALIFORNIA</b><br>Time: September 5, 2005 12:01 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-81.9355010986328,29.867000579834);
+var marker = createMarker(point, 9, '<b>KEYSTONE HEIGHTS, FLORIDA</b><br>Time: September 5, 2005 12:00 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-115.483001708984,32.6669998168945);
+var marker = createMarker(point, 10, '<b>MEXICALI, BAJA CALIFORNIA</b><br>Time: September 5, 2005 12:00 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-93.4943008422852,44.9631004333496);
+var marker = createMarker(point, 11, '<b>MINNEAPOLIS, MINNESOTA</b><br>Time: September 5, 2005 12:00 pm<br>');
+map.addOverlay(marker);
+var point = new GPoint(-122.330001831055,47.6013984680176);
+var marker = createMarker(point, 12, '<b>SEATTLE, WASHINGTON</b><br>Time: September 5, 2005 11:59 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(-83.3815002441406,33.9626007080078);
+var marker = createMarker(point, 13, '<b>ATHENS, GEORGIA</b><br>Time: September 5, 2005 11:58 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(-58.4700012207031,-34.6129989624023);
+var marker = createMarker(point, 14, '<b>BUENOS AIRES, DISTRITO FEDERAL</b><br>Time: September 5, 2005 11:57 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(11.5830001831055,48.1500015258789);
+var marker = createMarker(point, 96, '<b>MUNICH, BAYERN</b><br>Time: September 5, 2005 10:16 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(-86.3986968994141,41.956600189209);
+var marker = createMarker(point, 97, '<b>BERRIEN SPRINGS, MICHIGAN</b><br>Time: September 5, 2005 10:14 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(-79.8302993774414,35.6803016662598);
+var marker = createMarker(point, 98, '<b>ASHEBORO, NORTH CAROLINA</b><br>Time: September 5, 2005 10:14 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(-74.2499008178711,40.4118003845215);
+var marker = createMarker(point, 99, '<b>MATAWAN, NEW JERSEY</b><br>Time: September 5, 2005 10:14 am<br>');
+map.addOverlay(marker);
+var point = new GPoint(17.0499992370605,61.2999992370605);
+var marker = createMarker(point, 100, '<b>SöDERHAMN, GAVLEBORGS LAN</b><br>Time: September 5, 2005 10:13 am<br>');
+map.addOverlay(marker);
+} 
+
+    
+    //]]>
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+<?php
+#$restricted = "yes";
+#$gruppe = "firmen";
+require("/home/praktika/etc/gb_config.inc.php");
+
+$stellenid = $_GET['stellenid'];
+$firmenid = $_SESSION['s_firmenid'];
+$_SESSION['sidebar'] = 'none';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Stellenstatistik - FAQ'));

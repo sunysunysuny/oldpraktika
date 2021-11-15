@@ -1,0 +1,585 @@
+<?php
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+header('Content-Type: text/html; charset=utf-8');
+# header("Content-Type: text/html; charset=ISO-8859-1");
+header("Content-Transfer-Encoding: 8bit");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+if(empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+	pageheader(array('page_title' => 'Bewerbungsanschreiben erstellen', "encoding" => "utf-8"));
+}
+
+$sprachen = array("Deutsch"=>2, "Englisch"=>1);
+
+if(empty($_GET["sID"]) && !empty($_GET["stellenid"])) $_GET["sID"] = $_GET["stellenid"];
+
+/* Neue Methode zum Aufruf nur mit StellenID */
+if(isset($_GET["sID"])) {
+
+	// Sprache setzen (Entweder auf �bergebene Sprache oder auf Nutzersprache
+
+
+	if($_GET["sID"] != "extern" && !empty($_GET["sID"])) {
+		$sql = "SELECT 
+					stellen.firmenid, 
+					stellen.spalte,
+					stellen.taetigkeit,
+					firmen.firma,
+					firmen.strasse,
+					firmen.plz,
+					firmen.ort,
+					stellen.bearbeiterid,
+					bearbeiter.anrede, 
+					bearbeiter.titel, 
+					bearbeiter.vname, 
+					bearbeiter.name, 
+					bearbeiter.abteilung,
+					stellen.beschreibung,
+					nutzer.anrede `nutzer_anrede`,
+					nutzer.semester `nutzer_semester`,
+					stellen.firmen_agentur_id
+				FROM 
+					prakt2.stellen
+					LEFT JOIN prakt2.firmen 
+						ON(firmen.id = stellen.firmenid)
+					LEFT JOIN prakt2.bearbeiter
+						ON(bearbeiter.id = stellen.bearbeiterid)
+					LEFT JOIN prakt2.nutzer
+						ON(nutzer.id = ".$_SESSION["s_nutzerid"].") 
+				WHERE 
+					stellen.id = ".(int)$_GET["sID"];
+		$stellenDetails = mysql_fetch_assoc($hDB->query($sql, $praktdbslave));
+		
+		# echo $sql;
+		if(empty($stellenDetails["anrede"])) {
+			
+			$sql = "SELECT 
+						bearbeiter.id, 
+						bearbeiter.anrede, 
+						bearbeiter.titel, 
+						bearbeiter.vname, 
+						bearbeiter.name, 
+						bearbeiter.abteilung			
+					FROM prakt2.bearbeiter WHERE firmenid = '".$stellenDetails["firmenid"]."' LIMIT 1";
+			$bearbeiterDetails = mysql_fetch_assoc($hDB->query($sql, $praktdbslave));
+			
+			$stellenDetails["bearbeiterid"] = $bearbeiterDetails["id"];
+			$stellenDetails["anrede"] = $bearbeiterDetails["anrede"];
+			$stellenDetails["vname"] = $bearbeiterDetails["vname"];
+			$stellenDetails["name"] = $bearbeiterDetails["name"];
+			$stellenDetails["abteilung"] = $bearbeiterDetails["abteilung"];
+			$stellenDetails["titel"] = $bearbeiterDetails["titel"];
+			
+			$hDB->query("UPDATE stellen SET bearbeiterid = ".$stellenDetails["bearbeiterid"]." WHERE stellen.id = ".(int)$_GET["sID"], $praktdbmaster);
+		}
+		
+		// Firmenid aus tmp_stellensuche lesen
+		$firmenid = $stellenDetails["firmenid"];
+
+		// Stellen ID setzen
+		$stellenid = (int)$_GET["sID"];
+		
+		$spaltenid = $stellenDetails["spalte"];
+		
+		// Interne Bewerbung
+		$type = 'int';
+	} else {
+		// Firma unbekannt
+		$firmenid = $_GET["id"];
+		// Stelle unbekannt
+		$stellenid = 0;
+		// externe Bewerbung
+		$type = 'ext';
+		
+		$spaltenid = (int)$_GET["spalte"];
+	}
+	
+} else {
+
+	if ((isset($_GET['bewerbsprache']) && !empty($_GET['bewerbsprache'])) || (isset($_POST['bewerbsprache']) && !empty($_POST['bewerbsprache']))) {
+		if (isset($_GET['bewerbsprache'])) {
+			$bewerbsprache = intval($_GET['bewerbsprache']);
+		} else {
+			$bewerbsprache = intval($_POST['bewerbsprache']);
+		}
+	} else {
+		$bewerbsprache = $_SESSION['s_sprachid'];
+	}
+	
+	if ((isset($_GET['id']) && !empty($_GET['id'])) || (isset($_POST['id']) && !empty($_POST['id']))) {
+		if (isset($_GET['id'])) {
+			$firmenid = intval($_GET['id']);
+		} else {
+			$firmenid = intval($_POST['id']);
+		}
+	} else {
+		$firmenid = 0;
+	}
+	
+	if ((isset($_GET['stellenid']) && !empty($_GET['stellenid'])) || (isset($_POST['stellenid']) && !empty($_POST['stellenid']))) {
+		if (isset($_GET['stellenid'])) {
+			$stellenid = intval($_GET['stellenid']);
+		} else {
+			$stellenid = intval($_POST['stellenid']);
+		}
+	} else {
+		$stellenid = 0;
+	}
+	
+	if ((isset($_GET['spalte']) && !empty($_GET['spalte']))) {
+		$spaltenid = intval($_GET['spalte']);
+	}
+	
+	if ($_SESSION['s_bereich'] == 4 || (isset($_GET['extern']) && $_GET['extern'] == '1') || (isset($_POST['extern']) && $_POST['extern'] == '1')) {
+		$type = 'ext';
+	} else {
+		$type = 'int';
+	}
+}
+
+$select = $hDB->query('SELECT * FROM '.$database_bprofil.'.profil_kurzbewerbung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid = '.(int)$_GET["sprache"], $praktdbslave);
+$anschreiben_vorgabe = mysql_fetch_assoc($select);	
+
+$objAnschreiben = new Praktika_Kcenter_Bewerbung_Anschreiben($stellenid, $_GET["sprache"]);
+
+if($objAnschreiben->exists()) {
+	if(!$objAnschreiben->checkAuth()) {
+		die("Keine Berechtigung");
+	}
+	$anschreiben = $objAnschreiben->getData();
+} else {
+// Anschreiben
+	$anschreiben = $anschreiben_vorgabe;
+}
+
+
+/*
+$select = $hDB->query('SELECT * 
+		FROM '.$database_bprofil.'.anschreiben 
+		WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+		stellenid = '.$stellenid.' AND 
+		firmenid = '.$firmenid.' AND 
+		spalte = '.$spaltenid, $praktdbmaster);
+*/
+
+# $profil = mysql_fetch_assoc($select);
+# $test = mysql_num_rows($select);
+
+if(!empty($anschreiben["sprachid"])) {
+	$bewerbsprache = $anschreiben["sprachid"];
+} else {
+	$bewerbsprache = $_SESSION['s_sprachid'];;
+}
+
+
+
+if (isset($_POST['delete'])) {
+	$deletestring = 'DELETE FROM '.$database_bprofil.'.anschreiben WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND stellenid = '.$stellenid.' AND firmenid = '.$firmenid.' AND sprachid = '.$bewerbsprache;
+	$hDB->query($deletestring, $praktdbmaster);
+
+	$deletestring = 'DELETE FROM '.$database_db.'.bewerbung WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND prakstellenid = '.$stellenid.' AND firmenid = '.$firmenid.' AND sprachid = '.$bewerbsprache;
+	$hDB->query($deletestring, $praktdbmaster);
+		
+		echo $deletestring;
+		
+	if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+		// Wenn per Ajax, dann nicht weiter ausf�hren !
+		die("ok");
+	}			
+	
+	echo '<p class="success">Ihr Bewerbungsschreiben wurde erfolgreich gel&ouml;scht.</p>'."\n";
+	echo '<script type="text/javascript">'."\n";
+	# echo '	document.write = setTimeout(\'self.close()\', 2000);'."\n";
+	echo '</script>'."\n";
+} else {
+
+	if (isset($_POST['senden'])) {
+		
+		if (!$objAnschreiben->exists()) {
+			
+			$insertstring = '	INSERT INTO '.$database_bprofil.'.anschreiben (
+									nutzerid,
+									firmenid,
+									stellenid,
+									sprachid,
+									spalte,
+									type, 
+									datum_eintrag,
+									modify
+								) VALUES (
+									'.$_SESSION['s_nutzerid'].',
+									'.$firmenid.',
+									'.$stellenid.',
+									'.$bewerbsprache.',
+									'.$spaltenid.',
+									\''.$type.'\',
+									NOW(),
+									NOW())';
+			$hDB->query($insertstring, $praktdbmaster);
+			
+			$objAnschreiben = new Praktika_Kcenter_Bewerbung_Anschreiben($stellenid, $_GET["sprache"]);			
+		}
+
+			
+#		$select = mysql_fetch_assoc($hDB->query('SELECT lebenslauftemplate FROM '.$database_bprofil.'.einstellungen WHERE nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave));
+#		$_POST['lebenslauflayout'] = $select["lebenslauftemplate"];
+				
+		$objAnschreiben->setAnschreiben($_POST['anschreiben'], $_POST['betreff'], ((isset($_POST['objective']) && !empty($_POST['objective'])) ? $_POST['objective'] : ''));
+
+		if($type == "int") {
+			include_once(dirname(__FILE__).'/generator.phtml');
+		}
+
+		if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+			// Wenn per Ajax, dann nicht weiter ausf�hren !
+			die("ok");
+		}		
+		echo '<p class="success">Ihr Bewerbungsschreiben wurde erfolgreich gespeichert.</p>'."\n";
+		echo '<br /><p>Sie haben jetzt die M&ouml;glichkeit diese Bewerbung nochmals anzusehen, bevor sie diese abschicken.<br /><br /><br /><br /><button type="button" onclick=\'closeWindow();\' name="senden" value="speichern"><span><span><span>Fenster schlie&szlig;en</span></span></span></button></p>';
+		echo '<script type="text/javascript">function closeWindow() { '."\n";
+		echo '	if(opener.kc_page != undefined) opener.kc_page();'."\n";
+		echo '	document.write = setTimeout(\'self.close()\', 3000);'."\n";
+		echo ' } closeWindow(); </script>'."\n";
+	} else {
+#		echo '<p class="hint">Unter dem Link <a href="/karriere/kurzbewerbung/" onclick="top.location.href = \'/karriere/kurzbewerbung/\';">"Mein Profil" Punkt 14</a> haben Sie ein allgemeines Bewerbungsanschreiben hinterlegt. Dieses allgemeine Bewerbungsanschreiben k&ouml;nnen Sie nun f&uuml;r die Bewerbung bei dem unten aufgef&uuml;hrten Unternehmen mit individuellen Textpassagen bzw. speziell auf die Firma passenden Texten erg&auml;nzen. Bitte beachten Sie, dass sich das Unternehmen durch Ihre Bewerbung ein erstes Bild &uuml;ber Sie verschafft. Nachdem Sie das firmenspezifische Bewerbungsanschreiben erstellt haben, speichern Sie dieses bitte! Jetzt k&ouml;nnen Sie zur Kontrolle die Vorschau benutzen. Durch bet&auml;tigen des Buttons "&Uuml;bersicht" kommen Sie zur&uuml;ck zum KarriereCenter.<br />Tipp: Sollten Sie noch kein allgemeines Bewerbungsanschreiben unter <a href="/karriere/kurzbewerbung/" onclick="top.location.href = \'/karriere/kurzbewerbung/\';">"Mein Profil" Punkt 14</a> erstellt haben, dann f&uuml;hren Sie diese Aktion zu erst aus.</p>'."\n";
+
+function convertText($value) {
+	return $value;
+}
+?>
+
+<link type="text/css" media="screen, print" rel="stylesheet" href="/styles/v3/module/kcenter.css" />
+<form name="wizardForm">
+	<fieldset class="control_panel">
+	<div class="toggle_wizard" id="toggle_wizard" style="display:none;"><a href="#" onclick="wizard.toggle('<?=$anschreiben["sprachid"]==1?"en":"de" ?>');">Assistenten aktivieren</a></div>
+	<div class="wizard_anschreiben" id="wizardForm">
+		<h3>Anschreibenassistent</h3>
+		<p id="wizard_first">
+			Dieser Assistent m&ouml;chte Ihnen dabei helfen Ihr optimales Bewerbungsanschreiben zu erstellen.<br />
+			Sie werden Schritt f&uuml;r Schritt durch die verschiedenen Abschnitte eines Anschreibens gef&uuml;hrt.<br /><br />
+		</p>
+
+			<div class="buttonLeiste clearfix">
+					<a class="button small floatright alternative" name="ueberspringen" onclick="wizard.hide();">&Uuml;berspringen</a>
+
+					<a class="button small floatright" name="starten" onclick="wizard.start('<?=$anschreiben["sprachid"]==1?"en":"de" ?>',<?=(!isset($anschreiben['anschreiben']) || empty($anschreiben['anschreiben']))?"false":"true" ?>);">Starten</a>
+			</div>
+		<h3 id='wizard_topic' style="display:none;"></h3>
+		<div id="wizard_option" style = "display:none;">	
+			<p>
+			<input type="radio" name="wizardOption" id="wizardOption_1" value="1" onclick='wizard.setText(1);' class="wizardRadio" /> <label class="option" id='wizard_option_1' for="wizardOption_1"></label>
+			</p>
+			<p>
+			<input type="radio" name="wizardOption" id="wizardOption_2" value="2" onclick='wizard.setText(2);' class="wizardRadio" /> <label class="option"  id='wizard_option_2' for="wizardOption_2"></label>
+			</p>
+			<p>
+			<input type="radio" name="wizardOption" id="wizardOption_3" value="3" onclick='wizard.setText(3);' class="wizardRadio" /> <label class="option"  id='wizard_option_3' for="wizardOption_3"></label>
+			</p>
+			<p style="text-align:right;">
+				<textarea id="wizardText" class="stdStyle" name="wizardText" rows="5" style="width:600px;" /></textarea>
+			</p>
+			
+			<div class="buttonLeiste">
+<!--				<div style="float:left; width:50px; text-align:left; margin-left:-10px;"><img style="cursor:pointer" src="/styles/images/icons/backward.gif" alt="vorheriger Schritt"  onclick="wizard.prevStep();" id="wizard_prev_step" title="vorheriger Schritt" /></div>
+				
+				<div style="float:right; width:50px; text-align:right;"><img id="wizard_next_step"  style="cursor:pointer" src="/styles/images/icons/forward.gif" onclick="wizard.nextStep();" alt="nächster Schritt" title="nächster Schritt" /></div>
+				<button type="button" id="wizard_next_step" name="senden" value="speichern"><span><span><span>Nächster Schritt</span></span></span></button>-->
+				<p class="center">
+					<span id='saveCheckbox' style="display:none;"><input id="saveCheckbox_checkbox" type="checkbox" style="width:15px; height:15px;" name="saveAnschreiben" value="1" /> <label for="saveCheckbox_checkbox">Diese Eingaben als Vorlage f&uuml;r weitere Bewerbungen speichern</label><br /><br /></span>
+				</p>
+				
+				<p class="center">
+
+					<a class='button alternative small' id="wizard_prev_step" name="vorheriger Schritt" value="speichern" onclick="wizard.prevStep();">vorheriger Schritt</a>
+					
+					&nbsp;&nbsp;&nbsp;&nbsp;<a class='button alternative small' id="wizard_reset" name="reset" value="speichern" onclick="wizard.reset();">Zur&uuml;cksetzen</a>&nbsp;&nbsp;
+					<a class='button green small' id="wizard_generate" style="display:none;" name="senden" value="speichern" onclick="wizard.generate();">Anschreiben generieren</a>&nbsp;&nbsp;
+					
+					<a class='button small' id="wizard_next_step" name="nächster Schritt" value="speichern" onclick="wizard.nextStep();">n&auml;chster Schritt</a>
+				</p>
+				
+			</div>
+		</div>		
+	</div>
+		</fieldset>
+</form>
+<style type="text/css">
+	.inputTmp {
+		color:#777;
+	}
+</style>
+<script type="text/javascript">
+	function toogleWord(ele,value) {
+		if(ele.value == value) {
+			removeClass(ele, "inputTmp");
+			ele.value = "";
+		} else if(ele.value == ""){
+			addClass(ele, "inputTmp");
+			ele.value = value;
+		}
+	}
+	
+	function deleteAnschreiben() {
+		if(!confirm("Dieses Anschreiben wirklich löschen?")) return;
+		
+		$('#save_result').html("<img src='/styles/images/ajax/loading_2.gif' alt='Speichere' title='Speichere' /><br /><br />");
+
+		xhr("/Karriere/Anschreiben/<?=$stellenid ?>/<?=$bewerbsprache ?>/", "mode=anschreiben&delete=delete&betreff=" + encodeURIComponent($('#betreff').val()) + "&objective=" + encodeURIComponent($('#objective')!=undefined?$('#objective').val():"") + "&anschreiben=" + encodeURIComponent($('#anschreiben').val()),function(text) {
+			$('#save_result').html('<p class="hint success">Das gespeicherte Anschreiben wurde gelöscht!</p>');
+			$('#anschreiben').val("");
+			$('#betreff').val("Betreff");
+			$('#betreff').addClass("inputTmp");
+			if(opener.kc_page != undefined) opener.kc_page();
+		});
+	}
+	function saveAnschreiben() {
+		// alert("TEST");
+		$('#save_result').html("<img src='/styles/images/ajax/loading_2.gif' alt='Speichere' title='Speichere' /><br /><br />");
+		xhr("/Karriere/Anschreiben/<?=$stellenid ?>/<?=$bewerbsprache ?>/", "mode=anschreiben&senden=senden&betreff=" + encodeURIComponent($('#betreff').val()) + "&objective=" + encodeURIComponent($('#objective')!=undefined?$('#objective').val():"") + "&anschreiben=" + encodeURIComponent($('#anschreiben').val()),function(text) {
+			
+			$('#save_result').html('<p class="hint success">Das Anschreiben wurde erfolgreich gespeichert.</p>');
+			if(opener.kc_page != undefined) opener.kc_page();
+			
+		});
+	}
+	
+	var sprachid = <?=$bewerbsprache ?>;
+	var nutzer = { 'anrede':'<?=$stellenDetails["nutzer_anrede"] ?>', 'semester':'<?=$stellenDetails["nutzer_semester"] ?>' }
+	
+	<? 		if(empty($stellenDetails["firmen_agentur_id"])) { ?>
+	var anrede = { 'anrede':'<?=$stellenDetails["anrede"] ?>', 'vname':'<?=$stellenDetails["vname"] ?>', 'name':'<?=$stellenDetails["name"] ?>'};
+	<? } else { ?>
+	var anrede = { 'anrede':'', 'vname':'', 'name':''};
+	<? } ?>
+	
+	<?
+		$anrede = "";
+		if($bewerbsprache == 2) {
+			if($stellenDetails["anrede"] == "Frau") {
+				$anrede = "Frau ".$stellenDetails["name"];
+			} else {
+				$anrede = "Herr ".$stellenDetails["name"];
+			}
+		} else {
+			if($stellenDetails["anrede"] == "Frau") {
+				$anrede = "Ms ".$stellenDetails["name"];
+			} else {
+				$anrede = "Mr ".$stellenDetails["name"];
+			}
+		}
+	?>
+</script>
+<script type="text/javascript">	
+	wizardOptions = ["<?=convertText($anschreiben_vorgabe["betreffzeile"]) ?>","<?=convertText(str_replace("{anrede}", $anrede,$anschreiben_vorgabe["anreden"])) ?>","<?=convertText($anschreiben_vorgabe["einleitungen"]) ?>","<?=convertText($anschreiben_vorgabe["bewerbungen"]) ?>","<?=convertText($anschreiben_vorgabe["zeitraumalle"]) ?>","<?=convertText($anschreiben_vorgabe["schlussalle"]) ?>"];
+</script>
+<?php # var_dump(urlencode($anschreiben["bewerbungen"])); ?>
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<script type="text/javascript" src="/scripts/ajax/anschreibenWizard.js"></script>
+<?
+		echo '<form action="#" method="post">'."\n";
+		echo '	<fieldset>'."\n";
+		echo '		<p>'."\n";
+/*
+		echo '			<label for="sprache">In welcher Sprache m&ouml;chten Sie sich bewerben?</label>'."\n";
+		echo '			<select id="sprache" name="sprache" onchange="submit();">'."\n";
+
+		$i = 0;
+		foreach ($sprachen as $key => $value) {
+			
+			$html = htmlentities($key);
+			echo '				<option ';
+
+			if ($value == $bewerbsprache) {
+				echo 'selected="selected" ';
+			}
+
+			echo 'value="'.$value.'">'.$html.'</option>'."\n";
+			$i++;
+		}
+
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+
+		if (!isset($anschreiben['lebenslauflayout'])) {
+			$select = $hDB->query('SELECT lebenslauftemplate FROM '.$database_bprofil.'.einstellungen WHERE nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+			if (mysql_num_rows($select) > 0) {
+				$lebenslauflayout = mysql_result($select,0,'lebenslauftemplate');
+			}
+			if (mysql_num_rows($select) < 1) {
+				$lebenslauflayout = '01';
+			}
+		} else {
+			$lebenslauflayout = $anschreiben['lebenslauflayout'];
+		}
+?>
+<script type="text/javascript" src="/scripts/ajax/mootools-1.2.3-core-yc.js"></script>
+<script type="text/javascript" src="/scripts/ajax/mootools-1.2.3.1-more.js"></script>
+<?
+		echo '		<p style="clear: both;">'."\n";
+		echo '			<label for="lebenslauflayout">W&auml;hlen Sie das Layout f&uuml;r Ihren Lebenslauf:<br /><span class="hint"><a href="/home/praktikanten/profil/lebenslauflayout.phtml?sprachid=2" onclick="top.location.href = \'/home/praktikanten/profil/lebenslauflayout.phtml?sprachid=2\';">(Layout&uuml;bersicht)</a></span></label>'."\n";
+		echo '			<select id="lebenslauflayout" name="lebenslauflayout">'."\n";
+		echo '				<option value="-1">---</option>'."\n";
+
+		if ($bewerbsprache == 2) {
+			echo '				<option'.($lebenslauflayout == 01 ? ' selected="selected"' : '').' value="01">Deutsch Variante 1</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 02 ? ' selected="selected"' : '').' value="02">Deutsch Variante 2</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 03 ? ' selected="selected"' : '').' value="03">Deutsch Variante 3</option>'."\n";
+		} elseif ($bewerbsprache == 1) {
+			echo '				<option'.($lebenslauflayout == 10 ? ' selected="selected"' : '').' value="10">Curriculum Vitae Variante 1</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 11 ? ' selected="selected"' : '').' value="11">Curriculum Vitae Variante 2</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 12 ? ' selected="selected"' : '').' value="12">Curriculum Vitae Variante 3</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 20 ? ' selected="selected"' : '').' value="20">Resume Variante 1</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 21 ? ' selected="selected"' : '').' value="21">Resume Variante 2</option>'."\n";
+			echo '				<option'.($lebenslauflayout == 22 ? ' selected="selected"' : '').' value="22">Resume Variante 3</option>'."\n";
+		}
+
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p style="clear: both;"><hr /></p>'."\n";*/
+
+		if ($stellenid != 0) {
+
+			if(!isset($stellenDetails)) {
+				// Nur ausgef�hrt, wenn gro�es Query nicht genutzt wird
+				$firmenquerystring = '	SELECT
+									firmen.firma,
+									firmen.strasse,
+									firmen.plz,
+									firmen.ort,
+									stellen.bearbeiterid
+								FROM
+									'.$database_db.'.firmen,
+									'.$database_db.'.stellen
+								WHERE
+									stellen.id = '.$stellenid.'
+									AND stellen.firmenid = firmen.id';
+				$firmenresult = $hDB->query($firmenquerystring,$praktdbslave); 
+
+				// array erzeugen //
+				$firmeneintrag = mysql_fetch_array ( $firmenresult );
+			
+			} else {
+				
+				$firmeneintrag = &$stellenDetails;
+				
+			}
+
+			$bearbeiterid = $firmeneintrag['bearbeiterid'];
+
+			$bearbeitereintrag = $stellenDetails;
+			
+			echo '<p class="anschreiben_taetigkeit">Bewerbung auf: <b>'.$stellenDetails["taetigkeit"].'</b></p>';
+			#echo "<div class='anschreiben_informationen' id='stelleninformationen'>".stripslashes($stellenDetails["beschreibung"])."<br /><br /></div>";
+?>
+<!--		<script type="text/javascript">
+			var mySlide = new Fx.Slide('stelleninformationen').hide();
+ 
+			//Create a slide in/out
+			$('toogleInformation').addEvent('click', function(e){//add the click function (i.e on an anchor)
+				e = new Event(e);//create a new event here
+				mySlide.toggle();//do this to the selected element
+				e.stop();//stop the event
+			});
+		</script>-->
+	<?
+		}
+		
+
+		/*
+		-------------------------------------------------------------------------------------------
+		Anschreiben
+		-------------------------------------------------------------------------------------------
+		*/
+		$betreffzeile = $anschreiben['betreff'];
+
+		if (!isset($_POST['delete'])) {
+			if (!isset($anschreiben['anschreiben']) || empty($anschreiben['anschreiben'])) {
+				
+				$kurzbewerbungselect = $hDB->query('SELECT * FROM '.$database_bprofil.'.profil_kurzbewerbung WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND sprachid = '.$bewerbsprache,$praktdbslave);
+				$kurzbewerbungsarray = mysql_fetch_array($kurzbewerbungselect);
+ 
+				if (isset($kurzbewerbungsarray['anreden']) && !empty($kurzbewerbungsarray['anreden'])) {
+					if(strpos($kurzbewerbungsarray['anreden'], "{anrede}")) {
+						$anschreiben['anschreiben'] = str_replace("{anrede}",$anrede, $kurzbewerbungsarray['anreden'])."\n\n";
+					} else {
+						$anschreiben['anschreiben'] = $kurzbewerbungsarray['anreden']."\n\n";
+					}
+				}
+				if (isset($kurzbewerbungsarray['einleitungen']) && !empty($kurzbewerbungsarray['einleitungen'])) {
+					$anschreiben['anschreiben'] .= $kurzbewerbungsarray['einleitungen']."\n\n";
+				}
+				if (isset($kurzbewerbungsarray['bewerbungen']) && !empty($kurzbewerbungsarray['bewerbungen'])) {
+					$anschreiben['anschreiben'] .= $kurzbewerbungsarray['bewerbungen']."\n\n";
+				}
+				if (isset($kurzbewerbungsarray['zeitraumalle']) && !empty($kurzbewerbungsarray['zeitraumalle'])) {
+					$anschreiben['anschreiben'] .= $kurzbewerbungsarray['zeitraumalle']."\n\n";
+				}
+				if (isset($kurzbewerbungsarray['schlussalle']) && !empty($kurzbewerbungsarray['schlussalle'])) {
+					$anschreiben['anschreiben'] .= $kurzbewerbungsarray['schlussalle']."\n\n";
+				}
+				if (isset($kurzbewerbungsarray['bewerbungen']) && !empty($kurzbewerbungsarray['bewerbungen'])) {
+					$anschreiben['anschreiben'] .= 'Mit freundlichen Grüßen'."\n\n";
+				}
+				if (isset($kurzbewerbungsarray['bewerbungen']) && !empty($kurzbewerbungsarray['bewerbungen'])) {
+					$anschreiben['anschreiben'] .= $_SESSION['s_vname'].' '.$_SESSION['s_name']."\n\n\n";
+				}
+				if (isset($kurzbewerbungsarray['bewerbungen']) && !empty($kurzbewerbungsarray['bewerbungen'])) {
+					$anschreiben['anschreiben'] .= 'Anlagen:'."\n".'-Lebenslauf'."\n".'-Passbild'."\n";
+				}
+
+				$betreffzeile = $kurzbewerbungsarray['betreffzeile']; 
+			}
+		} else {
+			$anschreiben['anschreiben'] = '';
+		} 
+
+		if ($bewerbsprache == 1) {
+			$objective = (isset($anschreiben['objective']) && !empty($anschreiben['objective'])) ? $anschreiben['objective'] : '';
+
+			echo '		<p style="text-align:left;">'."\n";
+			echo '			&nbsp;<input type="text" class="stdStyle '.(empty($objective)?"inputTmp":"").'" style="width:95%;" id="objective"  onblur="toogleWord(this, \'Objective\');" onmousedown="toogleWord(this, \'Objective\');" name="objective" maxlength="170" value="'.(empty($objective)?"Objective":htmlentities(stripslashes($objective))).'" />'."\n";
+			echo '		</p>'."\n";
+			echo '		<p style="text-align:left;">'."\n";
+			echo '			&nbsp;<input type="text" class="stdStyle '.(empty($betreffzeile)?"inputTmp":"").'" style="width:95%;" id="betreff" name="betreff" maxlength="170" onblur="toogleWord(this, \'Subject\');" onmousedown="toogleWord(this, \'Subject\');" value="'.(empty($betreffzeile)?'Subject':Praktika_String::htmlentities(stripslashes("asd".$betreffzeile))).'" />'."\n";
+			echo '		</p>'."\n";
+		} else {
+			echo '		<p style="clear: both; text-align:left;">'."\n";
+			echo '			&nbsp;<input type="text" onblur="toogleWord(this, \'Betreff\');" onmousedown="toogleWord(this, \'Betreff\');" style="width:95%; font-weight:bold;" class="stdStyle '.(empty($betreffzeile)?"inputTmp":"").'" id="betreff" name="betreff" maxlength="170" value="'.(empty($betreffzeile)?"Betreff":Praktika_String::htmlentities(stripslashes($betreffzeile))).'" />'."\n";
+			echo '		</p>'."\n";
+		}
+# var_dump($anschreiben['anschreiben']);				
+		echo '		<p style="text-align:left;">'."\n";
+		echo '			&nbsp;<textarea onkeyup="$(\'#save_result\').html(\'\');" class="stdStyle" id="anschreiben" style="width:95%;" name="anschreiben" rows="20" cols="16">'.Praktika_String::htmlentities($anschreiben['anschreiben']).'</textarea>'."\n";
+		echo '		</p>'."\n";
+		
+		echo '	</fieldset>'."\n";
+		echo '	<fieldset class="control_panel">'."\n";
+		echo '		<p class="clearfix center">'."\n";
+		echo '			<span id="save_result"></span>'."\n";
+		echo '			<input type="submit" class="button small green" onclick="saveAnschreiben(); return false;" name="senden" value="Anschreiben Speichern" />'."\n";
+		echo '  		<a class="button alternative small" onclick="deleteAnschreiben(); return false;" name="delete">Anschreiben l&ouml;schen</a>'."\n";
+		echo '			<input type="hidden" name="id" value="'.$firmenid.'" />'."\n";
+		echo '			<input type="hidden" name="stellenid" value="'.$stellenid.'" />'."\n";
+		echo '			<input type="hidden" name="firmenid" value="'.$firmenid.'" />'."\n";
+		echo '			<input type="hidden" name="spalte" value="'.$spaltenid.'" />'."\n";
+		if (isset($_GET['extern']) && !empty($_GET['extern'])) {
+			echo '			<input type="hidden" name="extern" value="'.intval($_GET['extern']).'" />'."\n";
+		}
+
+		echo '		</p><br /><br />'."\n";
+		echo '		<p class="center">'."\n";
+		echo '			<a class="button small" onclick="window.close();" name="delete" value="Fenster schlie&szlig;en">Fenster schlie&szlig;en</a>'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '</form>'."\n";
+	}
+}

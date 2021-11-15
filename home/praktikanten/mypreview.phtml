@@ -1,0 +1,349 @@
+<?
+include(dirname(__FILE__)."/kcenter/gesuche/preview.phtml");
+exit();
+
+// Kann weg (by Stefan)
+$sprachbasisdatei = "/absolventen/praktikanten/detail.phtml";
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_MY_PRAKTIKA;
+
+pageheader(array('page_title' => 'Vorschau'));
+
+// datensatz abfragen //
+switch($_GET["spalte"]) {
+	case '1':
+		$tbl = "praktikanten";
+		break;
+	case '2':
+		$tbl = "diplomgesuch";
+		break;
+	case '3':
+		$tbl = "nebenjobgesuch";
+		break;				
+	case '4':
+		$tbl = "ausbildungsgesuch";
+		break;
+	case '5':
+		$tbl = "berufseinstieggesuch";
+		break;
+	default:
+		$tbl = "praktikanten";
+		break;				
+}
+
+$sql_eintrag = '	SELECT
+								*,
+								date_format(praktikanten.modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum
+							FROM
+								nutzer,
+								'.$tbl.' `praktikanten`
+							WHERE
+								praktikanten.id = '.intval($_GET['id']).'
+								AND (praktikanten.nutzerid = nutzer.id)';		
+
+$result = mysql_db_query($database_db,$sql_eintrag,$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($result);
+
+/* alter berechnen */
+$zeit = time();
+$geburtstag = strtotime($eintrag['geburtsdatum']);
+$alterdiff = $zeit - $geburtstag;
+$diff = 31560000; // 365 Tage
+$alter = $alterdiff / $diff;
+
+
+// datensatzausgabe //
+echo '<p><a href="/karriere/gesuche/praktikum/'.$_GET['id'].'/">Gesuch &auml;ndern</a></p>'."\n";
+
+echo '<table>'."\n";
+echo '	<colgroup>'."\n";
+echo '		<col style="width: 49%;" />'."\n";
+echo '		<col style="width: 49%;" />'."\n";
+echo '	</colgroup>'."\n";
+echo '	<tr>'."\n";
+echo '		<th colspan="2">'.$language['strPraktikant'].'</th>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strName'].'</td>'."\n";
+echo '		<td>'."\n";
+
+if ($eintrag['geschlecht'] == 'weiblich') {
+	echo $language['strFrau'].' ';
+}
+if ( $eintrag['geschlecht'] == "m&auml;nnlich") {
+	echo $language['strHerr'].' ';
+}
+
+echo '<b>'.$eintrag['vname'].' '.$eintrag['name'].'</b></td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strAnschrift'].'</td>'."\n";
+echo '		<td>'.$eintrag['strasse'].'<br />'.$eintrag['plz'].' '.$eintrag['ort'].'</td>'."\n";
+echo '	</tr>'."\n";
+
+if ($eintrag['grossraum'] <> '94' && $eintrag['grossraum'] > 0) {
+	$such = intval($eintrag['grossraum']);
+	$suchres = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id='.$such,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strGrossraum'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,'grossraum').'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if ($eintrag['bundesland'] > 0) {
+	$bundeslandid = $eintrag['bundesland'];
+	$bland = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strBundesland'].'</td>'."\n";
+	echo '		<td>'.mysql_result($bland,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strAlter'].'</td>'."\n";
+echo '		<td>'.sprintf("%01.0u",$alter).' Jahre</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strTelefon'].'</td>'."\n";
+echo '		<td>'.$eintrag['tel'].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strTelefax'].'</td>'."\n";
+echo '		<td>'.$eintrag['fax'].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strFunktelefon'].'</td>'."\n";
+echo '		<td>'.$eintrag['funktel'].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strEmail'].'</td>'."\n";
+echo '		<td>'.$eintrag['email'].'</td>'."\n";
+echo '	</tr>'."\n";
+
+if (!empty($eintrag['homepage'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strHomepage'].'</td>'."\n";
+	echo '		<td><a href="'.$eintrag['homepage'].'" target="_parent">'.$eintrag['homepage'].'</a></td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '	<tr>'."\n";
+echo '		<th colspan="2">Qualifikationen</th>'."\n";
+echo '	</tr>'."\n";
+if (!empty($eintrag['studiengang'])) {
+	$ins = intval($eintrag['studiengang']);
+	$suchres = mysql_db_query($database_db,'SELECT studiengang FROM studiengaenge WHERE id = '.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strStudien'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,'studiengang').'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['semester'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strSemester'].'</td>'."\n";
+	echo '		<td>'.$eintrag['semester'].$language['strVon'].$eintrag['regelstudienzeit'].$language['strSemester2'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['qualifikation'])) {
+	$ins = intval($eintrag['qualifikation']);
+	$suchres = mysql_db_query($database_db,'SELECT qualifikation FROM qualifikation WHERE id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strQualifikation'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,'qualifikation').'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['sonst_qualifikation'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strSonstige'].'</td>'."\n";
+	echo '		<td>'.$eintrag['sonst_qualifikation'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['fuehrerschein'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strFuehrerschein'].'</td>'."\n";
+	echo '		<td>'.$eintrag['fuehrerschein'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['umschulung'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strUmschulung'].'</td>'."\n";
+	echo '		<td>'.$eintrag['umschulung'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['vorh_praktika'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strVorherige'].'</td>'."\n";
+	echo '		<td>'.$eintrag['vorh_praktika'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['sprachkenntnisse1'])) {
+	$ins = intval($eintrag['sprachkenntnisse1']);
+	$suchres = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM sprachen where id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strSprachk'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['sprachkenntnisse2'])) {
+	$ins = intval($eintrag['sprachkenntnisse2']);
+	$suchres = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM sprachen WHERE id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strSprachk'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['sprachkenntnisse3'])) {
+	$ins = intval($eintrag['sprachkenntnisse3']);
+	$suchres = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM sprachen WHERE id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strSprachk'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '	<tr>'."\n";
+switch($_GET["spalte"]) {
+	case '1':
+		echo '		<th colspan="2">Gesuchte Praktikumsstelle</th>'."\n";
+		break;
+	case '2':
+		echo '		<th colspan="2">Gesuchte Bachelor-/Masterarbeit</th>'."\n";
+		break;
+	case '3':
+		echo '		<th colspan="2">Gesuchter Nebenjob</th>'."\n";
+		break;
+	case '4':
+		echo '		<th colspan="2">Gesuchte Ausbildung</th>'."\n";
+		break;
+	case '5':
+		echo '		<th colspan="2">Gesuchter Berufseinstieg</th>'."\n";
+		break;
+	default:
+		echo '		<th colspan="2">Gesuchte Praktikumsstelle</th>'."\n";
+		break;		
+		
+}
+echo '	</tr>'."\n";
+
+if (!empty($eintrag['taetigkeit']) && ($eintrag['taetigkeit'] != $eintrag['beschreibung'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strAngestrebte'].'</td>'."\n";
+	echo '		<td>'.nl2br($eintrag['taetigkeit']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['berufsfeld'])) {
+	$ins = intval($eintrag['berufsfeld']);
+	$suchres = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM berufsfelder WHERE id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strBerufsfeld'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['praktikumsart'])) {
+	$ins = intval($eintrag['praktikumsart']);
+	$suchres = mysql_db_query($database_db,'SELECT art FROM praktikumsart WHERE id='.$ins,$praktdbslave);
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strPraktikumsart'].'</td>'."\n";
+	echo '		<td>'.mysql_result($suchres,0,'art').'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['studienort'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>Praktikumsort:</td>'."\n";
+	echo '		<td>'.$eintrag['studienort'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (empty($eintrag['zeitraum'])) {
+	if($eintrag['zeitraum_ab_m'] == 0 || $eintrag['zeitraum_ab_y'] == 0) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strZeitraum'].'</td>'."\n";
+		echo '		<td>keine genauen Angaben hinterlegt</td>'."\n";
+		echo '	</tr>'."\n";
+	} else {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strZeitraum'].'</td>'."\n";
+		echo '		<td>'.$eintrag['zeitraum_ab_m'].' - '.$eintrag['zeitraum_ab_y'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+} else {
+	if($eintrag['zeitraum_ab_m'] == 0 || $eintrag['zeitraum_ab_y'] == 0) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strZeitraum'].'</td>'."\n";
+		echo '		<td>'.$eintrag['zeitraum'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	} else {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strZeitraum'].'</td>'."\n";
+		echo '		<td>'.$eintrag['zeitraum_ab_m'].' - '.$eintrag['zeitraum_ab_y'].'<br />'.$eintrag['zeitraum'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+}
+
+if (!empty($eintrag['beschreibung'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strBeschreibung'].'</td>'."\n";
+		echo '		<td>'.nl2br($eintrag['beschreibung']).'</td>'."\n";
+		echo '	</tr>'."\n";
+}
+
+echo '	<tr>'."\n";
+echo '		<th colspan="2">'.$language['strPersoenliche'].'</th>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>'.$language['strGeaendert'].'</td>'."\n";
+echo '		<td>'.$eintrag['modifydatum'].'</td>'."\n";
+echo '	</tr>'."\n";
+
+
+$select = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.$_SESSION['s_nutzerid'],$praktdbmaster);
+
+if (mysql_num_rows($select) > 0) {
+	$lebenlaufwahl = mysql_result($select,0,'lebenslauftemplate');
+}
+if ($lebenlaufwahl == '01' || $lebenlaufwahl == '02' || $lebenlaufwahl == '03') {
+	$bewerbsprache = 2;
+} else {
+	$bewerbsprache = 1;
+}
+if ($lebenlaufwahl == '20' || $lebenlaufwahl == '10') {
+	$lebenlaufwahl = '01';
+}
+if (empty($lebenlaufwahl)) {
+	$lebenlaufwahl = '01';
+}
+if (empty($bewerbsprache)) {
+	$bewerbsprache = $_SESSION['s_sprachid'];
+}
+
+echo '	<tr>'."\n";
+echo '		<td>Bewerbungsmappe:</td>'."\n";
+echo '		<td><a href="/greybox.phtml?url=/home/praktikanten/profil/previewlebenslauf'.$lebenlaufwahl.'.phtml&amp;menu=mappe&amp;mappe=1" onclick="window.scrollTo(0,0);" rel="pb_page_fs[]">Bewerbungsmappe ansehen</a></td>'."\n";
+echo '	</tr>'."\n";
+echo '</table>'."\n";
+
+echo '<p class="control_panel"><button type="button" name="back" onclick="location.href = \'/karriere/gesuche/\'" value="zur&uuml;ck zur &Uuml;bersicht"><span><span><span>zur&uuml;ck zur &Uuml;bersicht</span></span></span></button></p>'."\n";
+bodyoff();
+?>

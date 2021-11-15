@@ -1,0 +1,120 @@
+/** BUTTONS **/
+.candidates button {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	display: inline;
+	line-height: 21px;
+	margin: auto;
+	margin-top:5px;
+}
+.candidates button span {
+	background: url('/styles/images/Buttons/sprite2.png') left -10px no-repeat;
+	/* background: url('/styles/images/Buttons/button_cand_orange_left.gif') left top no-repeat; */
+	padding: 0;
+	margin: 0;
+	display: block;
+	line-height: 21px;
+	border: 0;
+}
+.candidates button span span {
+	background: url('/styles/images/Buttons/sprite2.png') right -72px no-repeat;
+	/* background: url('/styles/images/Buttons/button_cand_orange_right.gif') top right no-repeat;*/
+	padding: 0 8px 0 7px;
+	margin: 0;
+	display: block;
+}
+.candidates button span span span {
+	background: url('/styles/images/Buttons/sprite2.png') left -41px repeat-x;
+	/* background: url('/styles/images/Buttons/button_cand_orange_middle.gif') left top repeat-x; */
+	padding: 0 5px;
+	display: block;
+	color: #ffffff;
+	font-weight: bold;
+	font-size: 11px !important;
+	text-transform: uppercase;
+}
+.candidates button.gray {
+	display: inline;
+}
+	
+.candidates button.gray span {
+	background: url('/styles/images/Buttons/sprite2.png') left -382px no-repeat;
+	/* background: url('/styles/images/Buttons/button_gray_left.gif') left top no-repeat; */
+}
+.candidates button.gray span span {
+	background: url('/styles/images/Buttons/sprite2.png') right -444px no-repeat;
+	/* background: url('/styles/images/Buttons/button_gray_right.gif') top right no-repeat; */
+}
+.candidates button.gray span span span {
+	background: url('/styles/images/Buttons/sprite2.png') right -444px no-repeat;
+	/* background: url('/styles/images/Buttons/button_gray_middle.gif') left top repeat-x; */
+	color: #f27000;
+}
+
+.candidates a.button {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	margin: auto;
+	font-size: 13px !important;
+}
+.candidates a.button span {
+	background: url('/styles/images/Buttons/sprite2.png') left -10px no-repeat;
+	/* background: url('/styles/images/Buttons/button_cand_orange_left.gif') left top no-repeat; */
+	padding: 2px 0 3px 0;
+	margin: 0;
+	border: 0;
+}
+.candidates a.button span span {
+	background: url('/styles/images/Buttons/sprite2.png') right -72px no-repeat;
+	/* background: url('/styles/images/Buttons/button_cand_orange_right.gif') top right no-repeat; */
+	padding: 2px 8px 3px 7px;
+	margin: 0;
+}
+.candidates a.button span span span {
+	background: url('/styles/images/Buttons/sprite2.png') left -41px repeat-x;
+	/* background: url('/styles/images/Buttons/button_cand_orange_middle.gif') left top repeat-x; */
+	padding: 4px 5px;
+	color: #ffffff;
+	font-weight: bold;
+	font-size: 11px !important;
+	text-transform: uppercase;
+}
+/** BUTTONS ENDE **/
+
+h1,h2,h3,h4,h5,h6 {	
+	font-family:Arial, verdana, sans-serif;
+	font-weight:bold;
+}
+body.candidates div#main h1{
+	margin-bottom:10px;
+	font-size: 26px;
+	color: #003f78;
+	font-weight:normal;
+	width:85%;
+	line-height:30px;
+}
+body.candidates div#main h2{
+	color: #640096;
+	font-size: 20px;
+	line-height:22px;
+	width:85%;
+}
+body.candidates div#main h3{
+	color: #f27000;
+	font-size: 15px;
+}
+body.candidates div#main h4{
+	color: #640096;
+	width: auto;
+	background: #e5ebf1;
+	font-size: 15px;
+	display: block;
+	padding: 7px 5px 7px 5px;
+	margin-bottom: 10px;
+}
+body.candidates div#main h5{
+	color: #333;
+}
+

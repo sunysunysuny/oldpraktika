@@ -1,0 +1,539 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/mitglied.phtml";
+ob_start();
+require_once('/home/praktika/etc/config.inc.php');
+  // include files
+  require_once "Auth/OpenID/Consumer.php";
+  require_once "Auth/OpenID/FileStore.php";
+  require_once "Auth/OpenID/SReg.php";
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (isset($_SESSION['s_firmenid'])) {
+		header("Location: /recruiting/");
+	} else {
+		header("Location: /karriere/");
+	}
+}
+
+$error = array();
+
+//Email Verify versenden
+
+/**
+ * Benutzernamen und Passwort ueberpruefen
+ */
+if(!empty($loginidemail))
+{
+	switch($_SESSION['current_user_group'])
+	{
+		case USER_GROUP_CANDIDATES:
+			if (!($result = _logincheck($loginidemail, $passwort, LOGIN_CANDIDATES))) {
+				$result = _logincheck($loginidemail, $passwort, LOGIN_COMPANIES);
+				$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+			}
+			break;
+		case USER_GROUP_COMPANIES:
+			if (!($result = _logincheck($loginidemail, $passwort, LOGIN_COMPANIES))) {
+				$result = _logincheck($loginidemail, $passwort, LOGIN_CANDIDATES);
+				$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+			}
+			break;
+		case USER_GROUP_ADMIN:
+			$result = _logincheck($loginidemail, $passwort, LOGIN_ADMIN);
+			break;
+		/*...*/
+	}
+
+	if ($result == false) {
+		array_push($error, $language["strKeinLogin"]);
+	} else {
+		if ($result['inactive'] == 'true') {
+			array_push($error, $language["strGesperrt"]);
+	/*	} elseif (isset($result['emailverify']) && $result['emailverify'] == "false") {
+			array_push($error, '<font class="toppraktika">Sie haben Ihren praktika.de Account noch nicht best&auml;tigt, bitte klicken Sie auf den Link in der Email, die wir Ihnen nach der Accountregistrierung zukommen lassen haben.</font>');
+			$emailverifyfalse = true;
+	*/	} else {
+			setcookie("c_group", $_SESSION['current_user_group'], time() + 31449600, "/");
+			setcookie("c_lid", $result['id'], time() + 31449600, "/");
+
+			_login($result['id'], $result['mode']);
+			if (isset($_SESSION['s_samesite']) && $_SESSION['s_samesite'] == true) {
+				if(isset($_SESSION['s_uri'])) {
+					header("Location: " . $_SESSION['s_uri']);
+					unset($_SESSION['s_uri']);
+				} else {
+					header("Location: " . $uri);
+				}
+			} else {
+				switch ($_SESSION['current_user_group']) {
+					case USER_GROUP_CANDIDATES:
+						// Wenn nen halbes Jahr nicht dagewesen, dann Stammdaten aktualisieren
+						if (intval($_SESSION['lastlogin']) < (time() - (60 * 60 * 24 * 30 * 3))) {
+							header("Location: /home/praktikanten/stammdaten_aktualisieren.phtml");
+							exit;
+						}
+						header('Location: http://'.$_SERVER['HTTP_HOST'].'/karriere/');
+						exit;
+						break;
+					case USER_GROUP_COMPANIES:
+						header('Location: http://'.$_SERVER['HTTP_HOST'].'/recruiting/');
+						exit;
+						break;
+					case USER_GROUP_ADMIN:
+						header('Location: http://'.$_SERVER['HTTP_HOST'].'/admin/adminmenu.phtml');
+						exit;
+						break;
+				}
+			}
+		}
+	}
+}
+
+/*
+if ($send && empty($loginidemail)) {
+	array_push($error, $language["strLoginleer"]);
+}
+if ($send && empty($passwort)) {
+	array_push($error, $language["strPasswortleer"]);
+}
+*/
+if ($_POST['openid_action'] == "register") {
+	praktikaInclude(array("user.php"));
+	 
+	$loginid = Praktika_User::register($_POST);
+	if($loginid === false) {
+		echo "Fehler bei der Registrierung";
+		exit();
+	}
+	_login($loginid, LOGIN_CANDIDATES);
+	recalc_profilquali();
+	
+	// neues Emailsystem nutzen
+	$aktstunde = date('H');
+	if ($aktstunde < 10) {
+		$begruessung = 'Guten Morgen';
+	} elseif ($aktstunde > 19) {
+		$begruessung = 'Guten Abend';
+	} else {
+		$begruessung = 'Hallo';
+	}
+
+	
+	$loginidemail = $_POST['email'];
+	$passwort = $_POST['passwort'];
+	require("/home/praktika/etc/login_bewerber.inc.php");
+	
+
+	$begruessung .= ' '.$_POST['anrede'].' '.$_POST['name'];
+$insert_id = $loginid;
+	// Templatesystem vorbereiten
+	$verifykeyresults = mysql_db_query($database_db,'SELECT anrede, name, vname, email, id_md5 AS verifykey FROM nutzer WHERE id = '.$insert_id,$praktdbmaster);
+
+	// datensaetze gefunden ? //
+	$verifykeynum_rows = mysql_num_rows($verifykeyresults);
+
+	if ($verifykeynum_rows > 0) {
+		$verifykeydaten = mysql_fetch_array($verifykeyresults);
+	}
+
+	$emailobj = new emailtemplate(5);
+
+	// Ersetzungen durchf&uuml;hren
+	$mailto = $_POST['email'];
+	$emailobj->replace('{ansprache}',$begruessung);
+	$emailobj->replace('{email}',$_POST['email']);
+	$emailobj->replace('{id}',$insert_id);
+	// $emailobj->replace('{verifykey}',$verifykeydaten['verifykey']);
+
+
+	$emailobj->replace('{passwort}',"-nicht vergeben-");
+
+
+	// Bestaetigunsmail verschicken
+	$emailobj->send_email($mailto);
+	
+	// Emailobjekt l&ouml;schen
+	unset($emailobj);
+	
+	/* Wohnort datensatz in $database_community einfuegen */
+	if (!empty($_POST['ort'])) {
+		$georesult = geocoding($_POST['land'],($_POST['bundesland'] == '%' ? '' : $_POST['bundesland']),$_POST['plz'],$_POST['ort'],$_POST['strasse']);
+		
+		if ($georesult['lat'] == 0 && $georesult['long'] == 0) {
+			$georesult = geocoding($_POST['land'],'','',$_POST['ort'],'');
+		}
+		
+		if ($georesult['lat'] != 0 && $georesult['long'] != 0) {
+			$end_praktikum_m = $_POST['start_praktikum_m'] + 5;
+			$end_praktikum_y = $_POST['start_praktikum_y'];
+			
+			if ($end_praktikum_m > 12) {
+				$end_praktikum_m = $end_praktikum_m - 12;
+				$end_praktikum_y++;
+			}
+	
+	 		$sql = 'INSERT INTO stationlist (
+	 					nutzerid,
+	 					category,
+	 					landid,
+	 					bundeslandid,
+	 					plz,
+	 					ort,
+	 					strasse,
+	 					start_praktikum_m,
+	 					start_praktikum_y,
+	 					start_praktikum,
+	 					end_praktikum_m,
+	 					end_praktikum_y,
+	 					end_praktikum,
+	 					long,
+	 					lat,
+	 					datum_eintrag
+	 				) VALUES (
+	 					'.intval($insert_id).',
+	 					8,
+	 					'.intval($_POST["land"]).',
+	 					'.intval($_POST["bundesland"]).',
+	 					\''.mysql_real_escape_string($_POST['plz']).'\',
+	 					\''.mysql_real_escape_string(ucfirst($_POST['ort'])).'\',
+	 					\''.mysql_real_escape_string($_POST['strasse']).'\',
+	 					'.intval($start_praktikum_m).',
+	 					'.intval($start_praktikum_y).',
+	 					\''.strtotime(intval($start_praktikum_y).'-'.intval($start_praktikum_m).'-01').'\',
+	 					'.intval($end_praktikum_m).',
+	 					'.intval($end_praktikum_y).',
+	 					\''.strtotime(intval($end_praktikum_y).'-'.intval($end_praktikum_m).'-30').'\',
+	 					'.floatval($georesult['long']).',
+	 					'.floatval($georesult['lat']).',
+	 					UNIX_TIMESTAMP());';
+			mysql_db_query($database_community,$sql,$praktdbmaster);
+		}
+	}
+	?>
+		Ihr Account wurde erfolgreich angelegt. Sie werden jetzt in Ihr Karriere Center weitergeleitet.<br />
+		<meta http-equiv="refresh" content="1; url=/karriere/">
+	<?
+	exit();
+}
+if(!empty($_GET["insertID"])) {
+	$_POST["openid_action"] = "login";
+	$_POST["openid_identifier"] = base64_decode($_GET["insertID"]);
+}
+
+$store = new Auth_OpenID_FileStore('/home/praktika/cache/cacheheader/oid_store');
+
+$consumer = new Auth_OpenID_Consumer($store);
+$id = $_POST['openid_identifier'];
+
+if (isset($_POST['openid_action']) &&
+    $_POST['openid_action'] == "login" &&
+    !empty($_POST['openid_identifier'])) {
+	  
+    // begin sign-in process
+	// create an authentication request to the OpenID provider
+	$auth = $consumer->begin($_POST['openid_identifier']);
+	if (!$auth) {
+	  	// $error = "Die OpenID ist nicht gültig.";
+	  	echo "Nicht gültig '".$_POST['openid_identifier']."'";
+	  	exit();
+	}
+ 
+  // create request for registration data
+  $sreg = Auth_OpenID_SRegRequest::build(array('email', 'fullname', 'dob', 'postcode','gender'), array('nickname'));
+  if (!$sreg) {
+    die("ERROR: Unable to build Simple Registration request");
+  }
+  $auth->addExtension($sreg);
+  $_SESSION["lastOpenID"] = $id;
+  
+  // redirect to OpenID provider for authentication
+  $url = $auth->redirectURL('http://'.$_SERVER["HTTP_HOST"].'/', 'http://'.$_SERVER["HTTP_HOST"].'/login/openid/');
+  header('Location: ' . $url);
+  
+// http://graceland.openid.org
+} else if (isset($_GET['openid_mode'])) {
+    if ($_GET['openid_mode'] == "id_res") {
+    
+		$response = $consumer->complete('http://'.$_SERVER["HTTP_HOST"].'/login/openid/');
+
+		$id = $response->identity_url;
+		// set session variable depending on authentication result
+		if ($response->status == Auth_OpenID_SUCCESS) {
+            
+        	// echo "VALID " . htmlspecialchars($id) ."<br>\n";
+            
+		    $sreg = new Auth_OpenID_SRegResponse();
+			$obj = $sreg->fromSuccessResponse($response);
+			$data = $obj->contents(); 		    
+		    # var_dump($data);
+		    
+		    # var_dump($data);
+		    if(substr($id, strlen($id)-1) == "/") {
+		    	$id = substr($id, 0, strlen($id)-1);
+		    }
+		    $sql = "SELECT id FROM prakt2.nutzer WHERE openid = '".mysql_real_escape_string($id)."'";
+		    # echo $sql;
+		    
+		    $result = $hDB->query($sql, $praktdbslave);
+		    #echo $sql;
+		    //var_dump($data);
+		    if(mysql_num_rows($result) == 0) {
+		    	$showCreateFrame = true;
+		    	// echo "Sie sind nicht registriert!<br />Wollen sie sich jetzt anmelden? <a href='/neuanmeldung/check_candidate/'>Hier gehts zur Anmeldung</a>";
+		    } else {
+		    	$nutzerData = mysql_fetch_assoc($result);
+		    	# echo $nutzerData["id"];
+		    	_login($nutzerData["id"], LOGIN_CANDIDATES);
+		    	// _logincheck($nutzerData["id"], $nutzerData["passwort_plain"], LOGIN_CANDIDATES);
+		    	#echo "EINGELOGGT";
+		    	#header('Location: http://'.$_SERVER['HTTP_HOST'].'/karriere/');
+		    	# exit();
+		    	$loginSuccess = true;
+		    }
+/*		    if (isset($data['nickname'])) {
+		        echo "nickname: " . htmlspecialchars($data['nickname']) . "<br>\n";
+		    }
+		    if (isset($data['email'])) {
+		        echo "email: " . htmlspecialchars($data['email']) . "<br>\n";
+		    }
+		    if (isset($data['fullname'])) {
+		        echo "fullname: " . htmlspecialchars($data['fullname']) . "<br>\n";
+		    } */
+        } else {
+            $openIDerror = "Die OpenID '".htmlspecialchars($_POST['openid_identifier'])."' ist nicht gültig.";
+            // if(isDebug() == 1) $openIDerror .="<br /><i>(Fehler:".$consumer->getError().")</i>";
+//            if($consumer->getError() == "Duplicate openid.response_nonce") {
+            	//$openIDerror .= "<br /><b>Sie können die meisten Probleme durch erneutes Einloggen beheben.</b>";
+            //}
+            // echo $consumer->getError();
+        }
+    } else if ($_GET['openid_mode'] == "cancel") {
+        $canceled = true;
+    }
+}
+
+pageheader(array('page_title' => 'Login per OpenID'));
+
+if($loginSuccess == true) {
+	?>
+	Sie wurden erfolgreich angemeldet und werden weitergeleitet.<br />
+	<meta http-equiv="refresh" content="0; url=/karriere/">
+	<?
+} else if($showCreateFrame == true) {
+	$name = explode(" ",$data["fullname"],2);
+	$birthday = strtotime($data["dob"]);
+	#$_POST["geb_tag"] = date("d",$birthday);
+	#$_POST["geb_monat"] = date("m",$birthday);
+	#$_POST["geb_jahr"] = date("Y",$birthday);
+	$_POST['plz'] = $data["postcode"];
+	
+	if(!empty($data["postcode"])) {
+		$sql = "SELECT land, bundesland, ort FROM orte WHERE plz = '".$data["postcode"]."'";
+		$region = mysql_fetch_assoc(mysql_query($sql, $praktdbslave));
+		$_POST["ort"] = $region["ort"];
+	}
+	
+	$GET_data["openid"] = $response->identity_url;
+	$GET_data["vname"] = $name[0];
+	$GET_data["name"] = $name[1];
+	$GET_data["email"] = $data["email"];
+	$GET_data["land"] = $region["land"];
+	$GET_data["bundesland"] = $region["bundesland"];
+	$GET_data["ort"] = $_POST["ort"];
+	$GET_data["plz"] = $data["postcode"];
+	$GET_data["gener"] = $data["gender"];
+	$GET_data["dob"] = $birthday;
+	
+	header("Location:/home/praktikanten/anmeldung.phtml?openid=1&data=".base64_encode(serialize($GET_data)));
+	
+?>
+Sie haben eine gültige OpenID angegeben, konnten aber in unserer Datenbank nicht gefunden werden.<br /><br />
+Sie haben jetzt die Möglichkeit einen neuen Account mittels dieser OpenID anzulegen.<br />
+Als Login-Kriterium wird die eMail-Adresse aus ihrem OpenID Konto gespeichert, sodass sie sich auch mit anderen OpenID's anmelden können, welche die gleiche eMail Einstellung haben.<br /><br />
+<form method="POST" action="#">
+<fieldset>
+<p>
+	<label for="anrede">Anrede:<sup>*</sup></label>
+	<select id="anrede" name="anrede">
+		<option value="-1">----------------</option>
+		<option value="Herr" <?=($data["gender"]=="M"?"selected='selected'":"") ?>>Herr</option>
+		<option value="Frau" <?=($data["gender"]=="F"?"selected='selected'":"") ?>>Frau</option>
+	</select>
+</p>
+
+<p>
+	<label for="vname">Vorname:<sup>*</sup></label>
+	<input type="text" id="vname" name="vname" value="<?=$name[0] ?>" />
+</p>
+<p>
+	<label for="name">Nachname:<sup>*</sup></label>
+	<input type="text" id="name" name="name" maxlength="50" value="<?=$name[1] ?>" />
+</p>
+		<p>
+			<label for="email">eMail-Adresse:<sup>*</sup></label>
+			<input type="text" id="email" name="email" maxlength="50" value="<?=$data["email"] ?>" readonly="readonly" />
+		</p>
+<?
+	$landselect = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_land = mysql_num_rows($landselect);
+	
+	if(!empty($region["land"])) {
+		$landid = $region["land"];
+	} else {
+		$landid = mysql_result($landselect, 0, "id");
+	}
+	
+	$bundeslandselect = mysql_db_query($database_db,'SELECT * FROM bundesland WHERE landid='.$landid.' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_bundesland = mysql_num_rows($bundeslandselect);
+	
+	if(!empty($region["land"])) {
+		$bundeslandid = $region["bundesland"];
+	} else {
+		$bundeslandid = mysql_result($bundeslandselect, 0, "id");
+	}
+		
+	$grossraumselect = mysql_db_query($database_db,'SELECT grossraum,id FROM grossraum WHERE bundesland='.$bundeslandid.' ORDER BY grossraum',$praktdbslave);
+	$anz_grossraum = mysql_num_rows($grossraumselect);
+
+	echo '		<p>'."\n";
+	echo '			<label for="land">Land:<sup>*</sup></label>'."\n";
+	echo '			<select id="land" name="land">'."\n";
+	
+	$i=0;
+	while ($i < $anz_land) {
+		$html = htmlspecialchars(mysql_result($landselect,$i,$_SESSION['s_sprache']));
+		echo '				<option '.((mysql_result($landselect,$i,'id') == $region["land"]) ? 'selected="selected" ' : '').'value="'.mysql_result($landselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="bundesland">Bundesland:</label>'."\n";
+	echo '			<select id="bundesland" name="bundesland">'."\n";
+	
+	$i=0;
+	while ($i < $anz_bundesland) {
+		$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+		echo '				<option '.((mysql_result($bundeslandselect,$i,'id') == $region["bundesland"]) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="grossraum">Gro&szlig;raum:</label>'."\n";
+	echo '			<select id="grossraum" name="grossraum">'."\n";
+	
+	$i=0;
+	while ($i < $anz_grossraum) {
+		$html = htmlspecialchars(mysql_result($grossraumselect,$i));
+		echo '				<option '.((mysql_result($grossraumselect,$i,'id') == $_POST['grossraum']) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	
+	echo '		<p>'."\n";
+	echo '			<label for="plz">PLZ / Ort:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="plz" name="plz" maxlength="7" value="'.(isset($_POST['plz']) ? $_POST['plz'] : '').'" /><input type="text" id="ort" name="ort" maxlength="50" value="'.(isset($_POST['ort']) ? $_POST['ort'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+		
+	echo '		<p>'."\n";
+	echo '			<label for="geb_tag"'.((isset($_POST['save']) && ((isset($_POST['geb_tag']) && $_POST['geb_tag'] == '-1') || (isset($_POST['geb_monat']) && $_POST['geb_monat'] == '-1') || (isset($_POST['geb_jahr']) && $_POST['geb_jahr'] == '-1'))) ? ' class="error"' : '').'>	Geburtsdatum:<sup>*</sup></label>'."\n";
+	echo '			<select id="geb_tag" name="geb_tag" class="day">'."\n";
+	echo '				<option value="-1">--</option>'."\n";
+	
+	for ($i = 1; $i <= 31; $i++) {
+		echo '				<option value="'.$i.'"';
+		if (isset($_POST['geb_tag']) && $i == $_POST['geb_tag']) {
+			echo ' selected="selected"';
+		}
+		echo '>'.$i.'</option>'."\n";
+	}
+
+	echo '			</select> / '."\n";
+	echo '			<select id="geb_monat" name="geb_monat" class="month">'."\n";
+	echo '				<option value="-1">--</option>'."\n";
+	
+	for ($i = 1; $i <= 12; $i++) {
+		echo '				<option value="'.$i.'"';
+		if (isset($_POST['geb_monat']) && $i == $_POST['geb_monat']) {
+			echo ' selected="selected"';
+		}
+		echo '>'.$i.'</option>'."\n";
+	}
+
+	echo '			</select> / '."\n";
+	echo '			<select id="geb_jahr" name="geb_jahr" class="year">'."\n";
+	echo '				<option value="-1">--</option>'."\n";
+
+	for ($i = date("Y")-67; $i <= date("Y")-13; $i++) {
+		echo '			<option value="'.$i.'"';
+		if (isset($_POST['geb_jahr']) && $i == $_POST['geb_jahr']) {
+			echo ' selected="selected"';
+		}
+		echo '>'.$i.'</option>'."\n";
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+?>
+<p>
+	<label for="openid">OpenID:</label>
+	<input type="text" id="openid" name="openid" value="<?=$id ?>" />
+</p>
+<?
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<input type="checkbox" value="true" id="agbok" name="agbok"'.((isset($_POST['agbok']) && ($_POST['agbok'] == 'true')) ? ' checked="checked"' : '').' />'."\n";
+	echo '			<label for="agbok"'.((isset($_POST['save']) && !isset($_POST['agbok'])) ? ' style="color: #ff0000 !important;"' : '').'>Um praktika.de nutzen zu k&ouml;nnen, m&uuml;ssen Sie die <a href="/cms/Nutzungsbedingungen.274.0.html">Nutzungsbedingungen</a> lesen und best&auml;tigen!</label>'."\n";
+	echo '		</p><br /><br />'."\n";
+	echo '		<p style="clear:both; margin-top:20px;">'."\n";
+	echo '			<button type="submit" id="save" name="save" value="Account anmelden"><span><span><span>Account anmelden</span></span></span></button>'."\n";
+	echo '			<input type="hidden" name="gewinnid" value="'.$_GET['gewinnid'].'" />'."\n";
+	echo '			<input type="hidden" name="partnerid" value="'.$_GET['partnerid'].'" />'."\n";
+	echo '			<input type="hidden" name="openid_action" value="register" />'."\n";	
+	echo '		</p>'."\n";	
+?>
+</fieldset>
+</form>
+
+<?
+} else {
+	if($canceled == true) {
+		?>
+		<p class="error">Sie müssen den Zugriff auf ihre Daten gestatten, um sich über OpenID anzumelden.</p>
+		<?
+	}
+	if(!empty($openIDerror)) {
+		?>
+		<p class="error"><?=$openIDerror ?></p>
+		<?
+	}
+?>
+<form action="#" method="post" id="mainlogin" name="mainlogin" style="clear: both;">
+  <fieldset>
+    <p class="notice">Auf praktika.de können Sie sich mit ihrer OpenID-Kennung anmelden.</p>
+    <p class="username">
+      <label for="openid_identifier">OpenID-URL</label>
+      <input type="text" id="openid_identifier" name="openid_identifier" value="" />
+    </p>
+    <p class="sendform">
+      <button type="submit" name="openid_action" value="login"><span><span><span>LOGIN</span></span></span></button>
+    </p>
+    <br /><br />
+    Sie können ihre OpenID ebenfalls in das Login-Feld rechts oben im ersten Feld eingeben und das Passwort-Feld leer lassen.
+    <!--
+		<p class="forgotpw"><a href="/home/quicklogin/passwdwindow.phtml" onclick="return GB_showCenter('',this.href,500,500); return false;">Passwort vergessen?</a></p>
+    	<p class="new"><a href="/neuanmeldung/">Neuanmeldung</a></p>
+    -->
+  </fieldset>
+</form>
+<br />
+	<div style="text-align:center">
+		<a href="http://de.wikipedia.org/wiki/OpenID" target="_blank">Was ist OpenId?</a>
+	</div>
+<?php
+}
+bodyoff(); 

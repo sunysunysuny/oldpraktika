@@ -1,0 +1,165 @@
+/*
+    @author swarnat
+    @date 2010-10-29
+*/
+/* Bewerbungsmappe START */
+div.bewerbungsMappe.outerFrame {
+	width:790px;
+    height:1000px;
+	margin:auto;
+}
+div.bewerbungsMappe .innerFrame {
+	position:relative;
+    height:95
+    %;
+
+}
+div.bewerbungsMappe .shadowContainer {
+    border:10px solid #777;
+    border-top:6px solid #777;
+    width:770px;
+    height:95%;
+	-moz-border-radius:5px;
+	-moz-border-radius-topleft:0px;
+
+	box-shadow:3px 3px 5px #888888;
+    -webkit-box-shadow:3px 3px 5px #888888;
+	-moz-box-shadow:3px 3px 5px #888888;
+
+    background-color:#fff;
+}
+
+div.bewerbungsMappe .leftBorder {
+	background-image:url(/styles/images/bewerbungsmappe/corner_left2.png);
+	background-repeat:no-repeat;
+	background-position:top left;
+	background-color:transparent;
+	width:9px;
+	display:block;
+	float:left;
+	height:25px;
+}
+div.bewerbungsMappe .rightBorder {
+	background-image:url(/styles/images/bewerbungsmappe/corner_right2.png);
+	background-repeat:no-repeat;
+	background-position:top left;
+	background-color:transparent;
+	width:9px;
+	float:left;
+	display:block;
+	height:25px;
+}
+div.bewerbungsMappe .title_leftBorder {
+	border:1px solid red;
+}
+div.bewerbungsMappe .title_bar {
+	background-color:#777;
+	padding:5px;
+	color:white;
+	font-size:12px;
+	font-weight:bold;
+	text-transform:uppercase;
+
+	display:block;
+	float:left;
+    line-height:15px;
+}
+div.bewerbungsMappe .title {
+	height:25px;
+
+}
+
+.shadow {
+	background-color:#777;
+	padding-left:10px;
+}
+
+.greyboxV2_content {
+	background-color:white;
+	width:100%;
+	display:block;
+    height:100%;
+}
+
+.tmpLoading {
+	display:none;
+	text-align:center;
+	padding:100px 20px;
+	font-size:14px;
+}
+
+.tabButton {
+	background-color:#666;
+	padding:5px 10px;
+    padding-bottom:6px;
+	float:left;
+	margin-right:3px;
+
+	-moz-border-radius-topleft: 3px;
+    -moz-border-radius-topright: 3px;
+	border-radius-top:3px;
+	-webkit-border-top-left-radius: 3px;
+	-webkit-border-top-right-radius: 3px;
+
+	box-shadow:0px 2px 4px #333;
+    -webkit-box-shadow:0px 2px 4px #333;
+	-moz-box-shadow:0px 2px 4px #333;
+
+}
+.tabButton a:hover {
+	color:#ccc;
+}
+.tabButton a {
+	color:white;
+	font-weight:bold;
+	text-decoration:none;
+}
+
+.tabButton.active {
+	background-color:white;
+
+	box-shadow:0px 2px 0px #333;
+    -webkit-box-shadow:0px 2px 0px #333;
+	-moz-box-shadow:0px 2px 0px #333;    
+}
+.tabButton.printButton {
+	box-shadow:0px 2px 0px #333;
+    -webkit-box-shadow:0px 2px 0px #333;
+	-moz-box-shadow:0px 2px 0px #333;    
+}
+.tabButton.active a {
+	color:#000 !important;
+}
+
+.navigation {
+	background-color:#777;
+	height:25px;
+	width:100%;
+}
+
+.closeButton img {
+	margin-bottom:3px;
+}
+.printButton a {
+		font-weight:normal !important;
+}
+.closeButton a {
+	color:white;
+	text-decoration:underline;
+	margin-right:20px;
+}
+.closeButton {
+	position:absolute;
+	z-index:10;
+	top:0px;
+	right:0px;
+	width:135px;
+	height:15px;
+	cursor:pointer;
+	text-align:right;
+}
+.tab_deactive a {
+	color:#aaa !important;
+	cursor:default;
+}
+/* Bewerbungsmappe ENDE */

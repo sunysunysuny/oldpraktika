@@ -1,0 +1,50 @@
+div#main div#content p#button-add-company {
+	float: none;
+	height: 45px;
+	margin: 0;
+}
+div#main div#content div#add-company {
+	display: none;
+	margin-bottom: 20px;
+}
+div#main div#content div#add-company form fieldset {
+	margin-top: 0;
+}
+div#main div#content div#add-company form label {
+	margin-bottom: 0;
+	margin-top: 0;
+	float: none;
+}
+div#main div#content div#add-company form input {
+	margin-left: 10px;
+}
+div#main div#content h3.agentur-company {
+	/*margin: 27px 0 0 0;*/
+}
+div#main div#content img.logo-unternehmen {
+	float: right;
+	margin: 10px 0 0 0;
+	cursor: pointer;
+}
+div#main div#content form.form-logo {
+	/*display: none;*/
+	visibility: hidden;
+	height: 0;
+	float: left;
+}
+div#main div#content input.logo-company {
+	visibility: hidden;
+	display:none;
+}
+div#main div#content table.job-ad-list {
+	margin-top: 5px;
+}
+div#main div#content p.new-position {
+	width: 680px;
+}
+div#main div#content p.new-position a.button {
+	float: none;
+}
+div#main div#content form.hint {
+	margin-bottom: 10px;
+}

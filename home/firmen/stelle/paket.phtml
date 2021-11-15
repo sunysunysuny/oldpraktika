@@ -1,0 +1,298 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['sidebar'] = 'service';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+$error = 0;
+
+if (isset($_POST['basis']) || isset($_POST['komfort'])) {
+	if (isset($_SESSION['jobAd']['stellenid']) && !empty($_SESSION['jobAd']['stellenid'])) {
+		$results = mysql_db_query($database_db,'UPDATE stellen SET inactive = \'true\' WHERE firmenid = '.$_SESSION['s_firmenid'].' AND id = '.intval($_SESSION['jobAd']['stellenid']),$praktdbmaster);
+	}
+	
+	if (isset($_POST['basis'])) {
+		$_SESSION['chosen_firmenlevel'] = 1;
+	} elseif (isset($_POST['komfort'])) {
+		$_SESSION['chosen_firmenlevel'] = 2;
+	}
+	
+	header('Location: /firmen/stelle/buchung/');
+	exit();
+}
+
+$pageArray = array(
+	'page_title' => '',
+	'h1_page_title' => '',
+	'html_page_title' => $htmlPageTitle,
+	'page_image' => true,
+	'noAddevent' => true,
+	'totalCache' => $totalCache,
+	'grid_system' => '6-0'
+);
+
+pageheader($pageArray);
+
+Praktika_Static::__(array('paketwahl', 'typo'));
+
+if ($error != 0) {
+	echo '<script type="text/javascript">'."\n";
+	echo '	GB_showCenter(\'\',\'/firmen/stelle/paket_notice/'.$error.'/\',200,420);'."\n";
+	echo '</script>'."\n";
+}
+
+?>
+
+<table id="paketwahl" cellspacing="0" cellpadding="0">
+	<colgroup>
+		<col width="232" />
+		<col width="151" />
+		<col width="152" />
+		<col width="155" />
+		<col width="155" />
+	</colgroup>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Laufzeit.1453.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Laufzeit<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">1 Monat</td>
+		<td class="basis">1 - 12 Monate</td>
+		<td class="komfort">6 - 12 Monate</td>
+		<td class="premium">12 Monate</td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Anzeigenstellplaetze.1454.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Anzeigenstellpl&auml;tze<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">1</td>
+		<td class="basis">3</td>
+		<td class="komfort">20</td>
+		<td class="premium">Variabel</td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Aktualisierungsintervall.1574.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Aktualisierungsintervall<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">monatlich</td>
+		<td class="basis">t&auml;glich</td>
+		<td class="komfort">t&auml;glich</td>
+		<td class="premium">t&auml;glich</td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Templateauswahl.1455.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 560, className: 'typo', cutBody: true}); return false;">Templateauswahl<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">1</td>
+		<td class="basis">2</td>
+		<td class="komfort">13</td>
+		<td class="premium">13 + Eigene</td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Stellenpflege.1573.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Stellenpflege<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Statistikfunktion.1456.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Statistikfunktion<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Firmenlogo_einstellen.1457.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 580, className: 'typo', cutBody: true}); return false;">Firmenlogo einstellen<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Weiterleitung.1458.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Weiterleitung<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Benachrichtigungen.1459.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Benachrichtigungen<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Cross-Marketing.1460.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Cross-Marketing<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Firmenprofil.531.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Firmenprofil<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Telefonberatung.1462.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 660, className: 'typo', cutBody: true}); return false;">Beratungsservice<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Clickbutton.1463.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">ClickIn - Button<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Benutzerverwaltung.1464.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Benutzerverwaltung<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Veranstaltungen.1466.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Veranstaltungen<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Guetesiegel.1467.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 570, className: 'typo', cutBody: true}); return false;">G&uuml;tesiegel<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Videoeinbindung.1468.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 600, className: 'typo', cutBody: true}); return false;">Videoeinbindung<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Karrierenachrichten.1469.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Karrierenachrichten<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Stellen_in_Firmenlayout.1470.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 610, className: 'typo', cutBody: true}); return false;">Stellen in Firmenlayout<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Anzeige_im_Newsletter.1472.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Werbung im Newsletter<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/ externe_Stellenanzeigen.1473.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Externe Stellenanzeigen<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/Bewerbungsgarantie.1474.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Bewerbungsgarantie<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Employer_Branding.1475.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Employer Branding<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/HR-xml_anbindung.1506.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">HR-XML Anbindung<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Firmenspezifische_Service.1507.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Firmenspezifischer Service<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung"><a href="/cms/HR_Videoreportagen.1508.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">HR Videoreportagen<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="odd2">
+		<td class="leistung"><a href="/cms/Individuelle_Mailings.1509.0.html" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;">Individuelle Mailings<img src="/styles/images/icons/fragezeichen.png" alt="was bedeutet das?" /></a></td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium"><img src="/styles/images/stelle/check.png" alt="ja" /></td>
+	</tr>
+	<tr class="even2">
+		<td class="leistung">&nbsp;</td>
+		<td class="free">&nbsp;</td>
+		<td class="basis">&nbsp;</td>
+		<td class="komfort">&nbsp;</td>
+		<td class="premium">&nbsp;</td>
+	</tr>
+	<tr class="price">
+		<td class="leistung"><strong>Beitrag:</strong></td>			
+		<td class="free">Kostenfrei</td>
+		<td class="basis">ab 50 &euro;*</td>
+		<td class="komfort">ab 550 &euro;*</td>
+		<td class="premium">Beratung und individuelles Angebot</td>
+	</tr>
+	<tr class="even2 price2">
+		<td class="leistung"></td>
+		<td class="free"><span class="bereits">Sie besitzen bereits<br />alle Leistungen<br />des Free-Pakets.</span></td>
+		<td class="basis">
+			<form action="/firmen/stelle/paket/" method="post" name="chooseBasisForm">
+<?php
+if ($_SESSION['s_firmenlevel'] < 1) {
+	echo 'Jetzt Paket BASIS<br />w&auml;hlen!<br /><a href="#" class="button small red" onclick="document.chooseBasisForm.submit(); return false;">BASIS</a><input type="hidden" name="basis" value="1" />';
+} else	{
+	echo '<span class="bereits">Sie besitzen bereits<br />alle Leistungen<br />des BASIS-Pakets.</span>';
+}
+?>
+			</form>
+		</td>
+		<td class="komfort">
+			<form action="/firmen/stelle/paket/" method="post" name="chooseKomfortForm">
+<?php
+if ($_SESSION['s_firmenlevel'] < 2) {
+	echo 'Jetzt Paket KOMFORT<br />w&auml;hlen!<br /><a href="#" class="button small red" onclick="document.chooseKomfortForm.submit(); return false;">KOMFORT</a><input type="hidden" name="komfort" value="1" />';
+} else	{
+	echo '<span class="bereits">Sie besitzen bereits<br />alle Leistungen<br />des KOMFORT-Pakets.</span>';
+}
+?>
+			</form>
+		</td>
+		<td class="premium">Jetzt PREMIUM<br />Partner werden!<br /><a href="/cms/beratung.1510.0.html" class="button small red" onclick="smallbox.loadUrl('', this.href, '', {width: 540, className: 'typo', cutBody: true}); return false;" />PREMIUM</a></td>
+	</tr>
+</table>
+<br /><br />
+<p class="hint info"><sup>*</sup>Preis zzgl. Mehrwertsteuer (19%)</p>
+<p class="hint info"><sup>*</sup>BASIS Produkt: Preise je nach Laufzeit: 1 Monat / 50 &euro;, 3 Monate / 75 &euro;, 6 Monate / 100 &euro; und  1 Jahr / 125 &euro;.</p>
+<p class="hint info"><sup>*</sup>KOMFORT Produkt: Preise je nach Laufzeit: 6 Monate / 550 &euro; und  1 Jahr / 750 &euro;.</p>
+
+<?php
+bodyoff();
+?>

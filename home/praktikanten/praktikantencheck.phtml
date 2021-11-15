@@ -1,0 +1,147 @@
+<?
+$sprachbasisdatei = "/home/praktikanten/praktikantencheck.phtml";
+
+if (isset($_GET['gb'])) {
+	require("/home/praktika/etc/gb_config.inc.php"); 
+} else {
+	require("/home/praktika/etc/config.inc.php"); 
+}
+
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_FOR_CANDIDATES;
+
+if (isset($_POST['search'])) { 
+	$fertig = 1;
+
+	if ( isset($_POST['email']) && !empty($_POST['email']) ) {
+		$validtext = ValidateMail($_POST['email']);
+	} else {
+		$fertig = 0;
+	}
+
+	if ( empty($validtext[0]) ) {
+		$fertig = 0;
+	}
+
+	if ( substr_count($_POST['email'],'@praktika.de') ){
+		$fertig = 0;
+	}
+
+	if ($fertig == 0) {
+		pageheader( array('page_title' => 'Suchergebnis') );
+		
+		echo '<p>Die eMail-Adresse wurde als nicht g&uuml;ltig ermittelt. Bitte wiederholen Sie Ihre Eingabe.</p>'."\n";
+		echo '<div class="control_panel">'."\n";
+		echo '	<p>'."\n";
+		echo '		<button type="button" onclick="location.href = \'/neuanmeldung/check_candidate/\'" value="zur&uuml;ck"><span><span><span>zur&uuml;ck</span></span></span></button>'."\n";
+		echo '	</p>'."\n";
+		echo '</div>'."\n";
+	} else {
+		// existiert bearbeiter?
+		$sql = sprintf("SELECT 
+							id, 
+							email, 
+							inactive, 
+							vname, 
+							name 
+						FROM 
+							bearbeiter 
+						WHERE 
+							email = '%1\$s'",
+						$_POST['email']);
+		$rs = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num_bearbeiter = mysql_num_rows($rs);
+		$bearbeiter = mysql_fetch_array($rs);
+		
+		// existiert nutzer?
+		$sql = sprintf("SELECT 
+							id, 
+							email, 
+							inactive  
+						FROM 
+							nutzer 
+						WHERE 
+							email = '%1\$s'",
+						$_POST['email']);
+		$rs = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num_nutzer = mysql_num_rows($rs);
+		$nutzer = mysql_fetch_array($rs);
+		
+		// user gesperrt?
+		$sql = sprintf("SELECT 
+							email
+						FROM 
+							emailblacklist 
+						WHERE 
+							email = '%1\$s'",
+						$_POST['email']);
+		$rs = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num_gesperrt = mysql_num_rows($rs);
+		
+		$rs = mysql_db_query($database_db,'SELECT id,email,inactive FROM nutzer WHERE email = \''.$_POST['email'].'\' ORDER BY id',$praktdbslave);
+		$rs2 = mysql_db_query($database_db,'SELECT email FROM emailblacklist WHERE email = \''.$_POST['email'].'\' ORDER BY id',$praktdbslave);
+
+		$num = mysql_num_rows($rs);
+		$num2 = mysql_num_rows($rs2);
+		$result = mysql_fetch_array($rs);
+		$result2 = mysql_fetch_array($rs2);
+
+		// existiert kein eintrag mit der e-mail-adresse und ist diese adressse nicht gesperrt?
+		if ($num_bearbeiter == 0 && $num_nutzer == 0 && $num_gesperrt == 0) {
+			header('Location: http://'.$_SERVER['HTTP_HOST'].'/neuanmeldung/candidate/'.$_POST['email']);
+		} else {
+			pageheader( array('page_title' => 'Suchergebnis') );
+
+			// ist der user gesperrt?
+			if ( ($bearbeiter['inactive'] == 'true' || $nutzer['inactive'] == 'true') && $num_gesperrt != 0) {
+				echo '<p class="error">'.$language['strNutzergesperrt'].'</p>'."\n";
+			} else {
+				echo '<p><b>'.$_POST['email'].'</b> wird bereits auf praktika.de verwendet!</p>'."\n";
+				echo '<p>Weiter mit: </p>'."\n";
+	
+				if ($num_bearbeiter != 0) {
+					echo '<ul>'."\n";
+					echo '	<li>'.$bearbeiter['vname'].' '.$bearbeiter['name'].'</li>'."\n";
+					echo '	<li><a href="/login/'.$bearbeiter['id'].'/">'.$language['strEinloggen'].'</a> und Account reaktivieren!</li>'."\n";
+					echo '	<li><a href="/company/passwort_vergessen/'.$bearbeiter['id'].'/'.time().'/">'.$language['strPasswortZusenden'].'</a></li>'."\n";
+					echo '</ul>'."\n";
+				} elseif ($num_nutzer != 0) {
+					echo '<ul>'."\n";
+					echo '	<li><a href="/login/'.$nutzer['id'].'/">Jetzt einloggen</a> und Account reaktivieren!</li>'."\n";
+					echo '	<li>Passwort vergessen? - <a href="/candidate/passwort_vergessen/'.$nutzer['id'].'/'.time().'/">Jetzt anfordern!</a></li>'."\n";
+					echo '</ul>'."\n";
+				}
+				
+				echo '<div class="control_panel">'."\n";
+				echo '	<p>'."\n";
+				echo '		<button type="button" onclick="location.href = \'/neuanmeldung/check_candidate/\'" value="zur&uuml;ck"><span><span><span>Vertippt? - neu eingeben!</span></span></span></button>'."\n";
+				echo '	</p>'."\n";
+				echo '</div>'."\n";
+			}
+		}
+	}
+} else {
+	pageheader( array('page_title' => 'Bewerberdaten') );
+?>
+<p>Bitte geben Sie Ihre eMail-Adresse an, die Sie f&uuml;r Bewerbungen und Mitteilungen nutzen m&ouml;chten. Das System pr&uuml;ft, ob Sie bereits bei praktika.de registriert sind.</p>
+<form action="/neuanmeldung/check_candidate/" method="post">
+  <fieldset>
+    <p>
+      <label for="email">Ihre eMail-Adresse:</label>
+      <input type="text" id="email" name="email"/>
+    </p>
+  </fieldset>
+  <fieldset class="control_panel">
+    <p>
+      <button type="submit" name="search" value="abschicken"><span><span><span>abschicken</span></span></span></button>
+    </p>
+  </fieldset>
+</form>
+<p>
+  <b>Wichtiger Hinweis:</b><br />
+  Damit Sie alle praktika.de eMails erreichen, stellen Sie bitte in Ihrem eMail-Account (z.b.: gmx.de, web.de usw.) sicher, dass alle Filter, Ordner oder Spamroutinen nicht f&uuml;r eMails von praktika.de angewendet werden.
+</p>
+<?php
+}
+bodyoff();
+?>

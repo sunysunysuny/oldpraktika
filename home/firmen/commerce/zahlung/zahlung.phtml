@@ -1,0 +1,334 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+if (!isset($_GET['id'])) {
+	$_GET['id'] = 0;
+}
+
+if ($_SESSION['produktID'] == 15 || $_SESSION['produktID'] == 16 || $_SESSION['produktID'] == 18) {
+	$_SESSION['sidebar'] = 'stelle';
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+$waehrung  = '&euro;';
+$waehrung2 = 'EUR';
+$sprachbasisdatei = '/home/praktikanten/teilsuche_geld.phtml';
+$hidepay = false;
+
+$strCustErrorMessage = $language['strKorrektausfuellen'];
+
+pageheader(array('page_title' => 'Zahlung per Lastschrift'));
+
+if (isset($_POST['submit_trans'])) {
+	$errorKN = false;
+	$errorBLZ = false;
+	
+	if (isset($_POST['kontonr']) && !empty($_POST['kontonr'])) {
+		$kontonr = mysql_real_escape_string(str_replace(' ','',$_POST['kontonr']));
+	} else {
+		$errorKN = true;
+	}
+
+	if (isset($_POST['blz']) && !empty($_POST['blz'])) {
+		$blz = mysql_real_escape_string(str_replace(' ','',$_POST['blz']));
+	} else {
+		$errorBLZ = true;
+	}
+	
+	require("/home/praktika/etc/checkkonto.inc.php");
+
+	if ($errorKN == false && $errorBLZ == false) {
+		$check = new AccountCheck;
+		$check_code = $check->CheckAccount($kontonr, $blz, $database_comm);
+		$strCustErrorMessage = '';
+
+		switch ($check_code) {
+		  	case '8': 
+				$strCustErrorMessage .= 'Bankleitzahl nicht angegeben oder nicht korrekt.';
+				$fortsetzen = 2;
+				$blz_red = true;
+				$failure = true;
+				break;
+			case '9':
+				$strCustErrorMessage .= 'Kontonummer nicht angegeben.';
+				$fortsetzen = 0;
+				$kontonr_red = true;
+				$failure = true;
+				break;
+			case '1': case '2': case '3': case '4':
+				$strCustErrorMessage .= 'Kontonummer m&ouml;glicherweise nicht korrekt.';
+				$fortsetzen = 2;
+				$kontonr_red = true;
+				$failure = true;
+				break;
+			case '0';
+				$strCustErrorMessage .= 'Bankverbindung ist korrekt.';
+				$fortsetzen = 1;
+				$failure = false;
+				break;
+			default:
+				$strCustErrorMessage .= 'Unbekannter Fehler <strong>'.$check_code.'</strong> im Pr&uuml;fmodul.';
+				$fortsetzen = 2;
+				$failure = true;
+		} /* end switch */
+	} else {
+		if ($errorKN == true) {
+			$strCustErrorMessage .= 'Kontonummer nicht angegeben.';
+		} elseif ($errorBLZ) {
+			$strCustErrorMessage .= 'Bankleitzahl nicht angegeben.';
+		}
+	}
+	
+	if (($fortsetzen == 1 && isset($_POST['pay'])) || ($fortsetzen == 2 && isset($_POST['pay']) && isset($_POST['secondsubmit']))) {
+		$hidepay = true;
+		
+		echo '<p>Vielen Dank für Ihre Lastschriftzahlung</p>'."\n";
+		
+		foreach ($_SESSION['sql_query'] as $key => $value) {
+			$res = mysql_db_query($database_comm,$value,$praktdbmaster);
+			
+			$_SESSION['ProduktBuchungen'] .= $key == 0 ? mysql_insert_id() : ','.mysql_insert_id();
+			
+			unset($_SESSION['sql_query'][$key]);
+		}
+		
+		if ($_SESSION['produktID'] == 15 || $_SESSION['produktID'] == 16) {
+			if ($_SESSION['s_firmenlevel'] == 1) {
+				$updateBasis = 'UPDATE buchungen SET zeitraum_bis = '.$_SESSION['zeitraum_von'].' WHERE stammid = '.$_SESSION['s_firmenid'].' AND produktid = 18';
+				$res = mysql_db_query($database_comm,$updateBasis,$praktdbmaster);
+			} elseif ($_SESSION['s_firmenlevel'] == 2 && $_SESSION['produktID'] == 16) {
+				$updateBasis = 'UPDATE buchungen SET zeitraum_bis = '.$_SESSION['zeitraum_von'].' WHERE stammid = '.$_SESSION['s_firmenid'].' AND produktid = 15';
+				$res = mysql_db_query($database_comm,$updateBasis,$praktdbmaster);
+			}
+		}
+		
+		$final['stammid'] = intval($_SESSION['s_firmenid']);
+		$final['bearbeiterid'] = intval($_SESSION['s_loginid']);
+		$final['bestellid'] = $_SESSION['ProduktBuchungen'];
+		$final['zahlungsart'] = 'lastschrift';
+		$final['ktonr'] = $kontonr;
+		$final['blz'] = $blz;
+		$final['ktoinhaber'] = mysql_real_escape_string(trim($_POST['kontoinhaber']));
+		$final['institut'] = $check->Bankname;
+		$final['summe'] =  mysql_real_escape_string($_SESSION['produktPreis']);
+		$final['waehrung'] = "EUR";
+		$final['ip'] = $ip;
+		$final['host'] = $host;
+		$final['datum_eintrag'] = date('Y-m-d');
+		$final['eintrag_unix'] = time();
+		$final['zahlkey'] = mysql_real_escape_string($_POST['zahlkey']);
+
+		//INSERT
+		$values_fields = '';
+		$values = '';
+		
+		$sqlQuery = 'INSERT INTO zahlungen SET ';
+		
+		foreach ($final as $key => $value) {
+			$sqlQuery .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+		}
+
+		$sqlQuery = substr($sqlQuery,0,strlen($sqlQuery)-2);
+		$res = mysql_db_query($database_comm,$sqlQuery,$praktdbmaster);
+
+		$zahlungsid = mysql_insert_id();
+		
+		echo '<p class="success">Ihre Zahlungsdaten sind von unserem System erfolgreich gepr&uuml;ft worden!</p>'."\n";
+
+		// infomail Lastschrift zusammenbauen
+		$emailobj = new emailtemplate(71);
+		$emailobj->replace('{ktoinhaber}',$final['ktoinhaber']);
+		$emailobj->replace('{datum_eintrag}',$final['datum_eintrag']);
+		$emailobj->replace('{gesamt}', $_SESSION['gesamtPreis']);
+		$emailobj->send_email();
+		unset($emailobj);
+		
+		if (isset($_POST['pay'])) {
+			echo '<p class="success">Ihre Zahlung per Lastschrift wurde im System erfasst und verarbeitet.</p>'."\n";
+
+			if ($_SESSION['produktID'] == 15 || $_SESSION['produktID'] == 16 || $_SESSION['produktID'] == 18) {
+				if ($_SESSION['s_firmenlevel'] == 0) {
+					echo '<p class="control_panel"><button type="button" name="zuStellen" value="zu den Stellenanzeigen" onclick="location.href = \'/firmen/angeboteliste/\'"><span><span><span>zu den Stellenanzeigen</span></span></span></button</p>'."\n";
+				} else {
+					echo '<p class="control_panel"><button type="button" name="zuStellen" value="zur Stellenanzeige" onclick="location.href = \'/firmen/stelle/paket/\'"><span><span><span>zur Stellenanzeige</span></span></span></button</p>'."\n";
+				}
+	
+				$ProduktBuchungen = explode(',',$_SESSION['ProduktBuchungen']);
+	
+				foreach ($ProduktBuchungen as $key) {
+					$sql_query = 'UPDATE buchungen SET zahlungid = '.$zahlungsid.', gezahlt = \'true\', modify = NOW() WHERE stammid = '.$_SESSION['s_firmenid'].' AND id = '.$key;
+					$res = mysql_db_query($database_comm,$sql_query,$praktdbmaster);
+					
+					if (isset($_SESSION['zusatzLeistungen']) && array_key_exists(6,$_SESSION['zusatzLeistungen'])) {
+						$sql_query = 'UPDATE firmen SET searchtop = \'true\', modify = NOW() WHERE id = '.$_SESSION['s_firmenid'];
+						$res = mysql_db_query($database_db,$sql_query,$praktdbmaster);
+					}
+					
+				}
+				
+				$sql_query = 'UPDATE firmen_prop_assign SET firmenlevel = '.$_SESSION['chosen_firmenlevel'].', modify = NOW() WHERE firmenid = '.$_SESSION['s_firmenid'];
+				$res = mysql_db_query($database_db,$sql_query,$praktdbmaster);
+
+				$_SESSION['s_firmenlevel'] = $_SESSION['chosen_firmenlevel'];
+			} else {
+				$produktquery = 'SELECT pbuchpath, bezeichnung, prop_db_field FROM produkte WHERE id = '.$_SESSION['produktID'];
+				$produktresults = mysql_db_query($database_comm,$produktquery,$praktdbslave);
+				$produkt = mysql_fetch_array($produktresults);
+				
+				$sql_query = 'UPDATE firmen_prop_assign SET '.$produkt['prop_db_field'].' = \'true\', modify = NOW() WHERE firmenid = '.$_SESSION['s_firmenid'];
+				$res = mysql_db_query($database_db,$sql_query,$praktdbmaster);
+
+				echo '<form name="geldsuche" action="'.$produkt['pbuchpath'].'" method="post">'."\n";
+				echo '	<fieldset class="control_panel">'."\n";
+				echo '		<p>'."\n";
+				echo '			<button type="submit" name="wohin" value="zu: '.$produkt['bezeichnung'].'"><span><span><span>zu: '.$produkt['bezeichnung'].'</span></span></span></button>'."\n";
+				echo '			<input type="hidden" name="pid" value="'.$_SESSION['produktID'].'" />'."\n";
+				echo '		</p>'."\n";
+				echo '	</fieldset>'."\n";
+				echo '</form>'."\n";
+			}
+		}
+	}
+}
+
+if ($hidepay == false) {
+	if (isset($_POST['submit_trans'])) {
+		echo '<p class="error">Es ist ein Fehler aufgetreten, bitte korrigieren Sie Ihre Eingaben!</p>'."\n";
+	}
+
+	echo '<h3>Zur Zahlung ausgew&auml;hlte Buchungen</h3>'."\n";
+
+	echo '<table>'."\n";
+	echo '	<colgroup>'."\n";
+	echo '		<col width="50%" />'."\n";
+	echo '		<col width="25%" />'."\n";
+	echo '		<col width="25%" />'."\n";
+	echo '	</colgroup>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th>gebuchtes Produkt</th>'."\n";
+	echo '		<th>Rechnungsdatum</th>'."\n";
+	echo '		<th>Preis</th>'."\n";
+	echo '	</tr>'."\n";
+
+	$package = mysql_db_query($database_comm,'SELECT * FROM produkte WHERE id = '.$_SESSION['produktID'],$praktdbslave);
+
+	echo '	<tr>'."\n";
+	echo '		<td>'.mysql_result($package,0,'bezeichnung').'</td>'."\n";
+	echo '		<td>am '.date('d.m.Y').'</td>'."\n"; 
+	echo '		<td>EUR '.sprintf('%01.2f',mysql_result($package,0,'preis')).'</td>'."\n";
+	echo '	</tr>'."\n";
+
+	if (isset($_SESSION['zusatzLeistungen']) && is_array($_SESSION['zusatzLeistungen'])) {
+		echo '	<tr>'."\n";
+		echo '		<td colspan="3"><b>Zusatzleistungen:</b></td>'."\n";
+		echo '	</tr>'."\n";
+		
+		foreach ($_SESSION['zusatzLeistungen'] as $key) {
+			$liste = mysql_db_query($database_comm,'SELECT * FROM produkte WHERE id = '.$key,$praktdbslave);
+			
+			echo '	<tr>'."\n";
+			echo '		<td>'.mysql_result($liste,0,'bezeichnung').'</td>'."\n";
+			echo '		<td>am '.date('d.m.Y').'</td>'."\n"; 
+			echo '		<td>EUR '.sprintf('%01.2f',mysql_result($liste,0,'preis')).'</td>'."\n";
+			echo '	</tr>'."\n";
+		}
+	}
+
+	$mwst = ($_SESSION['produktPreis'] * (1 + ($mwst_satz / 100))) -  $_SESSION['produktPreis'];
+
+	echo '	<tr>'."\n";
+	echo '		<td>&nbsp;</td>'."\n";
+	echo '		<td>Gessamt netto:</td>'."\n";
+	echo '		<td>EUR '.sprintf('%01.2f', $_SESSION['produktPreis']).'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>&nbsp;</td>'."\n";
+	echo '		<td>MwSt. '.$mwst_satz.'%:</td>'."\n";
+	echo '		<td>EUR '.sprintf('%01.2f',$mwst).'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>&nbsp;</td>'."\n";
+	echo '		<td><b><u>Gesamt</u></b></td>'."\n";
+	echo '		<td><b><u>EUR '.sprintf('%01.2f', $_SESSION['gesamtPreis']).'</u></b></td>'."\n";
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+	echo '<h4 style="margin-top: 1em;">Bitte geben Sie nun Ihre Kontoverbindung f&uuml;r das Lastschriftverfahren ein:</h4>'."\n";
+
+	echo '<form method="post" action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'" name="formular">'."\n";
+	
+	if (isset($_POST['submit_trans'])) {
+		echo '	<input type="hidden" name="secondsubmit" value="1" />'."\n";
+	}
+	
+	if (!isset($_POST['zahlkey'])) {
+		srand((double) microtime() * 1000000);
+		$zufallsid = md5(uniqid(rand()));
+		$_POST['zahlkey'] = substr ($zufallsid, -8);
+	}
+
+	echo '	<input type="hidden" name="zahlkey" value="'.$_POST['zahlkey'].'" />'."\n";
+	echo '	<input type="hidden" name="gesamt" value="'.$_SESSION['gesamtPreis'].'" />'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p class="hint" style="text-align: left; width: 100%;">Meldung: <span class="'.((isset($failure) && $failure == true) ? 'error' : ((isset($failure) && $failure == false) ? 'success' : '')).'"><b>'.$strCustErrorMessage.'</b></span></p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="kontonr"'.((isset($kontonr_red) && $kontonr_red == true) ? ' class="error"' : '').'>Kontonummer:</label>'."\n";
+	echo '			<input type="text" id="kontonr" name="kontonr" maxlength="10" size="14" value="'.(isset($_POST['kontonr']) ? $_POST['kontonr'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="blz"'.((isset($blz_red) && $blz_red == true) ? ' class="error"' : '').'>Bankleitzahl: (<a href="/zahlung/blzsuche/" onclick="return GB_showCenter(\'\',this.href,700,700)"><b><span class="hint">Suche</span></b></a>)</label>'."\n";
+	echo '			<input type="text" id="blz" name="blz" maxlength="8" size="14" value="'.(isset($_POST['blz']) ? $_POST['blz'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+
+	if (isset($check->Bankname)) {
+		echo '	<p>Bank: <b>'.$check->Bankname.'</b></p>'."\n";
+	}
+
+	if (isset($_POST['kontoinhaber'])) {
+		$kontoinhaber = $_POST['kontoinhaber'];
+	} else {
+        $firmenname = mysql_db_query($database_db,'SELECT firma FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+       	$kontoinhaber = mysql_result($firmenname,0,'firma');
+	}
+	
+	echo '		<p style="clear: both;">'."\n";
+	echo '			<label for="kontoinhaber">Kontoinhaber:</label>'."\n";
+	echo '			<input type="text" id="kontoinhaber" name="kontoinhaber" size="35" value="'.$kontoinhaber.'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="hint" style="text-align: left; width: 100%;">praktika.de best&auml;tigt hiermit ausdr&uuml;cklich, daß pers&ouml;nliche Daten, die in Verbindung mit dem Bestellvorgang eingegeben werden, vertraulich behandelt und keinesfalls an Dritte weitergegeben werden.<br />Hinweis zur Zahlung per Lastschrift: Wenn Sie Ihre Kontoverbindung eintragen, werden die Kontodaten &uuml;ber eine Datenleitung online &uuml;bertragen. Die Kontoverbindung wird dennoch nicht gespeichert, um einen m&ouml;glichen Missbrauch auszuschließen. Dieser Service bleibt bis zur vollst&auml;ndigen Bezahlung Eigentum von praktika.de</p>'."\n";
+
+	if (isset($_POST['submit_trans']) && !isset($_POST['pay'])) {
+		echo '	<p class="error"><b>Bitte best&auml;tigen Sie die nachfolgende Checkbox, wenn Sie mit dem Lastschriftaufrag einverstanden sind!</b></p>'."\n";
+	}
+	
+	echo '		<p class="checkboxes clearfix">'."\n";
+	echo '			<input type="checkbox" id="pay" name="pay" value="1" '.(isset($_POST['pay']) ? ' checked="checked"' : '').' />'."\n";
+	echo '			<label for="pay">Hiermit erm&auml;chtige ich den Betreiber von www.praktika.de, PRAKTIKA GmbH, den oben genannten Betrag von meinem Bankkonto durch Lastschrift einzuziehen. Diese Lastschrift kann ab sofort vom genannten Bankkonto eingezogen werden. Ein Widerruf bzw. R&uuml;ckgabe der Freischaltung ist nicht m&ouml;glich, da dieser Service naturgem&auml;ß f&uuml;r die R&uuml;ckgabe ungeeignet ist.</label>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="hint" style="text-align: left; width: 100%;">Ich erm&auml;chtige mein Kreditinstitut, das durch die oben angegebene Bankleitzahl bezeichnet ist, bei Nichteinl&ouml;sung der Lastschrift oder bei Widerspruch gegen die Lastschrift dem Betreiber von www.praktika.de auf Aufforderung meinen Namen und meine Anschrift mitzuteilen, damit praktika.de seinen Anspruch gegen mich geltend machen kann.<br />F&uuml;r den Fall der Nichteinl&ouml;sung der Lastschrift komme ich f&uuml;r alle Kosten auf.<br />F&uuml;r die Servicelizenzen gelten die in den Nutzungsbedingungen und AGBs genannten Bestimmungen von praktika.de Diese sind mir bekannt und verst&auml;ndlich.</p>'."\n";
+	echo '		<p>Bitte best&auml;tigen Sie jetzt Ihre Zahlung durch Klicken der Schaltfl&auml;che "Transaktion starten".</p>'."\n";
+
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="submit" name="submit_trans" value="'.(isset($_POST['submit_trans']) ? 'TRANSAKTION WIEDERHOLEN' : 'TRANSAKTION STARTEN').'"><span><span><span>'.(isset($_POST['submit_trans']) ? 'TRANSAKTION WIEDERHOLEN' : 'TRANSAKTION STARTEN').'</span></span></span></button>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="button" name="back" value="zur&uuml;ck" onclick="location.href=\'/firmen/stelle/buchung/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	
+	echo '</form>'."\n";	
+
+	echo '<p class="hint" style="text-align: left;">Sie benutzen die folgende IP-Adresse: ('.$ip.' - '.gethostbyaddr($ip).') Diese Benutzerdaten werden bis zur endg&uuml;ltigen Bezahlung protokolliert. Mit dieser IP-Adresse kann jeder Internetnutzer &uuml;ber seinen Provider bzw. Telefongesellschaft zweifelsfrei ermittelt werden. praktika.de beh&auml;lt sich vor, bei zur&uuml;ckgewiesener Zahlung diese Information im Rahmen einer gerichtlichen Geltendmachung zu verwenden. Jeder Missbrauch wird strafrechtlich verfolgt und polizeilich angezeigt.<br /><br />F&uuml;r Fragen oder Erl&auml;uterungen zu diesem Service senden Sie bitte Ihre E-Mail an: <a href="mailto:team@praktika.de">team@praktika.de</a></p>'."\n";
+}
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

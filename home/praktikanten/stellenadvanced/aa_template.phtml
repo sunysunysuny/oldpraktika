@@ -1,0 +1,170 @@
+<?
+// Template f&uuml;r die Darstellung der Ausgabe der Arbeitsamtanzeige in der Metasuche
+//http://berufenet.arbeitsamt.de/bnet2/A/kurz_B8410100.html
+
+require("/home/praktika/etc/config.inc.php"); 
+$sel=mysql_db_query($database_metasuche,"select *,date_format(datum_eintrag, '%d') as tag,date_format(datum_eintrag, '%m') as monat,date_format(datum_eintrag, '%Y') as jahr from aa_anzeige where id=$id",$praktdbslave);
+$fetch=mysql_fetch_array($sel);
+
+$bewerbungsart = array (
+			1 => "pers&ouml;nliche Vorstellung",
+			2 => "pers&ouml;nliche Vorstellung mit Bewerbungsunterlagen",
+			3 => "Vorstellungstermin vereinbaren",
+			4 => "Vorstellungstermin vereinbaren und zur Vorstellung Bewerbungsunterlagen mitbringen",
+			5 => "nur schriftliche Bewerbungen z.Hd. des Ansprechpartners",
+			6 => "BU wurden dem Arbeitgeber zugeleitet. Vorstellungstermin vereinbaren",
+			7 => "BU wurden dem Arbeitgeber zugeleitet. Kontaktaufnahme nur nach Aufforderung",
+			8 => "",
+			9 => "per E-Mail"
+			);
+
+?>
+<html>
+<head>
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<title><? echo $fetch["firma"]; ?></title>
+
+<style type="text/css">
+<!--
+ body {
+	font-family: Arial, Geneva; color: #000000;
+        font-size : 11px;
+}
+
+td {font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px; 
+	color: #000000;
+   }
+
+-->
+</style>
+</head>
+<body TEXT="#000000" BGCOLOR="#FFFFFF" topmargin="20" leftmargin="0">
+
+<div align="center"><center>
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+<!--    <td><table border="1" cellspacing="0" cellpadding="0" width="598" bordercolor="#FFFFFF" bordercolorlight="#C0C0C0" bordercolordark="#808080"> -->
+	<td><table border="1" cellspacing="0" cellpadding="0" width="598" bordercolor="#FFFFFF" bordercolorlight="#ffffff" bordercolordark="#f27000">            
+	<tr> 
+              <td align="CENTER" valign="CENTER" width="598"> <table border="0" cellspacing="0" cellpadding="0" width="598" height="283">
+                  <tr> 
+                    <td align="CENTER" valign="CENTER" rowspan="16" width="30" height="283"></td>
+                    <td align="center" valign="CENTER" width="538" height="25" colspan="2"></td>
+                    <td align="CENTER" valign="CENTER" rowspan="16" width="30" height="283"></td>
+                  </tr>
+                  <tr> 
+                    <td align="left" valign="CENTER">&nbsp;</td>
+                    <td align="center" valign="CENTER" nowrap><font size="2"><b><? echo $fetch["firma"]; ?>&nbsp;</b></font></td>
+                  </tr>
+                  <tr> 
+                    <td align="CENTER" valign="CENTER" width="538" height="25" colspan="2"></td>
+                  </tr>
+                  <tr> 
+                    <td align="CENTER" valign="CENTER" width="538" height="29" colspan="2"> 
+                      <table border="0" cellspacing="0" cellpadding="0" width="538" height="25" bgcolor="#D0D0D0" bordercolorlight="#D0D0D0">
+                        <tr> 
+                          <td align="center" width="540"><font face="Arial,Helvetica,Sans-Serif" size="+1" color="#000000"><b><? echo $fetch["titel"]; ?></b></font></td>
+                        </tr>
+                      </table></td>
+                  </tr>
+                  <tr> 
+                    <td align="center" valign="CENTER" width="538" height="25" colspan="2"></td>
+                  </tr>
+                  <tr> 
+                    <td align="left" valign="CENTER" width="538" colspan="2"> 
+                      <table>
+                        <tr>
+                          <td valign="top"><b>Stelle:</b></td>
+                          <td> <? echo $fetch["subtitel"]; ?></td>
+                        </tr>
+                        <tr>
+                          <td valign="top"><b>Firma:</b></td>
+                          <td> <? echo $fetch["firma"]; ?></td>
+                        </tr>
+                        <?
+if ($fetch["branchenid"] > 0) {
+$branchenid=$fetch["branchenid"];
+$branche=mysql_db_query($database_db,"SELECT $s_sprache from branchen where id=$branchenid",$praktdbslave);
+echo                 "<tr><td valign=\"top\"><b>Branche:</b></td><td>".mysql_result($branche,0,$s_sprache)."</td></tr>\n";
+}
+if ($fetch["berufsfeldid"] > 0) {
+$berufsfeldid=$fetch["berufsfeldid"];
+$berufsfeld=mysql_db_query($database_db,"SELECT $s_sprache from berufsfelder where id=$berufsfeldid",$praktdbslave);
+echo                 "<tr><td valign=\"top\"><b>Berufsfeld:</b></td><td>".mysql_result($berufsfeld,0,$s_sprache)."</td></tr>\n";
+}
+?>
+                        <tr>
+                          <td valign="top"><b>Arbeitsort:</b></td>
+                          <td> <? echo $fetch["region"]; ?></td>
+                        </tr>
+                        <tr>
+                          <td valign="top"><b>Beschreibung:</b></td>
+                          <td> <? echo $fetch["volltext"]; ?></td>
+                        </tr>
+                        <?
+if ($fetch["stellenanzahl"] !="") echo "<tr><td valign=\"top\"><b>freie Stellen:</b></td><td>".intval($fetch["stellenanzahl"])."</td></tr>";
+if ($fetch["stellenbesetzenab"] !="") echo "<tr><td valign=\"top\" nowrap><b>zu besetzen ab:</b></td><td>".$fetch["stellenbesetzenab"]."</td></tr>";
+if ($fetch["lohn"] !="") echo "<tr><td valign=\"top\"><b>Gehalt:</b></td><td>".$fetch["lohn"]."</td></tr>";
+if ($fetch["balter"] == "G") {$balter = "Alter ist egal";} else {$balter = $fetch["balter"];}
+if ($balter !="") echo "<tr><td valign=\"top\"><b>Alter:</b></td><td>".$balter."</td></tr>";
+if ($fetch["arbeitszeit"] !="") echo "<tr><td valign=\"top\"><b>Arbeitszeit:</b></td><td>";
+if (substr($fetch["arbeitszeit"],0,1)=="V") echo "Vollzeit";
+if (substr($fetch["arbeitszeit"],0,1)=="T") echo "Teilzeit";
+echo "</td></tr>";
+                echo "<tr><td valign=\"top\"><b>Region:</b></td><td>".$bundesland." Deutschland</td></tr>\n";
+if ($fetch["fuehrerschein"] !="") echo "<tr><td valign=\"top\"><b>F&uuml;hrerschein:</b></td><td>".$fetch["fuehrerschein"]."</td></tr>";
+
+if ($fetch["bundeslandid"] >0) {
+$bundeslandid=$fetch["bundeslandid"];
+$bundesland=mysql_db_query($database_db,"select $s_sprache from bundesland where id=$bundeslandid",$praktdbslave);
+$bundesland=mysql_result($bundesland,0,$s_sprache).",";
+}
+
+                echo "<tr><td valign=\"top\"><b>Adresse:</b></td><td>".$fetch["firma"]."<br>".$fetch["strasse"] ."<br>".$fetch["plz"] ." ".$fetch["ort"];
+                if ($fetch["email"] !="") echo "<br>Email: <a href=mailto:".$fetch["email"].">".$fetch["email"]."</a>";
+                echo "</td></tr>\n";
+if ($fetch["ansprechpartner"] !="") echo "<tr><td valign=\"top\"><b>Ansprechpartner:</b></td><td>".$fetch["ansprechpartner"]."</td></tr>";
+if ($fetch["homepage"] !="") echo "<tr><td valign=\"top\"><b>Homepage:</b></td><td><a href=\"".$fetch["homepage"]."\" target=_blank>".$fetch["homepage"]."</a></td></tr>";
+if ($fetch["bewerbungsart"] !="") echo "<tr><td valign=\"top\"><b>Bewerbung:</b></td><td>".$bewerbungsart[intval($fetch["bewerbungsart"])]."</td></tr>";
+
+$teil1 = substr($fetch["chiffre"], 0, 5);
+$teil2 = substr($fetch["chiffre"], 5, 8);
+$teil3 = substr($fetch["chiffre"],13, 5);
+
+$teil2jahr = substr($teil2, 0, 4);
+$teil2monat = substr($teil2, 4, 2);
+$teil2tag = substr($teil2, 6, 2);
+
+$teil2 = $teil2tag.$teil2monat.substr($teil2jahr, 2);
+                echo "<tr><td valign=\"top\"><b>Chiffre:</b></td><td>".$teil1." ".$teil2." ".$teil3."</td></tr>\n";
+                echo "<tr><td valign=\"top\"><b></b></td><td><a href=\"http://berufenet.arbeitsamt.de/bnet2/A/kurz_B".$fetch["bkz"].".html\" target=_blank>Berufsfeld von BERUFEnet</a></td></tr>\n";
+$tag=intval($fetch["tag"]);
+$monat=intval($fetch["monat"]);
+$jahr=intval($fetch["jahr"]);
+if ($tag < 1) $tag="01";
+if ($monat < 1 ) $monat=date('m');
+if ($jahr < 2004) $jahr="11";
+                echo "<tr><td valign=\"top\"><b>Stand:</b></td><td>".$tag.".".$monat.".".$jahr."</td></tr>\n";
+                echo "<tr><td colspan=2><hr></td></tr>\n";
+                echo "<tr><td colspan=2><font size=\"-2\">Inhalt: &copy; Bundesagentur f&uuml;r Arbeit ".date("Y")."</font></td></tr>\n";
+                echo "<tr><td colspan=2><font size=\"-2\">&copy; ".date("Y")." by praktika.de HighTechMARKET GmbH</font></td></tr>\n";
+
+?>
+                      </table></td>
+                  </tr>
+                  <tr> 
+                    <td align="left" valign="CENTER" width="500" colspan="2"><font face="Arial,Helvetica,Sans-Serif" size="2" color="#000000">&nbsp; 
+                      </font></td>
+                  </tr>
+                </table></td>
+            </tr>
+          </table></td>
+  </tr>
+  <tr>
+        <td align="right"><a href="https://www.arbeitsagentur.de" target="_blank"><img src="../../gifs/partner/logo_ba_klein.gif" width="154" height="22" vspace="8" border=0></a> <img src="/gifs/zentralelemente/spacer.gif" width=20><img src="/partner/aa/logo_praktika.gif" width="114" height="35" vspace="8"></td>
+  </tr>
+</table>
+</center></div>
+</body>
+</html>

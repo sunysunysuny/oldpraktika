@@ -1,0 +1,430 @@
+<?
+$sprachbasisdatei = '/home/praktikanten/firmendetail.phtml';
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (isset($_GET['id']) && !empty($_GET['id'])) {
+	$firmenid = intval($_GET['id']);
+} else {
+	$firmenid = intval($_SESSION['s_firmenid']);
+}
+
+// datensatz abfragen //
+$querystring = mysql_db_query($database_db,'SELECT * FROM firmen,branchen,firmen_prop_assign WHERE firmen.id = '.$firmenid.' AND branchen.id = firmen.branche AND firmen.id = firmen_prop_assign.firmenid',$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($querystring);
+
+// datensatz abfragen //
+$firmenprofilstring= mysql_db_query($database_db,'SELECT * FROM firmenprofil WHERE firmenid = '.$firmenid,$praktdbslave);
+
+// array erzeugen //
+$firmenprofil = mysql_fetch_array($firmenprofilstring);
+
+
+$metatags['Title'] = 'Praktikum bei '.$eintrag['firma'];
+$metatags['Keywords'] = 'Praktikum, Diplomarbeit, Werksstudent, Trainee, Projektarbeit, Dissertation, Auslandseinsatz';
+$metatags['Description'] = $eintrag['ort'];
+
+pageheader(array('page_title' =>  isset($eintrag['firma']) ? $eintrag['firma'] : 'Unternehmensprofil'));
+
+if ($firmenprofil['bild1']) {
+	$uebergabebildid = $firmenprofil['bild1'];
+	$bildwerte = mysql_db_query($database_db,'SELECT * FROM bilddateien WHERE id = '.$uebergabebildid,$praktdbslave);
+
+	if (mysql_num_rows($bildwerte) > 0) {
+		echo '<img src="'.Praktika_Firma::getLogoUrl($firmenid, "stelle").'" align="left"  alt="Firmenlogo" class="logo_image" />'."\n";
+	}
+}
+?>
+
+<table cellpadding="0" cellspacing="0" width="100%" class="table2_profil">
+	<colgroup>
+		<col width="35%" />
+		<col width="65%" />
+	</colgroup>
+	<tr>
+		<th class="td2_links" colspan="2">Aktuelle Angebote</th>
+	</tr>
+	<tr>
+		<td class="td2_links">&nbsp;</td>
+		<td class="td2_rechts">
+
+<?
+$angebotsanzahl = mysql_fetch_all($database_db,'SELECT spalte, COUNT(*) AS anzahl FROM stellen WHERE firmenid = '.$firmenid.' AND inactive = \'false\' GROUP BY spalte ORDER BY spalte',$praktdbslave);
+
+if (is_array($angebotsanzahl)) {
+	foreach ($angebotsanzahl as $key => $value) {
+		switch ($key) {
+			case 1:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Praktika</a><br />'."\n";
+				break;
+			case 2:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Diplomangebote</a><br />'."\n";
+				break;
+			case 3:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Berufseinsteiger</a><br />'."\n";
+				break;
+			case 4:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Nebenjob</a><br />'."\n";
+				break;
+			case 5:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Ausbildungspl&auml;tze</a><br />'."\n";
+				break;
+			case 6:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Projektangebote</a><br />'."\n";
+				break;
+			case 7:
+				echo $value.' <a href="/firmen/allestellen/'.$firmenid.'/">Traineeangebote</a>'."\n";
+				break;
+		}
+	}
+}
+
+echo intval($firmenprofil['projektstellen']).' Projekte<br />'."\n";
+echo intval($firmenprofil['seminarstellen']).' Seminare/Veranstaltungen'."\n";?>
+	
+		</td>
+	</tr>
+	<tr>
+		<th class="td2_linksPT" colspan="2">Allgemeine Firmendaten</th>
+	</tr>
+
+<? if ($firmenprofil['ueberschrift1'] && $firmenprofil['textfeld1']) { ?>
+	<tr>
+		<td class="td2_links"><? echo nl2br($firmenprofil['ueberschrift1']); ?>:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['textfeld1']); ?></td>
+	</tr>
+<? } ?>
+
+<? if ($firmenprofil['ueberschrift2'] && $firmenprofil['textfeld2']) { ?>
+	<tr>
+		<td class="td2_links"><? echo nl2br($firmenprofil['ueberschrift2']); ?>:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['textfeld2']); ?></td>
+	</tr>
+<? } ?>
+
+<? if ($firmenprofil['ueberschrift3'] && $firmenprofil['textfeld3']) { ?>
+	<tr>
+		<td class="td2_links"><? echo nl2br($firmenprofil['ueberschrift3']); ?>:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['textfeld3']); ?></td>
+	</tr>
+<? } ?>
+
+
+<?
+// ALLGEMEINE FIRMENDATEN
+
+$branchenid = $eintrag['branche'];
+$branche = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM branchen WHERE id = '.$branchenid,$praktdbslave);
+$num = mysql_num_rows($branche);
+
+if ($num != 0) {
+	$branchewahl = mysql_result($branche,0,$_SESSION['s_sprache']);
+}
+
+if ($firmenprofil['startup'] == 'true') {
+	$startup = 'Ja';
+} else {
+	$startup = 'Nein';
+}
+
+// Leer-Felder mit "-" f&uuml;llen
+foreach ($firmenprofil as $key => $value) {
+	if ($key == 'praktikanten' || $key == 'praktikantennjahr' || $key == 'absolventen' || $key == 'absolventennjahr') {
+		if (empty($value)) {
+			$firmenprofil[$key] = '0';
+		}
+	} else {
+		if (empty($value)) {
+			$firmenprofil[$key] = '-';
+		}
+	}
+}
+
+?>
+
+	<tr>
+		<td class="td2_links">Rechtsform:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['rechtsform']; ?></td></tr>
+	<tr>
+		<td class="td2_links">Branche:</td>
+		<td class="td2_rechts"><? echo $branchewahl; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Wertpapierkennzahl:</td>
+		<td class="td2_rechts"><? echo ((!empty($firmenprofil['wertpapierkennzahl']) && $firmenprofil['wertpapierkennzahl'] != 'http://') ? '<a href="http://tool.boerse.de/?WKN='.$firmenprofil['wertpapierkennzahl'].'" target="_blank">'.$firmenprofil['wertpapierkennzahl'].'</a>' : '-') ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Gr&uuml;ndung:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['gruendung']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Umsatz Inland:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['umsatzinland']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Umsatz weltweit:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['umsatzgesamt']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">StartUp / Neugr&uuml;ndung:</td>
+		<td class="td2_rechts"><? echo $startup; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Produkte / Dienstleistungen:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['produkte']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Kunden- bzw Zielm&auml;rkte:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['kunden']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Zielregionen:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['zielregionen']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Markennamen:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['markennamen']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">F&amp;E Aktivit&auml;ten / Bereich:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['fe_aktivitaeten']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Hauptsitz:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['hauptsitz']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Standorte im Inland:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['standorteinland']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Standorte im Ausland:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['standorteausland']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Mitarbeiter Deutschland:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['mitarbeiterinland']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Mitarbeiter weltweit:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['mitarbeitergesamt']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Bedarf von Praktikanten im Jahr <? echo date('Y').'/'.(date('Y') + 1); ?>:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['praktikanten']."/".$firmenprofil['praktikantennjahr']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Bedarf von Absolventen im Jahr <?php echo date('Y').'/'.(date('Y') + 1); ?>:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['absolventen']."/".$firmenprofil['absolventennjahr']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">gesuchte Fachrichtungen:</td>
+		<td class="td2_rechts"><? echo nl2br($firmenprofil['fachrichtungen']); ?></td>
+	</tr>
+
+<?
+// EINSTELLUNGSKRITERIEN
+
+function ZeichneBalken($prozent) {
+
+	if ($prozent < 1) {
+		$prozent = 1;
+	}
+	
+	if ($prozent > 100) {
+		$prozent = 100;
+	}
+
+	return ('<div style="width:'.$prozent.'%;" class="balken">&nbsp;</div>');
+
+}
+?>
+	<tr>
+		<th class="td2_linksPT" colspan="2">Einstellungskriterien</th></tr>
+	<tr>
+		<td class="td2_links"></td>
+		<td>
+			<div style="float: left;">nicht wichtig</div>
+			<div style="float: right;">sehr wichtig</div>
+		</td>
+	</tr>
+	<tr>
+		<td class="td2_links">Noten:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritnoten']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Praxiserfahrungen:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritpraxis']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Auslandserfahrungen:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritausland']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Schnelles Studium:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritstudium']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Studienschwerpunkte:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritstudschwerp']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Auﬂeruniv. Engagement:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritengagement']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Fachkenntnisse:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritfach']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Sprachkenntnisse:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritsprach']); ?></td>
+	</tr>	
+	<tr>
+		<td class="td2_links">EDV-Kenntnisse:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritedv']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">&Uuml;berzeugendes Auftreten:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritauftreten']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Teamf&auml;higkeit:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritteam']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Selbstst&auml;nd. Arbeitsstil:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritselbstst']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Analytische F&auml;higkeiten:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritanalyt']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Kommunik. F&auml;higkeiten:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritkommunik']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Kreativit&auml;t:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritkreativ']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Belastbarkeit:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritbelast']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Flexibilit&auml;t:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritflex']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Mobilit&auml;t:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritmobil']); ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Spa&szlig; an der Arbeit:</td>
+		<td class="td2_rechts"><? echo ZeichneBalken($firmenprofil['kritspass']); ?></td>
+	</tr>
+	
+	<tr>
+		<th class="td2_linksPT" colspan="2">M&ouml;glichkeiten bei uns</th>
+	</tr>
+	<tr>
+		<td class="td2_links">Praktikum:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['praktikum']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Bachelor-/Master-Arbeit:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['diplomarbeit']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Werksstudent:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['werksstudent']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Trainee:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['trainee']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Projektarbeit:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['projektarbeit']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Dissertation:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['dissertation']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Auslandseinsatz:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['auslandseinsatz']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">Weiterbildungsm&ouml;gl:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['weiterbildung']; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links">anschl. &Uuml;bernahme:</td>
+		<td class="td2_rechts"><? echo $firmenprofil['uebernahme']; ?></td>
+	</tr>
+
+<?
+// LINKS
+
+if (!$firmenprofil['unternehmensphilosophie'] OR $firmenprofil['unternehmensphilosophie']=="http://") {
+	$link1 = '<font color="#000">Unternehmensphilosophie</font> (nicht hinterlegt)';
+} else {
+	$link1 = '<a href="'.$firmenprofil['unternehmensphilosophie'].'" target="firmenprofil">Unternehmensphilosophie</a>';
+}
+
+if ($firmenprofil['unternehmensphilFrei'] == false) {
+	$link1 = '<font color="#000">Unternehmensphilosophie</font> (nicht freigeschaltet)';
+}
+
+if (!$firmenprofil['firmennews'] OR $firmenprofil['firmennews']=="http://") {
+	$link2 = '<font color="#000">Firmen-News</font> (nicht hinterlegt)';
+} else {
+	$link2 = '<a href="'.$firmenprofil['firmennews'].'" target="firmenprofil">Firmen-News</a>';
+}
+
+if ($firmenprofil['firmennewsFrei'] == false) {
+	$link2 = '<font color="#000">Firmen-News</font> (nicht freigeschaltet)';
+}
+
+if (!$firmenprofil['firmenrecruiting'] OR $firmenprofil['firmenrecruiting']=="http://") {
+	$link3 = '<font color="#000">Firmen-Recruitingsystem</font> (nicht hinterlegt)';
+} else {
+	$link3 = '<a href="'.$firmenprofil['firmenrecruiting'].'" target="firmenprofil">Firmen-Recruitingsystem</a>';
+}
+
+if ($firmenprofil['firmenrecruitingFrei'] == false) {
+	$link3 = '<font color="#000">Firmen-Recruitingsystem</font> (nicht freigeschaltet)';
+}
+
+if (!$firmenprofil['firmenhomepage'] OR $firmenprofil['firmenhomepage']=="http://") {
+	$link4 = '<font color="#000">Firmen-Homepage</font> (nicht hinterlegt)';
+} else {
+	$link4 = '<a href="'.$firmenprofil['firmenhomepage'].'" target="firmenprofil">Firmen-Homepage</a>';
+}
+
+if ($firmenprofil['firmenhomepageFrei'] == false){
+	$link4 = '<font color="#000">Firmen-Homepage</font> (nicht freigeschaltet)';
+}
+?>
+
+	<tr>
+		<th class="td2_linksPT" colspan="2">Links</th>
+	</tr>
+	<tr>
+		<td class="td2_links" colspan="2"><? echo $link1; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links" colspan="2"><? echo $link2; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links" colspan="2"><? echo $link3; ?></td>
+	</tr>
+	<tr>
+		<td class="td2_links" colspan="2"><? echo $link4; ?></td>
+	</tr>
+</table>
+
+<?php bodyoff(); ?>

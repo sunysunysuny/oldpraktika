@@ -1,0 +1,442 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+$firmenlevel = intval($_SESSION['s_firmenlevel']);
+
+$platzhalter = array(
+						'taetigkeit' => 'PLATZHALTER Stellenbezeichnung', 
+						'firmeninfosHead' => 'PLATZHALTER Unser Unternehmen',
+						'firmentaetigkeitHead' => 'PLATZHALTER T&auml;tigkeit',
+						'firmenqualiHead' => 'PLATZHALTER Qualifikation',
+						'firmenperspHead' => 'PLATZHALTER Perspektiven',
+						'firmenkontaktHead' => 'PLATZHALTER Kontaktaufnahme',
+						'firmeninfos' => 'PLATZHALTER Text zum Unternehmen',
+						'firmentaetigkeit' => 'PLATZHALTER Text zur T&auml;tigkeit',
+						'firmenquali' => 'PLATZHALTER Text zu den Qualifikationen',
+						'firmenpersp' => 'PLATZHALTER Text zu den Perspektiven',
+						'firmenkontakt' => 'PLATZHALTER Text zum Kontakt des Unternehmens',
+						'jobcode' => 'PLATZHALTER Stellencode',
+						'subtitle' => 'PLATZHALTER Text zur erweiterten Stellenbezeichnung',
+						'entgelt' => 'PLATZHALTER Text zur Verg&uuml;tung',
+						'beschreibung' => 'PLATZHALTER Text zum Unternehmen',
+						'kontakt2ort' => 'PLATZHALTER',
+						'kontakt2plz' => 'PLATZHALTER',
+						'kontakt2strasse' => 'PLATZHALTER',
+						'kontakt2tel' => 'PLATZHALTER',
+						'kontakt2fax' => 'PLATZHALTER',
+						'kontakt2email' => 'PLATZHALTER',
+						'kontakt2webseite' => 'PLATZHALTER',
+						'kontakt2ansprechpartner' => 'PLATZHALTER',
+						'flash' => 'Flash-Video (URL oder embedded Object von Youtube z.B.)'
+					);
+
+$rawModus = array('jobcode', 'flash', 'taetigkeit');
+
+if (isset($_SESSION['neue_stelle'])) {
+	$stelle = $_SESSION['jobAd'];
+} else {
+	$sqlRst = '
+				SELECT
+					firmen.firma,
+					stellen.*,
+					DATE_FORMAT(stellen.von_monat, \'%m\') AS monat,
+					DATE_FORMAT(stellen.von_jahr, \'%Y\') AS jahr,
+					DATE_FORMAT(stellen.datum_verfall, \'%d\') AS tagv,
+					DATE_FORMAT(stellen.datum_verfall, \'%m\') AS monatv,
+					DATE_FORMAT(stellen.datum_verfall, \'%Y\') AS jahrv
+				FROM
+					stellen
+					LEFT JOIN firmen ON firmen.id = stellen.firmenid
+				WHERE
+					stellen.id = '.$_SESSION['jobAd']['stellenid'].'
+					AND firmenid = '.$_SESSION['s_firmenid'];
+	
+	$stelle_Rst = mysql_db_query($database_db, $sqlRst, $praktdbslave);
+	
+	if ($stelle_Rst != false && mysql_num_rows($stelle_Rst) > 0) {
+		$stelle = mysql_fetch_array($stelle_Rst);
+	} else {
+		$stelle['templateid'] == 0;
+	}
+}
+
+//externe Seite?
+if ($stelle['templateid'] != 0) {
+	$objStelle = new Praktika_Stelle($_SESSION['jobAd']['stellenid']);
+	$htmlBody = $objStelle->getTemplateBody($stelle['templateid']);
+}
+
+$logo = mysql_db_query($database_db, 'SELECT uri FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' AND dateiname = \'resultlogo.gif\'', $praktdbslave);
+
+if ($logo != false && mysql_num_rows($logo) > 0) {
+	$row = mysql_fetch_assoc($logo);
+		
+	$logoPath = $row['uri'];
+} else {
+	$logoPath = '/gifs/zentralelemente/logo.png';
+}
+	
+// Logo bekommt eigene Bearbeitungsfunktion
+$firmenlogoHTML = '<img src="'.$logoPath.'" class="logo" alt="Firmenlogo" onclick="parent.GB_showCenter(\'\',\'/firmen/logo_upload/'.$_SESSION['jobAd']['stellenid'].'/\',500,450)" /><br />';
+
+$datumHTML = 'Aktuell seit: '.date('d.m.Y', strtotime($stelle['modify']));
+// Flash bekommt eigene Bearbeitungsfunktion
+
+$htmlBody = str_replace('###FIRMANAME###', $stelle['firma'],$htmlBody);
+preg_match_all('/###(.*)###/U', $htmlBody, $treffer);
+
+$default = $platzhalter['flash'];
+$htmlBody = str_replace('###LOGO###', $firmenlogoHTML, $htmlBody);
+$htmlBody = str_replace('###DATUM###', $datumHTML, $htmlBody);
+$htmlBody = str_replace("###FLASH###", '<div default="'.$default.'" title="'.str_replace("PLATZHALTER ","",$default).'" onblur="parent.resizeIframe();" id="field_flash" class="editable flashEditable" '.($alternative!=true?'contentEditable="true"':'').' onmouseup="parent.resizeIframe(); parent.setField(\'field_flash\',\'raw\')" onkeyup="parent.keypressed();">'.(empty($stelle["flash"])?$default:stripslashes($stelle["flash"])).'</div>', $htmlBody);
+
+$stelle['jobcode'] = 'Jobcode: '.$stelle['jobcode'];
+
+for ($a = 0; $a < count($treffer[0]); $a++) {
+	$feld = strtolower($treffer[1][$a]);
+
+	$inline = false;
+	
+	if ($feld == 'kontakt2plz' || $feld == 'kontakt2ort' || $feld == 'kontakt2strasse') {
+		$inline = true;
+	}
+
+	if (strpos($feld, '_head') !== false) {
+		$feld = substr($feld, 0, (strlen($feld)-5)).'Head';
+	} elseif (strpos($feld, 'head') !== false) {
+		$feld = substr($feld, 0, (strlen($feld)-4)).'Head';
+	}
+	
+	$default = $platzhalter[$feld];
+	
+	if (in_array($feld, $rawModus)) {
+		$type = 'raw';
+	} else {
+		$type = 'html';
+	}
+	
+	$htmlBody = str_replace($treffer[0][$a], '<div default="'.$default.'" title="'.str_replace('PLATZHALTER ', '', $default).'" onblur="parent.resizeIframe();" id="field_'.$feld.'" class="editable" onmouseup="parent.resizeIframe(); setField(\'field_'.$feld.'\',\''.$type.'\');" onkeyup="return parent.keypressed()" style="'.($inline == true ? 'display: inline' : '').'">'.(empty($stelle[$feld]) ? $default : nl2br(stripslashes($stelle[$feld]))).'</div>', $htmlBody);
+	
+	if ($feld != 'logo' && $feld != 'datum') {
+		$initField[] = 'field_'.$feld;
+	}
+}
+
+$htmlBody = str_replace('</head>', '<link rel="stylesheet" type="text/css" href="/styles/stellenEditor/editor.css" /></head>', $htmlBody);
+
+$htmlBody = preg_replace(
+				array('/<body(.*)>/U', '/checkIfEmpty\(\'(.*)\'\);/'), 
+				array('<body onscroll="parent.rePosCommandFrame()" onload="parent.init(); parent.resizeIframe();" style="width: 100%; height: 100%; margin: 0px; padding: 0px;">', ''),
+				$htmlBody
+			);
+?>
+<div class="template">
+<?
+echo $htmlBody; ?>
+</div>
+<style type="text/css">
+	ul {
+		margin-top: 0px !important;
+		margin-bottom: 0px;
+	}
+	.headTextfield {
+		width: 100% !important;
+		padding: 1px 0 1px 20px !important;
+		font-size: 14px !important;
+		background-color: #fff !important;
+		border: 1px solid #fff !important;
+	}
+	.saveImage {
+		width: 16px;
+		height: 16px;
+		margin-top: -25px;
+	}
+	.template li {
+		/* list-style-type:disc !important; */
+	}
+	.template ul {
+		margin: 1em 0 !important;
+		display:block;
+		list-style-type:disc !important;
+		padding-left:40px !important;
+	}
+	.template p {
+		margin:0 !important;
+	}
+	.template ol {
+		margin: 1em 0 !important;
+		display:block;
+		list-style-type:decimal !important;
+		padding-left:40px !important;
+	}
+	.editable {
+		cursor:pointer;
+	}
+</style>
+<link type="text/css" rel="stylesheet" media="screen" href="/styles/v2/screen.css" />
+
+ <!--[if lt IE 7]>
+	<script src="http://ie7-js.googlecode.com/svn/version/2.0(beta3)/IE7.js" type="text/javascript"></script>
+	<link type="text/css" media="screen" rel="stylesheet" href="/styles/v2/ie.css" />
+<![endif]-->
+<!--[if IE 7]>
+	<script src="http://ie7-js.googlecode.com/svn/version/2.0(beta3)/IE7.js" type="text/javascript"></script>
+	<link type="text/css" media="screen" rel="stylesheet" href="/styles/v2/ie7.css" />
+<![endif]-->
+<!--[if IE 8]>
+	<link type="text/css" media="screen" rel="stylesheet" href="/styles/v2/ie8.css" />
+<![endif]-->
+
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<script type="text/javascript" src="/scripts/smallbox.js"></script>
+<script type="text/javascript" src="/scripts/ckeditor/ckeditor.js"></script>
+<script type="text/javascript">
+	var editLock = '';
+	var hinweisText = {
+		'field_kontakt2ort' :'Einsatzort eingeben',
+		'field_kontakt2plz' :'PLZ eingeben',
+		'field_kontakt2strasse' :'Stra&szlig;e eingeben',
+		'field_kontakt2tel' :'Bitte geben Sie Ihre Telefonnummer f&uuml;r Bewerber ein!',
+		'field_kontakt2fax' :'Bitte geben Sie Ihre Faxnummer f&uuml;r Bewerber ein!',
+		'field_kontakt2email' :'Bitte geben Sie Ihre Email f&uuml;r Bewerber ein!',
+		'field_kontakt2webseite' :'Bitte geben Sie Ihre Webseite an!',
+		'field_kontakt2ansprechpartner' :'Bitte geben Sie einen Ansprechpartner f&uuml;r Bewerbungen an!'
+	};
+	
+	function checkLastField() {
+		if (editLock != '' && saved != true) {
+			checker = confirm(unescape('Sie haben ein anderes Feld bearbeitet ohne zu speichern!' + "\n" + 'M%F6chten sie dieses Feld jetzt speichern?' + "\n\n" + 'Ihre %C4nderungen werden ansonsten nicht %FCbernommen!'));
+		
+			if (checker == true) save(editor);
+		}
+	}
+	
+	var feldBez;
+    
+	function setField(id, type) {
+		if (editLock == id) return;
+
+                if (editor) {
+			element = document.getElementById(editLock);
+
+			text = editor.getData();
+                        value = trim(strip_tags(text).toLowerCase());
+
+                        defaults = element.getAttribute("default");
+	
+		    // alert(value);
+			editor.destroy(); editor = null;
+
+                    if (value == '') {
+		       //  alert(defaults);
+                        document.getElementById(editLock).innerHTML = defaults;
+		    }
+
+
+		}
+		
+		checkLastField();
+		parent.resizeIframe();
+		saved = true;
+		feldBez = '';
+		
+		if (hinweisText[id] != undefined) {
+			feldBez = hinweisText[id];
+		} else {
+			feldBez = '';
+		}
+		
+		editLock = id;
+		type = 'html';
+		
+		if (editLock.indexOf('Head') != -1 || editLock.indexOf('_taetigkeit') != -1 || editLock.indexOf('_subtitle') != -1) {
+			type = 'head';
+		} else if (editLock.indexOf('_jobcode') != -1) {
+			type = 'jobcode';
+		} else if (editLock.indexOf('kontakt2') != -1) {
+			type = 'contact';
+		}
+		
+		oldContent = document.getElementById(id).innerHTML;
+		replaceDiv(document.getElementById(id), type);
+	}
+
+	var editor;
+	var saved = true;
+	/**
+	 *Alter Inhalt der Felder f�r zur�cksetzen Funktion
+	 */
+	var oldContent;
+	
+	function replaceDiv( div, type, value ) {		
+		if (type == 'head' || type == 'jobcode' || type == 'contact') {
+			if (value == undefined) {
+				stdValue = div.innerHTML;
+			} else {
+				stdValue = value;
+			}
+			
+			if (type == 'head') {
+				promptText = 'Geben Sie einen neuen Inhalt f&uuml;r diesen Abschnitt ein!';
+			} else if (type == 'jobcode') {
+				promptText = 'Legen Sie einen neuen JobCode f&uuml;r diese Stelle fest!<br /><i>Dieser sollte f&uuml;r jede Stellenanzeige eindeutig sein,<br />da er als Kennzeichnung in den Bewerbungen zu finden ist.</i>';
+				
+				stdValue = stdValue.replace('Jobcode:', '');
+			} else if (type == 'contact') {
+				promptText = '<b>' + feldBez + '</b>';
+			}
+			
+			smallbox.prompt(promptText, trim(strip_tags(stdValue)), function(text) {
+				if (text === false) { editLock = ''; return; }
+				
+				if (editLock.indexOf('_jobcode') != -1) {
+					text = 'Jobcode: ' + text;
+				}
+				
+				element = document.getElementById(editLock);
+				value = trim(strip_tags(text).toLowerCase());
+				defaults = element.getAttribute('default');
+				
+				if (value == '') text = defaults;;
+				
+				saveField(editLock, text);
+				document.getElementById(editLock).innerHTML = text;
+				editLock = '';
+			});
+			
+			return;
+		}
+		
+		if(div.offsetWidth < 300) {
+			toolbar = 'Small';
+		} else {
+			toolbar = 'Full';
+		}
+		
+		editorHeight = div.offsetHeight + 70;
+		
+		CKEDITOR.config.toolbar_Full = [<? if($firmenlevel > 1) { ?>
+			[ 'Save','-','Cut','Copy','Paste','PasteText','PasteFromWord','-','Bold', 'Italic', 'Underline','Strike','-', 'NumberedList','BulletedList','-','Outdent','Indent','-','JustifyLeft','JustifyCenter','JustifyRight','JustifyBlock' ,'-','TextColor']
+		<? } else { ?>
+			[ 'Save','-','PasteText','PasteFromWord']
+		<? } ?>];
+		CKEDITOR.config.toolbar_Small = [<? if($firmenlevel > 1) { ?>
+			[ 'Save','PasteText','PasteFromWord','Bold', 'Italic', 'Underline']
+		<? } else { ?>
+			[ 'Save','-','PasteText','PasteFromWord']
+		<? } ?>];
+		
+		if(div.innerHTML == div.getAttribute('default')) {
+			div.innerHTML = '';
+		}
+		
+		editor = CKEDITOR.replace(div, {
+			toolbar: toolbar,
+			removePlugins: 'elementspath,save',
+			extraPlugins: 'mysave,keystrokes',
+			resize_enabled: true,
+			height: editorHeight,
+			resize_minWidth: 30,
+			resize_maxWidth: div.offsetWidth
+			}
+		);
+		
+		CKEDITOR.on('key', function(e) { saved = false; });
+		CKEDITOR.on('instanceReady', function(e) { parent.resizeIframe(); });
+	}
+	function strip_tags(str, allowed_tags) {
+		// http://kevin.vanzonneveld.net
+		// +   original by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +   improved by: Luke Godfrey
+		// +      input by: Pul
+		// +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +   bugfixed by: Onno Marsman
+		// +      input by: Alex
+		// +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +      input by: Marc Palau
+		// +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +      input by: Brett Zamir (http://brettz9.blogspot.com)
+		// +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// +   bugfixed by: Eric Nagel
+		// +      input by: Bobby Drake
+		// +   bugfixed by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+		// *     example 1: strip_tags('<p>Kevin</p> <br /><b>van</b> <i>Zonneveld</i>', '<i><b>');
+		// *     returns 1: 'Kevin <b>van</b> <i>Zonneveld</i>'
+		// *     example 2: strip_tags('<p>Kevin <img src="someimage.png" onmouseover="someFunction()">van <i>Zonneveld</i></p>', '<p>');
+		// *     returns 2: '<p>Kevin van Zonneveld</p>'
+		// *     example 3: strip_tags("<a href='http://kevin.vanzonneveld.net'>Kevin van Zonneveld</a>", "<a>");
+		// *     returns 3: '<a href='http://kevin.vanzonneveld.net'>Kevin van Zonneveld</a>'
+		// *     example 4: strip_tags('1 < 5 5 > 1');
+		// *     returns 4: '1 < 5 5 > 1'
+		
+		var key = '', allowed = false;
+		var matches = [];
+		var allowed_array = [];
+		var allowed_tag = '';
+		var i = 0;
+		var k = '';
+		var html = '';
+		
+		var replacer = function(search, replace, str) {
+			return str.split(search).join(replace);
+		};
+		
+		// Build allowes tags associative array
+		if (allowed_tags) {
+			allowed_array = allowed_tags.match(/([a-zA-Z]+)/gi);
+		}
+		
+		str += '';
+		
+		// Match tags
+		matches = str.match(/(<\/?[\S][^>]*>)/gi);
+		
+		// Go through all HTML tags
+		for (key in matches) {
+			if (isNaN(key)) {
+				// IE7 Hack
+				continue;
+			}
+	
+			// Save HTML tag
+			html = matches[key].toString();
+			
+			// Is tag not in allowed list? Remove from str!
+			allowed = false;
+			
+			// Go through all allowed tags
+			for (k in allowed_array) {
+				// Init
+				allowed_tag = allowed_array[k];
+				i = -1;
+				
+				if (i != 0) {i = html.toLowerCase().indexOf('<' + allowed_tag + '>');}
+				if (i != 0) {i = html.toLowerCase().indexOf('<' + allowed_tag + ' ');}
+				if (i != 0) {i = html.toLowerCase().indexOf('</' + allowed_tag);}
+				
+				// Determine
+				if (i == 0) {
+					allowed = true;
+					break;
+				}
+			}
+			
+			if (!allowed) {
+				str = replacer(html, '', str); // Custom replace. No regexing
+			}
+		}
+		
+		return str;
+	}
+	
+	function saveField(key, value) {
+		var poststr = 'value=' + encodeURI(value).replace(/&/g, '%26') + '&part=' + key;
+		//var poststr = 'val=' + encodeURI(obj.childNodes[1].value).replace(/&/g, '%26') + '&part=' + part + '&id=' + id;
+		var url = window.location.protocol+'//' + window.location.host + '/firmen/stelle/content_update/';
+		
+		xhr(url, poststr);
+	}
+	
+	var htmlEl = document.getElementsByTagName('html')[0];
+	htmlEl.onscroll = function() {parent.rePosCommandFrame;}
+</script>

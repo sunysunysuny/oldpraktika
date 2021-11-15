@@ -1,0 +1,14 @@
+<?php
+
+require("/home/praktika/etc/gb_config.inc.php");
+
+pageheader( array('page_title' => 'Hinweis') );
+
+if ($_GET['id'] == 1) {
+	echo '<p class="error">Sie haben bereits das Kontingent an m&ouml;glichen Stellen f&uuml;r das Paket "Komfort" aufgebraucht.<br />Sollten Sie weitere Stellenanzeigen veröffentlichen wollen, so buchen Sie bitte das Paket "Premium".</p>';
+} elseif ($_GET['id'] == 2) {
+	echo '<p class="error">Sie haben bereits das Kontingent an m&ouml;glichen Stellen f&uuml;r das Paket "Basis" aufgebraucht.<br />Sollten Sie weitere Stellenanzeigen veröffentlichen wollen, so buchen Sie bitte das Paket "Komfort" oder "Premium"</p>';
+}
+
+bodyoff();
+?>

@@ -1,0 +1,50 @@
+<?
+header("Location:/bewerber/index.phtml?stellenausgabe=".(int)$_GET["id"]);
+exit();
+$gruppe = "praktikant";
+ require("/home/praktika/etc/config.inc.php"); 
+
+mysql_select_db ($database_db,$praktdbslave);
+$queryadvancedstring = "SELECT * FROM stellenadvanced WHERE stellenid = $id AND spalte = $s_spalte";
+$queryadvanced = mysql_query($queryadvancedstring,$praktdbslave);
+// array erzeugen //
+if (mysql_num_rows($queryadvanced) > 0) {
+$advancedyesno = mysql_fetch_array($queryadvanced);
+$firmenid=$advancedyesno["firmenid"];
+$querystring = "SELECT firma FROM firmen WHERE id = $firmenid";
+$result = mysql_query($querystring,$praktdbslave);
+if($advancedyesno["type"] == "int") { $url = "/user/".$firmenid."/".$s_spalte."_".$id.".html"; } else { $url = $advancedyesno["url"]; }
+}
+
+// Nutzerbookmark gelesen
+if ($gelesen == "no") {
+if ($s_bereich==2) $dbsel="nutzerbookmark";
+if ($s_bereich==5) $dbsel="jobmailsend";
+mysql_db_query($database_db,"UPDATE $dbsel SET gelesen='true' WHERE stellenid='$id' AND nutzerid='$s_nutzerid' AND spalte=$s_spalte",$praktdbmaster); 
+}
+
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE>Individuelles Stellenprofil: <? echo mysql_result($result,0,"firma"); ?></TITLE>
+<SCRIPT>
+  window.focus();
+</SCRIPT>
+</HEAD>
+<? 
+
+if ($s_spalte == 5) { $masterpixel = 68; } else { $masterpixel = 48; }
+if ($firma == "yes") { $bottompixel = 1; } else { $bottompixel = $masterpixel; }
+echo "<frameset rows=\"".$bottompixel.",*\">\n";
+if ($firma != "yes") echo "<frame src=\"bottom.phtml?id=" . $id . "&firmenid=" . $firmenid . "&viewstatsid=".$viewstatsid ."&bewerbstatus=" . $advancedyesno["bewerbint"] . "&" . session_name() . "=" . session_id() . "\" name=\"advancedprofilebottom\" noresize marginwidth=0 marginheight=0 scrolling=no>\n";
+if ($advancedyesno["template"] == "true") {
+echo "<frame src=\"stellentemplate.phtml?id=" . $id . "&firmenid=" . $firmenid . "&viewstatsid=".$viewstatsid ."&" . session_name() . "=" . session_id() . "\" name=\"advancedprofilemain\" marginwidth=0 marginheight=0>\n";
+} else {
+echo "<frame src=\"".$url."\" name=\"advancedprofilemain\" marginwidth=0 marginheight=0>\n"; 
+}
+
+?>
+    </frameset>
+</HTML>

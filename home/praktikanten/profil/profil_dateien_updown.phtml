@@ -1,0 +1,171 @@
+<?
+if (isset($_POST['no'])) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/lebenslauf/dateien/');
+	die();
+}
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+$_SESSION['sidebar'] = "default";
+
+$max_file_size = 10000000;
+
+pageheader(array('page_title' => $language["strUeberschrift"]));
+
+echo '<div id="recruitingCenter">';
+
+
+echo '		<script type="text/javascript">'."\n";
+echo '		/* <![CDATA[ */'."\n";
+echo '		function chkFormular() {'."\n";
+echo '			if(document.formular.userfile.value == \'\') {'."\n";
+echo '				alert(\'Bitte eine Datei auswählen!\');'."\n";
+echo '				document.formular.userfile.focus();'."\n";
+echo '				return false;'."\n";
+echo '			}'."\n";
+echo '		}'."\n";
+echo '		/* ]]> */'."\n";
+echo '		</script>'."\n";
+
+if (isset($_POST['upload']) && isset($_FILES['userfile'])) {
+	if ($_FILES['userfile'] == 'none' || strlen($_FILES['userfile']['name']) == 0) {
+		$fehler = $language['strAngabe'];
+	} else {
+		$schonda = mysql_db_query($database_bprofil,'SELECT * FROM profil_dateien WHERE nutzerid = \''.$_SESSION['s_loginid'].'\' AND dateiname LIKE \''.$_FILES['userfile']['name'].'\'',$praktdbslave);
+		if (mysql_num_rows($schonda) > 0) {
+			$fehler = $language["strSchonDa"];
+		}
+	}
+	
+	$allowedExt = array("pdf", "jpg", "jpeg", "doc", "gif", "png");
+		
+		$ext = substr($_FILES['userfile']['name'], strrpos($_FILES['userfile']['name'], '.') + 1);
+		$ext = strtolower($ext);
+		
+	if (($_FILES['userfile']['size'] > $max_file_size) || ($_FILES['userfile'] == 'none') || (mysql_num_rows($schonda) > 0)) {
+		if ($_FILES['userfile']['size'] > $max_file_size) {
+			$fehler = "Leider ist Ihre Datei gr&ouml;&szlig;er als die maximal zul&auml;ssige Dateigr&ouml;&szlig;e.<br />Bitte w&auml;hlen Sie ein anderes Format oder komprimieren Sie die Datei, um Sie auf den Server zu laden.";
+		}
+		echo '		<p class="hint error">'.$fehler.'</p><br /><br />'."\n";
+		echo '		<div class="control_panel">'."\n";
+		echo '			<p>'."\n";
+		echo '				<a href="/lebenslauf/dateien/upload/" class="button">'.$language["strUploadmaske"].'</a>'."\n";
+		echo '			</p>'."\n";
+		echo '		</div>'."\n";
+	} else if(!in_array($ext, $allowedExt)) {
+		$fehler = "Leider sind f&uuml;r den Upload nur PDF, GIF, JPG und PNG Dateien erlaubt!";
+
+		echo '		<p class="hint error">'.$fehler.'</p><br /><br />'."\n";
+		echo '		<div class="control_panel">'."\n";
+		echo '			<p>'."\n";
+		echo '				<a href="/lebenslauf/dateien/upload/" class="button">'.$language["strUploadmaske"].'</a>'."\n";
+		echo '			</p>'."\n";
+		echo '		</div>'."\n";	
+	} else {
+
+		$filename = Praktika_String::uml(strtolower($_FILES['userfile']['name']));
+		
+		if ( !is_dir('/home/praktika/bfiles/'.$_SESSION['s_loginid']) ) {
+			mkdir("/home/praktika/bfiles/".$_SESSION['s_loginid'], 0755);
+		}
+		
+		$intfilename = time().'_'.$_SESSION['s_loginid'].'_'.md5(time()).'.'.$ext;
+		
+		if (!move_uploaded_file($_FILES['userfile']['tmp_name'], '/home/praktika/bfiles/'.$_SESSION['s_loginid'].'/'.$intfilename)) {
+	   		$fehler = 'Achtung: Upload Problem'."\n";
+		}
+		
+		$insertstring = 'INSERT INTO profil_dateien (nutzerid, intname, dateiname, format, filesize, type, datum_eintrag) VALUES(\''.$_SESSION['s_loginid'].'\',\''.$intfilename.'\',\''.$filename.'\',\''.$ext.'\',\''.$_FILES['userfile']['size'].'\',\''.$_FILES['userfile']['type'].'\',NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+		$insert_id = mysql_insert_id($praktdbmaster);
+		$rs = mysql_db_query($database_bprofil,'SELECT * FROM profil_dateien WHERE nutzerid = \''.$_SESSION['s_loginid'].'\' AND id = \''.$insert_id.'\'',$praktdbmaster);
+		
+		Praktika_Lebenslauf::deleteCache();
+		
+		echo '		<p class="hint success">'.$language['strErfolgreich'].'</p>'."\n";
+		echo '		<table cellspacing="0" cellpadding="2">'."\n";
+		echo '			<tr>'."\n";
+		echo '				<td colspan="3"><a href="/lebenslauf/dateien/show/'.mysql_result($rs,0,'id').'/" target="_blank">Link zu:'.mysql_result($rs,0,'dateiname').'</a></td>'."\n";
+		echo '			</tr>'."\n";
+		echo '			<tr>'."\n";
+		echo '				<td><img src="/styles/images/icons/'.mysql_result($rs,0,'format').'.png" alt="" /></td>'."\n";
+		echo '				<td><b>Datei: </b>'.mysql_result($rs,0,'dateiname').'</td>'."\n";
+		echo '				<td><b>Typ: </b>'.strtoupper(mysql_result($rs,0,'format')).'</td>'."\n";
+		echo '			</tr>'."\n";
+		echo '		</table>'."\n";
+		echo '		<br />'."\n";
+		echo '		<div class="control_panel">'."\n";
+		echo '			<p>'."\n";
+		echo '				<a href="/lebenslauf/dateien/" class="button">'.$language["strZurUebersicht"].'</a>'."\n";
+		echo '			</p>'."\n";
+		echo '		</div>'."\n";
+	}
+} elseif (isset($_GET['down'])) {
+	$id = $_GET['id'];
+	$rs = mysql_db_query($database_bprofil,'SELECT * FROM profil_dateien WHERE nutzerid = '.$_SESSION['s_loginid'].' AND id = '.$id,$praktdbslave);
+
+	echo '		<p>Datei l&ouml;schen?</p>';
+	echo '		<table cellspacing="0" cellpadding="2">'."\n";
+	echo '			<tr>'."\n";
+	echo '				<td colspan="3"><a href="/lebenslauf/dateien/show/'.mysql_result($rs,0,'id').'/" target="_blank">Link zu:'.mysql_result($rs,0,'dateiname').'</a></td>'."\n";
+	echo '			</tr>'."\n";
+	echo '			<tr>'."\n";
+	echo '				<td><img src="/home/gifs/fileicons/'.mysql_result($rs,0,'format').'.gif" alt="" /></td>'."\n";
+	echo '				<td><b>Datei: </b>'.mysql_result($rs,0,'dateiname').'</td>'."\n";
+	echo '				<td><b>Typ: </b>'.strtoupper(mysql_result($rs,0,'format')).'</td>'."\n";
+	echo '			</tr>'."\n";
+	echo '		</table><br />'."\n";
+	echo '		<p class="hint warning">Wollen Sie die Datei wirklich l&ouml;schen?</p>'."\n";
+	echo '		<form action="/lebenslauf/dateien/delete/'.$id.'" method="post">'."\n";
+	echo '			<fieldset class="control_panel">'."\n";
+	echo '				<p>'."\n";
+	echo '					<input type="submit" class="button small" value="Ja" name="yes" />'."\n";
+	echo '					<input type="submit" class="button small" value="Nein" name="no" />'."\n";
+	echo '				</p>'."\n";
+	echo '			</fieldset>'."\n";
+	echo '		</form>'."\n";
+} elseif (isset($_POST['yes'])) {
+	$id = $_GET['id'];
+	$rs = mysql_db_query($database_bprofil,'SELECT * FROM profil_dateien WHERE nutzerid = '.$_SESSION['s_loginid'].' AND id = '.$id,$praktdbslave);
+	$uri = mysql_result($rs,0,'intname');
+	$deletestring = 'DELETE FROM profil_dateien WHERE nutzerid = \''.$_SESSION['s_loginid'].'\' AND id = '.$id;
+	mysql_db_query($database_bprofil,$deletestring,$praktdbmaster);
+	
+	echo '		<p class="hint success">'.$language['strGeloescht'].'</p>'."\n";
+	echo '		<div class="control_panel">'."\n";
+	echo '			<p>'."\n";
+	echo '				<a href="/lebenslauf/dateien/" class="button small alternative">'.$language['strZurUebersicht'].'</a>'."\n";
+	echo '			</p>'."\n";
+	echo '		</div>'."\n";
+	
+	$url = '/home/praktika/bfiles/'.$_SESSION['s_loginid'].'/'.$uri;
+	unlink($url);
+} else {
+	echo '<p>'.$language["strHochladen"].'</p><br />'."\n";
+	echo '		<form name="formular" action="/lebenslauf/dateien/upload/" method="post" enctype="multipart/form-data" onsubmit="return chkFormular()">'."\n";
+	echo '			<h4>Datei hochladen</h4>'."\n";
+	echo '			<fieldset style="text-align: center;">';
+	echo '				<input type="file" name="userfile" />'."\n";
+	echo '			</fieldset>';
+	echo '			<fieldset class="control_panel">'."\n";
+	echo '				<p>'."\n";
+	echo '					<input class="button" type="submit" value="'.$language['strAbsenden'].'" name="upload" />'."\n";
+	echo '				</p>'."\n";
+	echo '				<p>';
+	echo '					<br /><a href="/lebenslauf/dateien" title="vorherige Seite" class="button alternative small">zur&uuml;ck</a>';
+	echo '				</p>'."\n";
+	echo '			</fieldset>'."\n";
+	echo '		</form>'."\n";
+}
+
+echo '</div>';
+bodyoff();
+recalc_profilquali();
+?>

@@ -1,0 +1,428 @@
+<?php
+ob_start();
+require('/home/praktika/etc/gb_config.inc.php');
+
+/*if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}*/
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+
+// Wurde eine StellenID �bermittelt
+if(!isset($_GET['id'])) {
+	header('HTTP/1.1 404 Not Found');
+	echo "<html><body><div style='font-weight:bold; font-size:13px; font-family:Arial;color:darkred; text-align:center;'>Zu dieser Anfrage konnte keine Stelle gefunden werden.</div></body></html>";
+	exit();
+} 
+	
+$stellenid = intval($_GET['id']);
+
+	$dateiname = '/home/praktika/cache/stellen/stelle_'.$stellenid.'.html';
+	if (!file_exists($dateiname) || $_SERVER['HTTP_HOST'] == 'lokal.praktika.de' || !empty($_SESSION["s_firmenid"])) {
+		
+		$stelle = $hDB->query('SELECT 
+			firmen.firma,stellen.*, DATE_FORMAT(von_monat, \'%m\') AS monat, DATE_FORMAT(von_jahr, \'%Y\') AS jahr, DATE_FORMAT(datum_verfall, \'%d\') AS tagv, DATE_FORMAT(datum_verfall, \'%m\') AS monatv,  DATE_FORMAT(datum_verfall, \'%Y\') AS jahrv, UNIX_TIMESTAMP(stellen.modify) AS datum_unix 
+		FROM 
+			prakt2.stellen `stellen`
+		LEFT JOIN 
+			prakt2.firmen `firmen` ON(firmen.id = stellen.firmenid)
+		WHERE stellen.id = '.$stellenid.'',$praktdbslave);
+	
+		
+		/* Variablen aus der Datenbank lesen */
+		if (($stelle != false) && (mysql_num_rows($stelle) > 0)) {
+			$row = mysql_fetch_array($stelle, MYSQL_ASSOC);
+ 			$rowSave = $row;
+			
+			if(($row["inactive"] == "true" || $row["deleted"] == "true") && $row["firmenid"] != $_SESSION["s_firmenid"]) {
+				header('HTTP/1.1 404 Not Found');
+				echo "<html><body><div style='font-weight:bold; font-size:13px; font-family:Arial;color:darkred; text-align:center;'>Zu dieser Anfrage konnte keine Stelle gefunden werden.</div></body></html>";
+				exit();
+			}	
+					
+			foreach ($row as $key => $value) {
+				$$key = $value;
+			}
+			
+			if($_COOKIE["showContact"] != "1" && empty($_COOKIE["c_lid"])) {
+				$firmenkontakt = "<span id='show_contact_container_praktika' style='visibility:hidden;'>".$firmenkontakt."</span>";
+			}
+					
+		} else {
+			// Stelle wurde in Tabelle nicht gefunden
+			header('HTTP/1.1 404 Not Found');
+			echo "<html><body><div style='font-weight:bold; font-size:13px; font-family:Arial;color:darkred; text-align:center;'>Zu dieser Anfrage konnte keine Stelle gefunden werden.</div></body></html>";
+			exit();
+		}
+	
+		ob_start();
+		
+		if ($row["link_anzeige_abfr"] == "true") {
+			echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+			echo '<html xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en">'."\n";
+			echo '<head>'."\n";
+			echo '	<meta http-equiv="Content-type" content="text/html; charset=iso-8859-1" />'."\n";
+			echo '	<title>Anzeige</title>'."\n";
+			echo '</head>'."\n";
+			echo '<body onload="parent.resize_me(\'frame_content\')">'."\n";
+			echo '	<iframe id="frame_content2" name="frame_content2" src="'.$row["link_anzeige"].'" width="100%" height="1500" style="border: 0;"></iframe>'."\n";
+			echo '</body>'."\n";
+			echo '</html>'."\n";
+		} else {
+
+			$templateid = (isset($_GET['template']) && !empty($_GET['template'])) ? $_GET['template'] : $templateid;
+
+			$template = mysql_db_query($database_db,'SELECT id,template FROM stellentemplates WHERE id = '.$templateid,$praktdbslave);
+
+			/* Template holen */
+			if (($template != false) && (mysql_num_rows($template) > 0)) {
+				$row = mysql_fetch_assoc($template);
+				$htmlBody = $row['template'];
+			} else {
+				$htmlBody = '';
+			}
+
+			if (Praktika_Firma::hasLogo($firmenid)) {
+				$logoPath = Praktika_Firma::getLogoUrl($firmenid);
+			} else {
+				$logoPath = '/gifs/zentralelemente/logo.gif';
+			}
+
+			$beschreibung = ((!preg_match("/([\<])([^\>]{1,})*([\>])/i", $beschreibung)) ? str_replace("<br>","<br />",$beschreibung) : $beschreibung);
+
+			if ($templateid == 0) {
+				$beschreibung .= '<h2>Kontakt:</h2>'."\n";
+
+				$firma = mysql($database_db,'SELECT * FROM firmen WHERE id = '.$firmenid,$praktdbslave);
+				
+				if ($ansprechpartnerid > 0) {
+					$bearbeiterid = $ansprechpartnerid;
+				}
+				
+				$bearbeiterresult = mysql_db_query($database_db,'SELECT * FROM bearbeiter WHERE id = '.$bearbeiterid,$praktdbslave);
+				
+				if ($bearbeiterresult != false && mysql_num_rows($bearbeiterresult) > 0) {
+					$beschreibung .= '<p><strong>Adresse:</strong><br />';
+					$beschreibung .= mysql_result($firma,0,'firma').'<br />'.mysql_result($bearbeiterresult,0,'abteilung').'<br />'.mysql_result($firma,0,'strasse').'<br />'.mysql_result($firma,0,'plz').' '.mysql_result($firma,0,'ort').'<br /><br />';
+					$beschreibung .= '</p>'."\n";
+
+					$beschreibung .= '<p><strong>Ansprechpartner:</strong><br />';
+					$beschreibung .= mysql_result($bearbeiterresult,0,'vname').' '.mysql_result($bearbeiterresult,0,'name').'</p>'."\n";
+				}
+				
+				$suchres = mysql($database_db,'SELECT * FROM berufsfelder WHERE id = '.$berufsfeld,$praktdbslave);
+				
+				if (($suchres != false) && mysql_num_rows($suchres) > 0) {
+					$stellencontent .= '<p><strong>Berufsfeld:</strong><br />';
+					$stellencontent .= mysql_result($suchres,0,'german').'</p>'."\n";
+				}
+
+				if ($studienrichtung  > 0) {
+					$suchres = mysql_db_query($database_db,'SELECT german FROM studienrichtungen WHERE id = '.$studienrichtung,$praktdbslave);
+					$stellencontent .= '<p><strong>Studienrichtung:</strong><br />';
+					$stellencontent .= mysql_result($suchres,0,'german').'</p>'."\n";
+				}
+
+				if (($schuelerprakt == 'true' || $hochschulprakt == 'true' || $wprakt == 'true' || $sonstprakt == 'true')) {
+					$stellencontent .= '<p><strong>Stellenart:</strong><br />';
+
+					if ($schuelerprakt == 'true') {
+						$stellencontent .= 'Sch&uuml;lerpraktikum<br />';
+					}
+					
+					if ($hochschulprakt == 'true') {
+						$stellencontent .= 'Hochschulpraktikum<br />';
+					}
+					
+					if ($wprakt == 'true') {
+						$stellencontent .= 'Weiterbildungspraktikum<br />';
+					}
+					
+					if ($sonstprakt == 'true') {
+						$stellencontent .= 'sonstiges Praktikum<br />';
+					}
+					
+					$stellencontent .= '</p>'."\n";
+				}
+
+				$suchres = mysql_db_query($database_db,'SELECT qualifikation FROM qualifikation WHERE id = '.$qualifikation,$praktdbslave);
+				
+				if (($suchres != false) && mysql_num_rows($suchres) > 0) {
+					$stellencontent .= '<p><strong>'.$language['strQualifikation'].'</strong><br />';
+					$stellencontent .= mysql_result($suchres,0,'qualifikation').'</p>'."\n";
+				}
+
+				if (!empty($land)) {
+					$einsatzland = mysql_db_query($database_db,'SELECT german FROM land WHERE id = '.$land,$praktdbslave);
+					$stellencontent .= '<p><strong>Einsatzland:</strong><br />';
+					$stellencontent .= mysql_result($einsatzland,0,'german');
+					
+					$grossraumid = $eintrag['einsatzgrossraum'];
+					$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+
+					$bundeslandid = $bundesland;
+
+					if ($bundeslandid > 0) {
+						$bland = mysql_db_query($database_db,'SELECT german FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+						$stellencontent .= ', '.mysql_result($bland,0,'german');
+					}
+
+					if ($grossraum > 0 && $grossraum != 94) {
+						$grossraumid = $eintrag['einsatzgrossraum'];
+						$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+						$stellencontent .= ', '.mysql_result($grossraum,0,'grossraum');
+					}
+
+					$stellencontent .= '</p>'."\n";
+				}
+				
+				if (!empty($einsatzort)) {
+					$stellencontent .= '<p><strong>Einsatzort:</strong><br />';
+					$stellencontent .= $einsatzort.'</p>'."\n";
+				}
+
+				$stellencontent .= '<p><strong>Zeitraum:</strong><br />';
+				$stellencontent .= $zeitraum.'</p>'."\n";
+			}
+
+			if (Praktika_Firma::hasLogo($firmenid)) {
+				$firmenlogoHTML = '<img src="'.$logoPath.'" alt="Firmenlogo" />'."\n";
+			}
+
+			if(!empty($entgelt) && preg_match("/[^0-9]/",$entgelt) == 0) {
+				$entgelt = 'Verg&uuml;tung: '.$entgelt.' EUR';				
+			}
+			
+			if (preg_match('/^http:\/\//', $flash) == 1) {
+				$flash = '
+							<script type="text/javascript">
+								var flashvars = {};
+								flashvars.url = "'.$flash.'";
+								var params = {};
+								var attributes = {};
+								attributes.align = "middle";
+								swfobject.embedSWF("/scripts/swfobject/player/240x180.swf", "video", "240", "180", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+							</script><div id="video"><a href="https://www.adobe.com/go/getflashplayer"><img src="https://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></div>'."\n";
+			}
+
+			$defaultFLASH = '
+							<script type="text/javascript">
+								var flashvars = {};
+								flashvars.url = "/scripts/swfobject/player/praktika.flv";
+								var params = {};
+								var attributes = {};
+								attributes.align = "middle";
+								swfobject.embedSWF("/scripts/swfobject/player/240x180.swf", "video", "240", "180", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+							</script><div id="video"><a href="https://www.adobe.com/go/getflashplayer"><img src="https://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></div>'."\n";
+
+			if ($entgelt == '0') {
+				$entgelt = '';
+			}
+			
+			$metatags = '    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <meta http-equiv="Content-Language" content="de" />
+    <meta name="description" content="'.htmlentities(strip_tags($taetigkeit." bei ".$firma)).'" />
+    <meta name="keywords" content="Stellenangebot, Praktika, Bachelor, Master, Berufseinstieg, Trainee, Ausbildung,'.htmlentities($stichwort).'" />
+    <meta name="abstract" content="Stellenangebot: '.htmlentities(strip_tags($taetigkeit." bei ".$firma)).'" />
+    <meta name="author" content="'.$firma.'" />
+    <meta name="publisher" content="CONNEX Internetservice" />
+    <meta name="copyright" content="CONNEX Internetservice" />
+    <meta name="language" content="de" />
+    <meta name="dc.language" content="de" />
+    <meta name="robots" content="all" />
+    <meta name="revisit-after" content="2 days" />
+    <meta name="distribution" content="global" />
+    <meta http-equiv="imagetoolbar" content="no" /></head>';
+			
+			
+			$markerArray = array(
+				'###LOGO###',
+				'###FIRMENINFOS_HEAD###',
+				'###FIRMENTAETIGKEIT_HEAD###',
+				'###FIRMENQUALI_HEAD###',
+				'###FIRMENPERSP_HEAD###',
+				'###FIRMENKONTAKT_HEAD###',
+				'###FIRMENINFOS###',
+				'###FIRMENTAETIGKEIT###',
+				'###FIRMENQUALI###',
+				'###FIRMENPERSP###',
+				'###FIRMENKONTAKT###',
+				'###JOBCODE###',
+				'###TAETIGKEIT###',
+				'###SUBTITLE###',
+				'###ENTGELT###',
+				'###BESCHREIBUNG###',
+				'###DATUM###',
+				'###FLASH###',
+                                '###APPLICATIONLINK###',
+                                '###KONTAKT2STRASSE###',
+                                '###KONTAKT2PLZ###',
+                                '###KONTAKT2ORT###',
+                                '###FIRMANAME###',
+                                '###KONTAKT2TEL###',
+                                '###KONTAKT2FAX###',
+                                '###KONTAKT2EMAIL###',
+                                '###KONTAKT2WEBSEITE###',
+                                '###KONTAKT2ANSPRECHPARTNER###',
+
+				"</head>"
+			);
+			
+			$replaceArray = array(
+				$firmenlogoHTML,
+				$firmeninfosHead,
+				$firmentaetigkeitHead,
+				$firmenqualiHead,
+				$firmenperspHead,
+				$firmenkontaktHead,
+				stripslashes(nl2br($firmeninfos)),
+				stripslashes(nl2br($firmentaetigkeit)),
+				stripslashes(nl2br($firmenquali)),
+				stripslashes(nl2br($firmenpersp)),
+				stripslashes(nl2br($firmenkontakt)),
+				((!empty($jobcode)) ? 'Jobcode: '.$jobcode : ''),
+				stripslashes(strip_tags($taetigkeit)),
+				stripslashes($subtitle),
+				$entgelt,
+				nl2br($beschreibung),
+				'Aktuell seit: '.date('d.m.Y', strtotime($modify)),
+				!empty($flash) ? htmlspecialchars_decode(str_replace('\\','',$flash)) : $defaultFLASH,
+                                empty($link_bewerbung)?"":$link_bewerbung,
+                                $kontakt2strasse,
+                                $kontakt2plz,
+                                $kontakt2ort,
+                                $firma,
+                                $kontakt2tel,
+                                $kontakt2fax,
+                                $kontakt2email,
+                                $kontakt2webseite,
+                                $kontakt2ansprechpartner,
+                                $metatags
+			);
+			$htmlBody = preg_replace("/\<title\>(.*?)\<\/title\>/","<title>".strip_tags($taetigkeit)."</title>",$htmlBody);;
+			echo "<div class='template'>".str_replace($markerArray,$replaceArray,$htmlBody)."</div>";
+?>
+			<div id='show_contact_login_praktika' style="display:none;">
+				<style type="text/css">
+					.MsoNormal {
+margin:0px !important;
+padding:0px !important;
+					}
+					
+					.candidates button {
+						background: transparent;
+						border: 0;
+						cursor: pointer;
+						display: block;
+						line-height: 21px;
+						margin: auto;
+					}
+					.candidates button span {
+						background: url('/styles/images/Buttons/button_cand_orange_left.gif') left top no-repeat;
+						padding: 0;
+						margin: 0;
+						display: block;
+						line-height: 21px;
+						border: 0;
+					}
+					.candidates button span span {
+						background: url('/styles/images/Buttons/button_cand_orange_right.gif') top right no-repeat;
+						padding: 0 8px 0 7px;
+						maring: 0;
+						display: block;
+					}
+					.candidates button span span span {
+						background: url('/styles/images/Buttons/button_cand_orange_middle.gif') left top repeat-x;
+						padding: 0 5px;
+						display: block;
+						color: #ffffff;
+						font-weight: bold;
+						font-size: 11px;
+						text-transform: uppercase;
+					}
+				</style>
+
+				<div id="tmp_firmenkontakt" style="background-color:#e8e8e8; padding:5px;color:black;text-align:left; border:5px solid white; font-size:12px; margin-right:25px;">Bitte melden Sie sich an um weitere Informationen zu erhalten und Ihre Bewerbung zu senden.<br />
+				
+				<br /><span style="color:black; font-weight:bold;">Anmeldung:</span><br /><br /><input type="text" name="username" onclick="changeValue(this,'LoginID / Email',1);" onblur="changeValue(this,'LoginID / Email',2);" id="username" value="LoginID / Email" style="color:#666; border:1px solid #666; width:150px;padding:0px;margin:0px;" />
+				<div style="width:100px; text-align:left;font-size:12px;"><br />
+				<input type="password" onclick="changeValue(this,'Passwort',1);" onblur="changeValue(this,'Passwort',2);"  name="passwort" id="passwort" value="Passwort" style="color:#666; width:150px; border:1px solid #666;" /></div>
+				<br />
+				<span class="candidates"><button onclick="login()" type="submit" name="send" value="Einloggen" style="margin:0 !important;padding:0 !important;"><span><span><span>Login</span></span></span></button></span><span id="remoteLoginResult"></span>
+				<br /><div style="color:black; font-weight:bold;margin-bottom:10px;">Neuanmeldung:</div>
+				Mit praktika.de k&ouml;nnen Sie sich einfach und schnell kostenlos bewerben!<br />
+<br /><span class="candidates"><p><button onclick="top.location.href='/neuanmeldung/'" type="submit" name="send" value="Einloggen" style="margin:0 !important;padding:0 !important;"><span><span><span>Anmelden</span></span></span></button></p></span><br /><span id="remoteLoginResult"></span></div>		
+				</div>
+
+			</div>
+			<link rel="canonical" href="https://www.praktika.de<?=Praktika_Stelle::getURL($rowSave) ?>" />
+			<script src="/scripts/microajax.js" type="text/javascript"></script>
+			<script type='text/javascript'>
+				function getCookieVal (offset) { 
+				    var endstr = document.cookie.indexOf (";", offset); 
+				    if (endstr == -1) 
+				        endstr = document.cookie.length; 
+				    return unescape(document.cookie.substring(offset, endstr));
+				}
+				
+				function GetCookie (name) { 
+				    var arg = name + "="; 
+				    var alen = arg.length; 
+				    var clen = document.cookie.length; 
+				    var i = 0; 
+				    while (i < clen) { 
+				        var j = i + alen; 
+				        if (document.cookie.substring(i, j) == arg) 
+				            return getCookieVal (j); 
+				        i = document.cookie.indexOf(" ", i) + 1; 
+				        if (i == 0) break; 
+				    } 
+				    return null;
+				}
+				function changeValue(elements, defaults, typs) {
+					if(elements.value == '' && typs == 2) { elements.value = defaults; return; }
+					if(elements.value == defaults && typs == 1) elements.value = '';	
+				}
+				function login() {
+					document.body.style.cursor="wait";
+					xhr('/home/quicklogin/remoteLogin.php', 'username=' + document.getElementById('username').value + '&passwort=' + document.getElementById('passwort').value + "&getcontact=" + <?=$stellenid ?>, function(text){ document.body.style.cursor="default"; if(text != "false") { document.getElementById('show_contact_container_praktika').innerHTML = text;parent.resize_me('frame_content'); } else { document.getElementById('remoteLoginResult').innerHTML = "&nbsp;&nbsp;&nbsp;Login nicht korrekt"; } })
+				}
+
+				if(document.getElementById('show_contact_container_praktika') != undefined) {
+					if(GetCookie("showContact") != "1" && GetCookie("c_lid") == null) {
+						document.getElementById('show_contact_container_praktika').innerHTML = document.getElementById('show_contact_login_praktika').innerHTML;
+						document.getElementById('show_contact_container_praktika').style.visibility = "visible";
+					} else {
+						document.getElementById('show_contact_container_praktika').style.visibility = "visible";
+					}
+				}				
+			</script>
+			
+<?
+		} 
+		
+		$stellencontent = ob_get_clean();
+		$stellencontent .= "\n<style>p,ul,li { margin-top:0px;margin-bottom:0px; } </style>";
+		$fp = fopen( $dateiname, "w+" );
+		fputs( $fp, $stellencontent);
+		fclose( $fp);
+		//echo "Stelle wird gespeichert...<br>";
+		
+		echo $stellencontent;
+	} else {
+
+		if (substr_count($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip')) {
+			ob_start('ob_gzhandler');
+		}
+
+		$sql = "SELECT id FROM prakt2.stellen WHERE inactive != 'true' AND id = ".$stellenid;
+		$result = mysql_query($sql, $praktdbslave);
+		
+		if(mysql_num_rows($result) == 0) {
+			echo "<html><body><div style='font-weight:bold; font-size:13px; font-family:Arial;color:darkred; text-align:center;'>Zu dieser Anfrage konnte keine Stelle gefunden werden.</div></body></html>";
+			exit();
+		}
+		echo file_get_contents($dateiname);
+	}
+
+?>

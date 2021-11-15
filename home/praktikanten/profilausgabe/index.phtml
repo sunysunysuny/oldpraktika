@@ -1,0 +1,36 @@
+<?
+ $gruppe = "praktikanten";
+ require("/home/praktika/etc/config.inc.php"); 
+
+$select = mysql_db_query($database_bprofil,"select lebenslauftemplate from einstellungen where nutzerid=$id",$praktdbslave);
+
+if (mysql_num_rows($select) >0) {
+$lebenlaufwahl=mysql_result($select,0,"lebenslauftemplate");}
+if ($lebenlaufwahl=="01" || $lebenlaufwahl=="02" || $lebenlaufwahl=="03") { $bewerbsprache="2"; }else {$bewerbsprache="1";}
+if ($lebenlaufwahl=="20" || $lebenlaufwahl=="10") $lebenlaufwahl="01";
+if (empty($lebenlaufwahl)) $lebenlaufwahl="01";
+if (empty($bewerbsprache)) $bewerbsprache=2;
+
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+</HEAD>
+<script language="JavaScript">
+<!--
+	window.focus();
+//-->
+</script>
+
+   <frameset border="0" rows="120,*,30">
+<? 
+echo "<frame src=\"profiltop.phtml?id=" . $id . "&sprachid=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" name=\"previewtop\" noresize marginwidth=0 marginheight=0>\n";
+//echo "<frame marginheight=\"0\" marginwidth=\"0\" noresize scrolling=\"yes\" frameborder=\"0\" src=\"profillebenslauf.phtml?id=" . $id . "&bewerbsprache=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" name=\"previewmain\">\n"; 
+echo "<frame marginheight=\"10\" marginwidth=\"10\" noresize frameborder=\"0\" src=\"/home/praktikanten/profil/previewlebenslauf".$lebenlaufwahl.".phtml?nid=".$id."&sprachid=".$s_sprachid."&".session_name()."=".session_id()."\" name=\"previewmain\">";
+echo "<frame src=\"profilbuttom.phtml?id=" . $id . "&bewerbsprache=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" name=\"previewbuttom\" noresize marginwidth=0 marginheight=0 frameborder=\"1\">\n"; 
+
+?>
+    </frameset>
+</HTML>

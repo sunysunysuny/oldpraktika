@@ -1,0 +1,208 @@
+<?
+if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+	require_once('/home/praktika/etc/gb_config.inc.php');
+} else {
+	require_once('/home/praktika/etc/config.inc.php');	
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+$pointcount = 15;
+
+if($_POST["akt"] == "del_video") {
+	mysql_query("DELETE FROM prakt2_bprofil.profil_video_new WHERE nutzerid = ".$_SESSION['s_loginid'], $praktdbslave);
+	Praktika_Lebenslauf::deleteCache();	
+	exit();
+	
+}
+if ($_SESSION['s_sprache'] == 'german') {
+	$lang["myaccount"] = 'Mein Account';
+	$lang["lebenslaufprofil"] = 'zum Profil';
+} elseif ($_SESSION['s_sprache'] == 'english') {
+	$lang["myaccount"] = 'my account';
+	$lang["lebenslaufprofil"] = 'profile';
+}
+
+if (isset($_POST['delete']) && isset($id)) {
+	mysql_db_query($database_bprofil,'DELETE FROM save WHERE nutzerid = '.$_SESSION['s_loginid'].' AND id = '.$id.'',$praktdbmaster);
+}
+
+/*
+ *	<object width="853" height="505"><param name="movie" value="https://www.youtube.com/v/gN5dKRfpZjQ&hl=de&fs=1&hd=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="https://www.youtube.com/v/gN5dKRfpZjQ&hl=de&fs=1&hd=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="853" height="505"></embed></object> 
+ */
+pageheader(array(
+			'page_title' => 'Bewerbungsvideos',
+			'externScripts' => array("/scripts/ajax/lebenslauf.js", "/scripts/microajax.js"),
+			"grid_system" => "4-2")
+);
+
+?>
+<script type="text/javascript" src="/scripts/ajax/lebenslauf.js"></script>
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<?
+if(!empty($_POST["save"]) && !empty($_POST["newVideo"])) {
+	if(strpos($_POST["newVideo"],"youtube") !== false) {
+		$_POST["newVideo"] = preg_replace("/width(\D+)(\d*)(\S{0,2})/", 'width="320"', $_POST["newVideo"]);
+		$_POST["newVideo"] = preg_replace("/height(\D+)(\d*)(\S{0,2})/", 'height="240"', $_POST["newVideo"]);
+		$_POST["newVideo"] = strip_tags($_POST["newVideo"],"<object><param><iframe><embed>");
+	}
+	
+	$hDB->query("REPLACE INTO ".$database_bprofil.".profil_video_new (nutzerid, pfad, datum_eintrag) VALUES (".$_SESSION["s_nutzerid"].", '".mysql_real_escape_string($_POST["newVideo"])."',NOW())", $praktdbmaster);
+	recalc_profilquali();
+	Praktika_Lebenslauf::deleteCache();	
+}
+
+echo '<div id="recruitingCenter">';
+
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+echo '		<br /><p>F&uuml;gen Sie Ihrem Lebenslauf ein Bewerbungsvideo hinzu! Ein Video sagt mehr als 1000 Worte. Zeigen Sie Ihre St&auml;rken, Ihre Pers&ouml;nlichkeit und Talent bereits vor dem Vorstellungsgespr&auml;ch.</p><br />';
+
+$rs = $hDB->query('SELECT * FROM '.$database_bprofil.'.profil_video_new WHERE nutzerid = '.$_SESSION['s_loginid'],$praktdbmaster);
+
+$video = mysql_fetch_assoc($rs);
+
+/*
+if ($num != 0) {
+	echo '		<p>Videos mit <a href="/home/praktikanten/profil/profil_video.phtml?vorschau=yes">Vorschaubildern</a> anzeigen.</p>';
+	echo '		<p>Es wurde'.($num == 1 ? '' : 'n').' '.$num.' Video'.($num == 1 ? '' : 's').'gefunden.<br /><br />';
+
+	echo '		<table>'."\n";
+	$i=0;
+	while ($i<$num) {
+		$resultid = mysql_result($rs,$i,'id');
+		$filename = '/home/praktika/bvideo/'.mysql_result($rs,$i,'nutzerid').'/'.mysql_result($rs,$i,'intname');
+		$img = sprintf('%s/movie_%04d.png', '/webtemp',mysql_result($rs,$i,'filesize'));
+		$frame = 2;
+		$mov = new ffmpeg_movie($filename);
+		$modulowert = $i%2;
+		echo '			<tr ';
+		if ($modulowert == 0) echo 'style="background: lightgrey;"';
+		echo '>'."\n";
+		echo '				<td><img src="/home/gifs/fileicons/'.mysql_result($rs,$i,'format').'.gif" alt="" /></td>'."\n";
+		echo '				<td>'.mysql_result($rs,$i,'name').'</td>'."\n";
+		echo '				<td>'.$mov->getFrameWidth().'x'.$mov->getFrameHeight().'</td>'."\n";
+		echo '				<td>'.strtoupper(mysql_result($rs,$i,'language')).'</td>'."\n";
+		echo '				<td>'.strtoupper(mysql_result($rs,$i,'format')).'</td>'."\n";
+		echo '				<td>'.intval(mysql_result($rs,$i,'playtime')/60) . ":" . sprintf("%02.0f", (mysql_result($rs,$i,'playtime')%60)).'</td>'."\n";
+		echo '				<td><a href="/lebenslauf/video/preview/'.mysql_result($rs,$i,'id').'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/home/gifs/symbole/zoom.gif" alt="Video ansehen" title="Video ansehen" width="18" height="16" /></a>&nbsp;/&nbsp;<a onmouseover="window.status=\''.$language["strLoeschen"].'\';return true;" href="/home/praktikanten/profil/profil_video.phtml?id='.mysql_result($rs,$i,'id').'&amp;delete=yes"><img src="/home/gifs/symbole/tonne.gif" alt="Video l&ouml;schen" title="Video l&ouml;schen" width="16" height="16"></a></td>'."\n";
+		echo '			</tr>'."\n";
+		
+		if (isset($_REQUEST['vorschau'])) {
+			$ff_frame = $mov->getFrame($frame);
+			if (isset($ff_frame)) {
+			    $gd_image = $ff_frame->toGDImage();
+			    if (isset($gd_image)) {
+			        imagepng($gd_image, '/home/praktika/public_html'.$img);
+			        imagedestroy($gd_image);
+			        // generate md5 of file (NOTE: different versions of ffmpeg may produce different
+			        // md5 hashes since resampling has been changed slightly due to a fix. Need to
+			        // use EXPECTREX to test for both md5 possibilities.
+			        //printf("ffmpeg getFrame(): md5 = %s\n", md5(file_get_contents($img)));
+			    }
+			}
+			echo '			<tr ';
+			if ($modulowert == 0) echo 'style="background: lightgrey;"';
+			echo '>'."\n";
+			echo '				<td colspan="7"><img src="'.$img.'" alt="" /></td>'."\n";
+			echo '			</tr>';
+			//echo "<TD VALIGN=\"top\" colspan=\"4\">";
+			/*
+			    printf("frame count = %s<br>\n", $mov->getFrameCount());
+			    printf("frame rate = %0.3f fps<br>\n", $mov->getFrameRate());
+			    printf("comment = %s<br>\n", $mov->getComment());
+			    printf("title = %s<br>\n", $mov->getTitle());
+			    printf("author = %s<br>\n", $mov->getAuthor());
+			    printf("copyright = %s<br>\n", $mov->getCopyright());
+			    printf("has audio = %s<br>\n", $mov->hasAudio() == 0 ? 'Nein' : 'Ja');
+			    printf("video codec = %s<br>\n", $mov->getVideoCodec());
+			    printf("audio codec = %s<br>\n", $mov->getAudioCodec());
+			    printf("bit rate = %d kb/s<br>\n", $mov->getBitRate());
+			    *\/
+			//echo "</TD></TR>\n";
+		}
+		$i++;
+	}
+	echo '		</table>'."\n";
+
+	$lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($_SESSION["s_loginid"]).' AND sprachid=2',$praktdbslave);
+	if (mysql_num_rows($lebenslauf) > 0) {
+		$row = mysql_fetch_array($lebenslauf);
+		$lebenslauftemplate = $row['lebenslauftemplate'];
+	} else {
+		$lebenslauftemplate = '01';
+	}
+
+	
+	echo '		<p><a href="/kandidatenprofil/'.$lebenslauftemplate.'/'.$_SESSION["s_loginid"].'/" onclick="return PB_showFullScreen(\'\', this.href)">Bewerbungsprofil mit Videos ansehen</a></p>';
+} else {
+	echo '		<p>Bisher wurden keine Videos verkn&uuml;pft.<br /><br /></p>'."\n";
+} */
+
+# echo '		<p><a href="/lebenslauf/dateien/upload/">Upload</a></p>'."\n";
+
+?>
+<div style="float:left;">
+	<b>Videovorschau</b><br />
+	<form method="POST" action="#">
+		<fieldset class="control_panel">
+
+		<div style="width:320px; margin-top:5px; height:240px; padding:10px; text-align:center; border:1px dashed #aaa;">
+				<?
+					if(!empty($video["pfad"])) {
+						echo ''.stripslashes($video["pfad"]).'';
+					} else {
+						echo '<img style="margin-top:40px;" src="/styles/images/kcenter/cvone_video_empty.gif" alt="Laden Sie ein Video hoch" title="Laden Sie ein Video hoch" />';
+					}
+				?>
+				
+		</div>
+		<b>Videolink hier einf&uuml;gen</b><br />
+		<textarea name="newVideo" style="margin-top:5px;width:340px;" rows="8" cols="250" id="submitarray[<?=$i ?>][object]"><?=htmlentities(stripslashes($video["pfad"])) ?></textarea><br /><br />
+
+		<p>
+			<a class="button small floatright" style="margin-left:150px;" href='#' onclick='lebenslauf.deleteVideo();return false;'>Video l&ouml;schen</a>
+			<input class="button small" style="margin-left:0;" type="submit"  value="Speichern" name="save" /><br /><br />
+		</p>
+			</fieldset>
+	</form>
+
+	<p class="center"><a href="/lebenslauf">Zur&uuml;ck zur Lebenslaufübersicht</a></p>
+</div>
+<div>
+	<h3 style="margin-left:390px;">...und so funktioniert es:</h3>
+	<img style="float:left; margin-top:250px; margin-left:-24px;" src="/styles/images/kcenter/zeiger.gif" alt="Hinweis" title="Hinweis" />
+	<div style="background-color:#faf0bd; margin-left:393px; padding:10px; ">
+		<p>So f&uuml;gen Sie Ihrer PRAKTIKA Bewerbungsmappe ein Video mit Hilfe der Software CVOne hinzu:</p>
+		<br />
+		<ol>
+			<li>Gehen Sie auf CVOne.de und installieren Sie die Videobewerbungssoftware CVOne.<br /><br />
+				<div style="text-align:center;">
+					<img src="https://www.partnerreich.de/scripts/sb.php?a_aid=c0005c8f&amp;a_bid=1c5a9971" width="1" height="1" alt="" />
+					<a class="button small" name="save" onclick="window.open('https://www.cvone.de/162.0.html');">Download CVOne</a><br /><br />
+				</div>
+				<br>
+			</li>
+			<li>
+				CVOne wird Sie Schritt f&uuml;r Schritt zur eigenen Videobewerbung f&uuml;hren.<br /><br />
+			</li>
+			<li>
+				Nachdem Sie Ihre Videobewerbung erstellt haben, erhalten Sie &uuml;ber Ihren Onlineaccount auf CVOne.de (Mein Account - Video einbetten) den html-Videocode. Kopieren Sie diesen Code in das nebenstehende Fenster. Alternativ k&ouml;nnen auch Videolinks andere Videoportale z.B. YouTube usw. eingef&uuml;gt werden.<br /><br />
+			</li>
+			<li>
+				Speichern Sie den Code. Sehen Sie sich das Video im Vorschaufenster an. Sobald Sie eine Video eingestellt haben ersetzt es das Bewerbungsfoto und wird im Lebenslauf angezeigt. 
+			</li>
+		</ol>
+	</div>
+</div>
+
+	<?
+echo "</div>";
+	bodyoff();

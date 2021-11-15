@@ -1,0 +1,142 @@
+<?
+if(substr($_GET['firmenid'],0,1) == "0") $greybox=true;
+if($_SERVER["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest" || $greybox==true) {
+	$ajax = true;
+	include("../../../etc/gb_config.inc.php");	
+} else {
+	$ajax = false;
+	include("../../../etc/config.inc.php");
+}
+
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = "none";
+
+pageheader(array('page_title' => '', 'page_body_resize' => true, 'noCSS'=>($greybox!=true?true:false),"page_hideHeader" => true));
+
+$anzeigen = true;
+$id = (int)$_GET["id"];
+
+if (isset($_POST['send'])) {
+	if (!empty($_POST['sendername']) && !empty($_POST['sendermail']) && !empty($_POST['empfaengername']) && !empty($_POST['empfaengermail'])) {
+/*
+		$emailobj = new emailtemplate(31);
+		$emailobj->replace("{id}",$id);
+		$emailobj->replace("{nutzerid}",$_SESSION['s_nutzerid']);
+		$emailobj->replace("{sendername}",$_POST['sendername']);
+		$emailobj->replace("{sendermail}",$_POST['sendermail']);
+		$emailobj->replace("{empfaengername}",$_POST['empfaengername']);
+		$emailobj->replace("{empfaengermail}",$_POST['empfaengermail']);
+		$emailobj->replace("{kommentar}",$_POST['kommentar']);
+#		$emailobj->send_email();
+		unset($emailobj);
+*/		
+		$sendername = strtoupper($_POST['sendername']);
+		
+		/* Bestaetigungsmail an Firma basteln*/
+		$subject = "Ein Angebot von ".$_POST['sendername'];
+		$mailtoaddr = $_POST['empfaengermail'];
+		
+		switch ($s_spalte) {
+			case 1:
+				$sendurlvar = "f";
+			break;
+			case 2:
+				$sendurlvar = "i";
+			break;
+			case 3:
+				$sendurlvar = "e";
+			break;
+			case 4:
+				$sendurlvar = "h";
+			break;
+			case 5:
+				$sendurlvar = "u";
+			break;
+		}
+
+		$mailstring = 'Hallo '.$_POST['empfaengername'].','."\n\n";
+		$mailstring = $mailstring.'viele Grüße von praktika.de'."\n\n";
+		$mailstring = $mailstring.$_POST['sendername'].' ist der Meinung, dass das folgende Angebot auch für Sie interessant sein könnte und hat Ihnen folgende Mitteilung hinterlassen:'."\n\n";
+		$mailstring = $mailstring.$_POST['kommentar']."\n\n\n";
+		$mailstring = $mailstring.'Der folgende Link bringt Sie direkt zur Angebotsseite!'."\n\n";
+		$mailstring = $mailstring.'http://'.$_SERVER['HTTP_HOST'].'/stelle/'.$_POST['id'].'/'."\n\n\n";
+		$mailstring = $mailstring.'Mit freundlichen Grüßen'."\n\n".'Ihr praktika.de Team'."\n\n\n";
+		$mailstring = $mailstring.'---------------------------------------------------------------------------'."\n";
+		$mailstring = $mailstring.'                 https://www.praktika.de                                    '."\n\n";
+		$mailstring = $mailstring.'   www.praktika.de - die Karriereplattform für Ihren Berufseinstieg        '."\n";
+		$mailstring = $mailstring.'---------------------------------------------------------------------------'."\n";
+
+		/* Bestaetigunsmail verschicken */
+#		mail($mailtoaddr, $subject, $mailstring, "From: ".$_POST['sendermail']."\nX-Mailer: praktika.de Mailscript PHP");
+
+		$resultMsg = '<p class="hint success">Die eMail wurde erfolgreich versendet.</p>'."\n";
+		$resultMsg .= '<script type="text/javascript">'."\n";
+		# $resultMsg .= '	document.write = setTimeout(\'top.location.reload()\', 3000);'."\n";
+		$resultMsg .= '</script>'."\n";	
+	} else {
+		$resultMsg = '<p class="hint error">Bitte f&uuml;llen Sie alle Felder aus!</p>'."\n";
+	}
+}
+            
+if ($anzeigen == true) {
+	$stellenBody = '<div style="padding:0px; width:500px;"><h1 style="color:#000; font-size:18px; font-weight:normal;">Diese Stelle versenden</h1>'.$resultMsg;
+	$stellenBody .= '<form action="/firmen/empfehlen/'.$id.'/'.($greybox==true?"?greybox=1":"").'" method="post">'."\n";
+	$stellenBody .= '	<fieldset class="empfehlen">'."\n";
+#	$stellenBody .= '		<p>'."\n";
+#	$stellenBody .= '			<label for="anrede"'.((isset($_POST['send']) && isset($_POST['anrede']) && $_POST['anrede'] == '-1') ? ' class="error"' : '').'>Anrede:<sup>*</sup></label>'."\n";
+#	$stellenBody .= '			<select id="anrede" name="anrede">'."\n";
+#	$stellenBody .= '				<option value="-1">----------------</option>'."\n";
+#	$stellenBody .= '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Herr') ? 'selected="selected" ' : '').'value="Herr">Herr</option>'."\n";
+#	$stellenBody .= '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Frau') ? 'selected="selected" ' : '').'value="Frau">Frau</option>'."\n";
+#	$stellenBody .= '			</select>'."\n";
+#	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<label for="sendername"'.((isset($_POST['send']) && isset($_POST['sendername']) && empty($_POST['sendername'])) ? ' class="error"' : '').'>Ihr Name:</label>'."\n";
+	$stellenBody .= '			<input type="text" id="sendername" name="sendername" maxlength="50" value="'.(isset($_POST['sendername']) ? $_POST['sendername'] : '').'" />'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<label for="sendermail"'.((isset($_POST['send']) && isset($_POST['sendermail']) && empty($_POST['sendermail'])) ? ' class="error"' : '').'>Ihre eMail-Adresse:</label>'."\n";
+	$stellenBody .= '			<input type="text" id="sendermail" name="sendermail" maxlength="50" value="'.(isset($_POST['sendermail']) ? $_POST['sendermail'] : '').'" />'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<label for="kommentar"'.((isset($_POST['send']) && isset($_POST['kommentar']) && empty($_POST['kommentar'])) ? ' class="error"' : '').'>Ihr Kommentar:</label>'."\n";
+	$stellenBody .= '			<textarea id="kommentar" name="kommentar" cols="10" rows="10">'.(isset($_POST['kommentar']) ? $_POST['kommentar'] : '').'</textarea>'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<label for="empfaengername"'.((isset($_POST['send']) && isset($_POST['empfaengername']) && empty($_POST['empfaengername'])) ? ' class="error"' : '').'>Name des Empf&auml;ngers:</label>'."\n";
+	$stellenBody .= '			<input type="text" id="empfaengername" name="empfaengername" maxlength="50" value="'.(isset($_POST['empfaengername']) ? $_POST['empfaengername'] : '').'" />'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<label for="empfaengermail"'.((isset($_POST['send']) && isset($_POST['empfaengermail']) && empty($_POST['empfaengermail'])) ? ' class="error"' : '').'>eMail des  des Empf&auml;ngers:</label>'."\n";
+	$stellenBody .= '			<input type="text" id="empfaengermail" name="empfaengermail" maxlength="50" value="'.(isset($_POST['empfaengermail']) ? $_POST['empfaengermail'] : '').'" />'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '	</fieldset>'."\n";
+	$stellenBody .= '	<fieldset class="control_panel">'."\n";
+	$stellenBody .= '		<p>'."\n";
+	$stellenBody .= '			<input type="submit" class="button small" onclick="sendMail();" id="send" name="send" value="eMail absenden" />'."\n";
+	$stellenBody .= '			<input type="hidden" name="id" value="'.(isset($_GET['id']) ? intval($_GET['id']) : (isset($_POST['id']) ? intval($_POST['id']) : '0')).'" />'."\n";
+	$stellenBody .= '		</p>'."\n";
+	$stellenBody .= '	</fieldset>'."\n";
+	$stellenBody .= '</form></div>'."\n";
+	
+	$firma = $hDB->query("SELECT firmenid FROM prakt2.stellen WHERE id = ".(int)$id, $praktdbslave);
+	$firma = mysql_result($firma,0, "firmenid");
+
+	if($ajax == true) {	
+		echo $stellenBody;
+	} else {
+	
+	$zView->assign(array(
+		"firma_id" => (int)$firma,
+		"stelle_id" => $id));
+			
+	$zView->assign(array(
+		"stellenBody" => $stellenBody
+	));
+	
+	echo $zView->render("stellenanzeige.php");			
+	}
+	
+}
+
+bodyoff();

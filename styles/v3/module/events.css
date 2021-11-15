@@ -1,0 +1,44 @@
+/*Veranstaltungskalender*/
+table#events tr.header {
+	background-color: #ececea;
+	color: #797979;
+	height: 32px;
+}
+
+table#events tr.no {
+	background-color: #f5f5f5;
+	color: #000;
+	height: 32px;
+}
+
+table#events tr.no td {
+	text-align: center;
+}
+
+table#events td, table#events th {
+	vertical-align: middle;
+}
+
+table#events td form {
+	margin-bottom: 20px;
+}
+table#events td form fieldset input.button {
+	margin-left: 160px;
+}
+
+
+/* Veranstaltungsdetails */
+
+table#details {
+	background-color: #fff;
+	border: 0px none #fff;
+	border-bottom: 1px solid #e0e0e0;
+	border-top: 1px solid #e0e0e0;
+	width: 100%;
+}
+
+table#details th p {
+	font-size: larger;
+	padding-left: 1px;
+	padding-top: 1px;
+}

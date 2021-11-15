@@ -1,0 +1,53 @@
+body {
+	background: #fffff5;
+	color: #000000;
+	font-family: Verdana;
+	margin: 1em;
+}
+
+address {
+	font-style: normal;
+}
+
+h1 {
+	font-size: 1em;
+	text-transform: uppercase;
+}
+
+table {
+	border-style: none;
+	width: 100%;
+}
+
+td {
+	font-size: 1em;
+	text-align: left;
+	vertical-align: top;
+}
+
+.ueber {
+ font-size: 12pt;
+ text-align: center;
+}
+
+hr {
+ noshade;
+ color: #777777;
+}
+
+.lebenslauf {
+ color: #000000;
+ font-size: 11pt;
+ vertical-align: middle;
+}
+
+.bottom {
+ vertical-align: middle;
+ color: #888888; 
+}
+
+.top {
+ color: #888888; 
+ font-weight: bold;
+ vertical-align: top;
+}

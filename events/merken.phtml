@@ -1,0 +1,29 @@
+<?
+$session_no_cache = true;
+require("/home/praktika/etc/config.inc.php");
+
+$id = $_GET['id'];
+$vdetails=mysql_db_query($database_db,"SELECT * FROM veranstaltungskalender WHERE id='$id'",$praktdbslave);
+$vdaten=mysql_fetch_array($vdetails);
+
+    $Filename = "PraktikaEvent" . $_GET['id'] . ".vcs";
+    header("Content-Type: text/x-vCalendar");
+    header("Content-Disposition: inline; filename=$Filename");
+
+    /** Put mysql connection and query statements here **/
+
+$DescDump = str_replace("\r", "=0D=0A=", $vdaten['kurzbeschreibung']);
+
+$vCalStart = date("Ymd\THi00", strtotime($vdaten['datumanfang']." 09:00:00"));
+$vCalEnd = date("Ymd\THi00", strtotime($vdaten['datumendung']." 16:00:00"));
+?>
+BEGIN:VCALENDAR
+VERSION:1.0
+PRODID:Praktika.de Web Eventcalendar
+BEGIN:VEVENT
+SUMMARY:<?php echo $vdaten['veranstltname'] . "\n"; ?>
+DESCRIPTION;ENCODING=QUOTED-PRINTABLE: <?php echo $DescDump . "\n"; ?>
+DTSTART:<?php echo $vCalStart . "Z\n"; ?>
+DTEND:<?php echo $vCalEnd . "Z\n"; ?>
+END:VEVENT
+END:VCALENDAR

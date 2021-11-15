@@ -1,0 +1,434 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+//$sqlquery = isset($_REQUEST['sqlquery ']) ? $_REQUEST['sqlquery '] : '';
+
+//if (!$s_kandidatentable)
+//require("/home/praktika/etc/kandidatensuchecache.inc.php");
+
+$_SESSION["s_sprache"] = "german";
+
+$nutzerid = $_GET["id"];
+
+if (!isset($nutzerid)) {
+	header("Location: http://".$_SERVER['HTTP_HOST']."/home/firmen/einblick.phtml");
+	exit;
+}
+
+if(empty($_SESSION["s_loggedin"]) || $_SESSION["s_loggedin"] == false) {
+    header("Location: http://".$_SERVER['HTTP_HOST']."/home/quicklogin/quicklogin.php");
+}
+
+// datensatz abfragen //
+//if ($wknutzerid) $sqlquery="AND praktikanten.nutzerid=$wknutzerid";
+$query = 'SELECT *,nutzer.id AS nutzerid,DATE_FORMAT(nutzer.modify, \'%d.%m.%Y - %H:%i\') AS modifydatum FROM nutzer WHERE id = '.$nutzerid;
+$result = mysql_db_query($database_db,$query,$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($result);
+
+// alter berechnen
+$zeit = time();
+$geburtstag = strtotime($eintrag['geburtsdatum']);
+$alterdiff = $zeit - $geburtstag;
+$diff = 31560000; // 365 Tage
+$alter = $alterdiff / $diff;
+
+$metatags['Title'] = mysql_result($result,0,"vname")." (".sprintf("%01.0u",$alter).") - ".mysql_result($result,0,"geschlecht")." / ".mysql_result($result,0,"hochschule") . " Praktikum ab: ".mysql_result($result,0,"start_praktikum_m")."/".mysql_result($result,0,"start_praktikum_y");
+$metatags['Keywords'] = "Praktikant, Profil, Qualifikation, Berufsstart, Foto, Student, Stelle, Gesuch";
+$metatags['Description'] = mysql_result($result,0,"geschlecht")." / ".mysql_result($result,0,"hochschule") . " " . mysql_result($result,0,"vname")." Praktikum ab: ".mysql_result($result,0,"start_praktikum_m")."/".mysql_result($result,0,"start_praktikum_y");
+
+//pageheader(array('page_title' => 'Kandidat: &Uuml;bersicht')); ?>
+
+<table width="100%" id="topprofil">
+  <colgroup>
+    <col width="40%" />
+    <col width="60%" />
+    <!--<col width="350" />-->
+  </colgroup>
+
+<?
+// Statistikinfos speichern
+$aktdatum = date('YmdHis');
+$userid = $eintrag['nutzerid'];
+if (isset($_SESSION['s_loginid']))
+mysql_db_query($database_db,'INSERT INTO viewstatspraktikanten (nutzerid, userid, spalte, modify) VALUES ('.$userid.', '.$_SESSION['s_loginid'].', '.$s_spalte.', '.$aktdatum.')',$praktdbmaster);
+
+// Firmenbookmark Beginn
+if ($userid) {
+	$check="SELECT id FROM firmenbookmark WHERE firmenid='$s_firmenid' AND nutzerid=$userid";
+	$result = mysql_db_query($database_db,$check,$praktdbslave);
+	$num_rows = mysql_num_rows( $result );
+}
+// Firmenbookmark Ende
+
+// auf Merkzettel setzen
+if (isset($_REQUEST["wkvalue"])) {
+	if (!$_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb']) $_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'] = array();
+	$_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'][$_REQUEST['nutzerid']] = true;
+	if ($_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'][$userid]) echo "<tr valign=\"baseline\"><td colspan=\"3\">Der Kandidat wurde ausgew&auml;hlt!<br /></td></tr>\n";
+}
+
+// Beginn Kandidat auswaehlen
+if (!isset($_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'][$userid])) {
+	//echo "<tr align=\"right\" valign=\"baseline\"><td colspan=\"2\"><a href=\"#\" onclick=\"location.replace('detail_only.phtml?wknutzerid=".$userid."&amp;wkvalue=true&amp;spalte=".$spalte."&amp;nutzerid=".$userid."');\">Kandidat ausw&auml;hlen</A></td></tr>\n";
+}
+// Ende Kandidat auswaehlen
+
+$einruecken = "&nbsp;";
+
+// Wer darf was sehen
+if ($num_rows == 0) $einsicht=0;
+if ($num_rows > 0 || (isset($_SESSION["s_firmenlevel"]) && $_SESSION["s_firmenlevel"] == 2)) $einsicht=1;
+
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Bewerber</h4></td></tr>\n";
+//if ($_SESSION["s_loggedin"]==true) { $link = "/home/praktikanten/profilausgabe/einzelansicht.phtml?id=" . $userid . "&bewerbsprache=2&einstellungen=true&gesuche=no"; $params="width=720,height=600"; } else { $link = "/home/quicklogin/minilogin.phtml?loginwer=Unternehmen"; $params="width=380,height=250"; }
+//echo "<tr valign=\"baseline\"><td>&nbsp;</td><td class=\"normal\" align=\"right\"><a href=\"#\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">(Bewerbungsmappe ansehen)</A></td></tr>\n";
+echo "<tr valign=\"baseline\"><td width=\"35%\">Name</td><td>";
+if ( $eintrag['geschlecht'] == "weiblich") {
+	echo 'Frau'." ";
+}
+if ( $eintrag['geschlecht'] == "m&auml;nnlich") {
+	echo 'Herr'." ";
+}
+if (!$eintrag['titel'] == "") {
+	echo $eintrag['titel'] . " \n";
+}
+echo "<b>" . ucfirst($eintrag['vname']) . " ";
+if($_SESSION["s_loggedin"] != true) { echo substr(ucfirst($eintrag['name']), 0, 1)."."; } else { echo ucfirst($eintrag['name']);
+}
+echo "</b></td></tr>\n";
+
+if ($_SESSION["s_loggedin"]==true) {
+	if ($einsicht ==1) {
+		echo "<tr valign=\"baseline\"><td>Anschrift</td><td>" . $eintrag['plz'] . " " . $eintrag['ort'] . "</td></tr>\n";
+		echo "</TD></TR>\n";echo "<tr valign=\"baseline\"><td></td><td>" . $eintrag['strasse'] . "</td></tr>\n";
+	}
+}
+else {
+	//echo "<tr valign=\"baseline\"><td>Anschrift</td><td class=normal><a href=\"#\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">Anschrift anzeigen</A></td></tr>\n";
+}
+if ($eintrag['grossraum'] <> 94 || $eintrag['grossraum'] > 0) {
+	$such=$eintrag['grossraum'];
+	$suchres=@mysql_db_query($database_db,"select grossraum from grossraum where id='$such'",$praktdbslave);
+	if ($einsicht ==1) {
+		echo "<tr valign=\"baseline\"><td>Gro&szlig;raum</td><td>" . mysql_result($suchres,0,"grossraum") . "</td></tr>\n";
+	}
+}
+
+if ($eintrag['bundesland'] != 0) {
+	$bundeslandid=$eintrag['bundesland'];
+	$bland=mysql_db_query($database_db,"select ".$_SESSION["s_sprache"]." from bundesland where id=$bundeslandid",$praktdbslave);
+	echo "<tr valign=\"baseline\"><td>Bundesland</td><td>" . mysql_result($bland,0,$_SESSION["s_sprache"]) . "</td></tr>\n";
+}
+
+$landid=$eintrag['land'];
+if ($landid >0) {
+	$land=mysql_db_query($database_db,"select ".$_SESSION["s_sprache"]." from land where id=$landid",$praktdbslave);
+	echo "<tr valign=\"baseline\"><td>Land</td><td>" . mysql_result($land,0,$_SESSION["s_sprache"]) . "</td></tr>\n";
+}
+
+echo "<tr valign=\"baseline\"><td>Alter</td><td>" . sprintf("%01.0u",$alter) . " Jahre</td></tr>\n";
+if ($_SESSION["s_loggedin"]==true) {
+	if (!$eintrag['tel'] == "") {
+		if ($einsicht == 1) {
+			echo "<tr valign=\"baseline\"><td>Telefon</td><td>" . $eintrag['tel'] . "</td></tr>\n";
+		}
+	}
+} else {
+	//echo "<tr valign=\"baseline\"><td>Telefon</td><td class=normal><a href=\"#\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">" . $language['strAnzeige'] . "</A></td></tr>\n";
+}
+if ($_SESSION["s_loggedin"]==true) {
+	if (!$eintrag['fax'] == "") {
+		if ($einsicht == 1) {
+			echo "<tr valign=\"baseline\"><td>Telefax</td><td>" . $eintrag['fax'] . "</td></tr>\n";}
+	}
+} else {
+	//echo "<tr valign=\"baseline\"><td>Telefax</td><td class=normal><a href=\"#\" onMouseOver=\"return Describe('".$linkdescribe."')\" onMouseOut=\"return Describe('')\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">" . $language['strAnzeige'] . "</A></td></tr>\n";
+}
+if ($_SESSION["s_loggedin"]==true) {
+	if (!$eintrag['funktel'] == "") {
+		if ($einsicht==1) {
+			echo "<tr valign=\"baseline\"><td>Funktelefon</td><td>" . $eintrag['funktel'] . "</td></tr>\n";
+		}
+	}
+} else {
+	//echo "<tr valign=\"baseline\"><td>Funktelefon</td class=normal><td><a href=\"#\" onMouseOver=\"return Describe('".$linkdescribe."')\" onMouseOut=\"return Describe('')\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">" . $language['strAnzeige'] . "</A></td></tr>\n";
+}
+
+
+
+if ($_SESSION["s_loggedin"]==true) {
+	if ($einsicht == 1) {
+		echo "<tr valign=\"baseline\"><td>Email</td><td><a href=\"/recruiting/email_antwort/".$id."/1/\">eMail verfassen</A></td></tr>\n";
+		//echo "<tr valign=\"baseline\"><td>Email</td><td class=\"normal\"><a href=\"#\" onMouseOver=\"return Describe('dem Kandidaten eine Nachricht zukommen lassen')\" onMouseOut=\"return Describe('')\" onClick=\"windowanm=window.open('/home/firmen/firstkontakt_nutzer.phtml?gesuchid=" . $eintrag['pid'] ."&nutzerid=".$eintrag['nutzerid'] . "&spaltenid=" . $s_spalte . "&firmenid=" . $s_firmenid ."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=450,height=500'); return false;\">" . $language['strEmailKN'] . "</a></td></tr>\n";
+	}
+
+
+} else {
+	//echo "<tr valign=\"baseline\"><td>Email</td><td class=normal><a href=\"#\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">" . $language['strAnzeige'] . "</A></td></tr>\n";
+	//echo "<tr valign=\"baseline\"><td>Email</td><td class=normal><a href=\"#\" onClick=\"windowanm=window.open('".$link."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,$params'); return false;\">" . $language['strAnzeige'] . "</A></td></tr>\n";
+}
+
+if (!$eintrag['homepage'] == "") {
+	if ($einsicht == 1) {
+		echo "<tr valign=\"baseline\"><td>Homepage</td><td><a href=\"" . $eintrag['homepage'] . "\" target=\"_blank\">" . $eintrag['homepage'] . "</A></td></tr>\n";
+	}
+}
+echo "<tr valign=\"baseline\"><td colspan=\"2\">&nbsp;</td></tr>\n";
+
+$fotores=mysql_db_query($database_db,"select url,width,height from bewerbungsfoto where nutzerid='$nutzerid' LIMIT 1",$praktdbslave);
+if ($fotores && mysql_num_rows($fotores) > 0) {
+	echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Bewerbungsfoto</h4></td></tr>\n";
+	echo "<tr valign=\"top\"><td>Foto:</td><td><img src=\"" . mysql_result($fotores,0,"url") . "\" width=\"" . mysql_result($fotores,0,"width") . "\" height=\"" . mysql_result($fotores,0,"height") . "\" alt=\"Bewerbungsfoto\" /></td></tr>\n";
+}
+
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Qualifikationen</h4></td></tr>\n";
+if ( $eintrag['studiengang'] != "" && $eintrag['studiengang'] != "0") {
+	$ins=$eintrag['studiengang'];
+	$suchres=mysql_db_query($database_db,"select studiengang from studiengaenge where id='$ins'",$praktdbslave);
+	echo "<tr valign=\"baseline\"><td>Studiengang</td><td>" . mysql_result($suchres,0,"studiengang") . "</td></tr>\n";
+	if (!$eintrag['hochschule'] == "") {
+		echo "<tr valign=\"baseline\"><td>Studienort</td><td>" . $eintrag['hochschule'] . "</td></tr>\n";
+	}
+	if (!$eintrag['karierrestatus'] == "") {
+		$ins=$eintrag['karierrestatus'];
+		$suchres=mysql_db_query($database_db,"select german from karierrestatus where id='$ins'",$praktdbslave);
+		echo "<tr valign=\"baseline\"><td>Karierrestatus</td><td>" . mysql_result($suchres,0,"german") . "</td></tr>\n";
+	}
+}
+
+
+// Praktikumsstellen ermitteln
+
+// 2 aktive Praktikumsstellen ermitteln
+$results = mysql_db_query($database_db,"SELECT taetigkeit,zeitraum_ab_m,zeitraum_ab_y,zeitraum,id FROM praktikanten WHERE inactive='false' AND nutzerid = '$nutzerid' ORDER BY ID",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0;
+
+echo "<tr><td colspan=\"2\">&nbsp;</td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Praktikumsgesuche</h4></td></tr>\n";
+if ( $num_rows  > 0) {
+
+	// Vorhandene Praktikumstellen anzeigen
+	$i = 1;
+	while($result_row = mysql_fetch_array($results)) {
+		echo "<tr><td colspan=\"2\" valign=\"top\">" . $i++ . ". Praktikumsgesuch</td></tr>\n";
+		echo "<tr><td valign=\"top\">T&auml;tigkeit:</td>\n";
+		echo "<td valign=\"top\">" . $result_row['taetigkeit'] . "</td></tr>\n";
+		echo "<tr><td valign=\"top\">Zeitraum:</td>\n";
+		if ($result_row['zeitraum']  == "") {
+			if ($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">keine genauen Angaben hinterlegt</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">" . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "</td></tr>\n";
+
+			}
+		} else {
+			if($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">" . $result_row['zeitraum'] . "</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">ab " . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "<br />" . $result_row['zeitraum'] . "</td></tr>\n";
+			}
+		}
+		echo "<tr><td colspan=\"2\" valign=\"top\"><a href=\"/recruiting/gesuch_details/".$result_row['id']."/".$nutzerid."/1/\">Gesuch ansehen</a></td></tr>\n";
+		echo "<tr><td colspan=\"2\"><hr /></td></tr>\n";
+	}
+}
+
+
+// Diplomthemen ermitteln //
+
+
+// 2 aktive Diplomthemen ermitteln
+$results = mysql_db_query($database_db,"SELECT titel,zeitraum_ab_m,zeitraum_ab_y,zeitraum,studiengang,id FROM diplomgesuch WHERE inactive='false' AND nutzerid ='$nutzerid' ORDER BY ID desc",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0;
+
+echo "<tr><td colspan=\"2\"><br /></td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Diplomthemen</h4></td></tr>\n";
+if ( $num_rows  > 0) {
+	// Vorhandene Diplomthemen anzeigen
+	$i = 1;
+	while($result_row = mysql_fetch_array($results)) {
+		echo "<tr><td colspan=\"2\" valign=\"top\">" . $i++ . ". diplomthema:</td></tr>\n";
+		echo "<tr><td valign=\"top\">titel der diplomarbeit:</td>\n";
+		echo "<td valign=\"top\">" . $result_row['titel'] . "</td></tr>\n";
+		$studiengangid=$result_row['studiengang'];
+
+        $studiengang=mysql_db_query($database_db,"select studiengang from studiengaenge where id=$studiengangid",$praktdbslave);
+		
+		if ($studiengang != false && mysql_num_rows($studiengang) > 0) {
+			echo "<tr><td valign=\"top\">studiengang:</td>\n";
+			echo "<td valign=\"top\">" . mysql_result($studiengang,0,"studiengang") . "</td></tr>\n";
+		}
+		echo "<tr><td valign=\"top\">zeitraum:</td>\n";
+		if ($result_row['zeitraum']  == "") {
+			if ($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">keine genauen angaben hinterlegt</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">" . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "</td></tr>\n";
+
+			}
+		} else {
+			if($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">" . $result_row['zeitraum'] . "</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">ab " . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "<br />" . $result_row['zeitraum'] . "</td></tr>\n";
+			}
+		}
+		echo "<tr><td colspan=\"2\" valign=\"top\"><a href=\"/recruiting/gesuch_details/".$result_row['id']."/".$nutzerid."/2/\">Gesuch ansehen</a></td></tr>\n";
+		echo "<tr><td colspan=\"2\"><hr /></td></tr>\n";
+	}
+}
+
+
+// Berufseinstiegsstellen ermitteln
+
+// 2 aktive Berufseinstiegsstellen ermitteln
+$results = mysql_db_query($database_db,"SELECT berufsfeld,bezeichnung as taetigkeit,id,zeitraum_ab_m,zeitraum_ab_y FROM berufseinstieggesuch WHERE inactive='false' AND nutzerid ='$nutzerid' ORDER BY id DESC",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0;
+
+echo "<tr><td colspan=\"2\"><br /></td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Berufseinstiegsgesuche</h4></td></tr>\n";
+if ( $num_rows  > 0) {
+
+	$i = 1;
+	while ($result_row = mysql_fetch_array($results )) {
+		echo "<tr><td colspan=\"2\" valign=\"top\">" . $i++ . ". berufseinstiegsstelle</td></tr>\n";
+		echo "<tr><td valign=\"top\">t&auml;tigkeit:</td>\n";
+		echo "<td valign=\"top\">" . $result_row['taetigkeit'] . "</td></tr>\n";
+		echo "<tr><td valign=\"top\">zeitraum:</td>\n";
+		echo "<td valign=\"top\">ab " . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "</td></tr>\n";
+
+		if ($result_row['berufsfeld'] != "" && $result_row['berufsfeld'] != 0) {
+			$berufsfeldid=$result_row['berufsfeld'];
+			$berufsfeld=mysql_db_query($database_db,"select ".$_SESSION["s_sprache"]." from berufsfelder where id=$berufsfeldid",$praktdbslave);
+			if (mysql_numrows($berufsfeld) > 0) {
+				echo "<tr><td valign=\"top\">berufsfeld:</td>\n";
+				echo "<td valign=\"top\">" . mysql_result($berufsfeld,0,$_SESSION["s_sprache"]) . "</td></tr>\n";
+			}}
+			echo "<tr><td colspan=\"2\" valign=\"top\"><a href=\"/recruiting/gesuch_details/".$result_row['id']."/".$nutzerid."/5/\">Gesuch ansehen</a></td></tr>\n";
+			echo "<tr><td colspan=\"2\"><hr /></td></tr>\n";
+
+	}
+}
+
+// Nebenjobs ermitteln //
+
+// 2 aktive Nebenjobs ermitteln
+$results = mysql_db_query($database_db,"SELECT berufsfeld,taetigkeit,zeitraum_ab_m,zeitraum_ab_y,zeitraum,id FROM nebenjobgesuch WHERE inactive='false' AND nutzerid ='$nutzerid' ORDER BY id DESC",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0;
+
+echo "<tr><td colspan=\"2\"><br /></td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Nebenjobgesuche</h4></td></tr>\n";
+if ( $num_rows  > 0) {
+
+	$i = 1;
+	while ($result_row = mysql_fetch_array ($results)) {
+		echo "<tr><td colspan=\"2\" valign=\"top\">" . $i++ . ". nebenjobgesuch</td></tr>\n";
+		echo "<tr><td valign=\"top\">t&auml;tigkeit:</td>\n";
+		echo "<td valign=\"top\">" . $result_row['taetigkeit'] . "</td></tr>\n";
+		echo "<tr><td valign=\"top\">zeitraum:</td>\n";
+		if ($result_row['zeitraum']  == "") {
+			if ($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">keine genauen angaben hinterlegt</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">" . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "</td></tr>\n";
+
+			}
+		} else {
+			if($result_row['zeitraum_ab_m'] == 0 || $result_row['zeitraum_ab_y'] == 0) {
+				echo "<td valign=\"top\">" . $result_row['zeitraum'] . "</td></tr>\n";
+			} else {
+				echo "<td valign=\"top\">ab " . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "<br />" . $result_row['zeitraum'] . "</td></tr>\n";
+			}
+		}
+		$berufsfeldid=$result_row['berufsfeld'];
+		$berufsfeld=mysql_db_query($database_db,"select ".$_SESSION["s_sprache"]." from berufsfelder where id=$berufsfeldid",$praktdbslave);
+		if (mysql_numrows($berufsfeld) > 0) {
+			echo "<tr><td valign=\"top\">berufsfeld:</td>\n";
+			echo "<td valign=\"top\">" . mysql_result($berufsfeld,0,$_SESSION["s_sprache"]) . "</td></tr>\n"; }
+			echo "<tr><td colspan=\"2\" valign=\"top\"><a href=\"/recruiting/gesuch_details/".$result_row['id']."/".$nutzerid."/3/\">Gesuch ansehen</a></td></tr>\n";
+			echo "<tr><td colspan=\"2\"><hr /></td></tr>\n";
+	}
+}
+
+// ausbildungspl&auml;tze ermitteln //
+
+
+// 2 aktive ausbildungspl&auml;tze ermitteln
+$results = mysql_db_query($database_db,"select lehre,taetigkeit,zeitraum_ab_m,zeitraum_ab_y,id from ausbildungsgesuch where inactive='false' and nutzerid ='$nutzerid' order by id desc",$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = ($results != false) ? mysql_num_rows( $results ) : 0;
+
+echo "<tr><td colspan=\"2\"><br /></td></tr>\n";
+echo "<tr valign=\"baseline\"><td colspan=\"2\"><h4>Ausbildungplatzgesuche</h4></td></tr>\n";
+if ( $num_rows  > 0) {
+	$i=1;
+	while ($result_row = mysql_fetch_array ( $results )) {
+		echo "<tr><td colspan=\"2\" valign=\"top\">" . $i++ . ". Ausbildungplatzgesuch</td></tr>\n";
+		$lehreid=$result_row['lehre'];
+		// nutzerpr&uuml;fung ob mann oder frau wegen anzeige des richtigen berufsgeschlechtes //
+		if ((isset($_session["s_loggedin"]) && $_session["s_loggedin"]==true) || (isset($_session["s_loggedinnutzer"]) && $_session["s_loggedinnutzer"]==true)) {
+			$resultn = mysql_db_query($database_db,"select anrede from nutzer where id = '$nutzerid'",$praktdbslave);
+			// array erzeugen //
+			$eintragn = mysql_fetch_array ( $resultn );
+			if ($eintragn['anrede'] == "herr") {
+				$lehre=mysql_db_query($database_db,"select berufswahl from berufswahl_mann where id=$lehreid",$praktdbslave);
+			} else {
+				$lehre=mysql_db_query($database_db,"select berufswahl from berufswahl_frau where id=$lehreid",$praktdbslave);
+			}
+			// wenn noch nicht eingeloggt //
+		} else {
+			$lehre=mysql_db_query($database_db,"select berufswahl from berufswahl_mann where id=$lehreid",$praktdbslave);
+		}
+		echo "<tr valign=\"baseline\"><td>Ausbildung zum:</td><td>" . mysql_result($lehre,0,"berufswahl") . "</td></tr>\n";
+		echo "<tr><td valign=\"top\">T&auml;tigkeit:</td>\n";
+		echo "<td valign=\"top\">" . $result_row['taetigkeit'] . "</td></tr>\n";
+		echo "<tr><td valign=\"top\">Zeitraum:</td>\n";
+		if($result_row['zeitraum_ab_m'] == 0) {
+			echo "<td valign=\"top\">" . $language['strkahinterlegt'] . "</td></tr>\n";
+		} else {
+			echo "<td valign=\"top\">ab " . $result_row['zeitraum_ab_m'] . "/" . $result_row['zeitraum_ab_y'] . "</td></tr>\n";
+		}
+		echo "<tr><td colspan=\"2\" valign=\"top\"><a href=\"/recruiting/gesuch_details/".$result_row['id']."/".$nutzerid."/4/\">Gesuch ansehen</a></td></tr>\n";
+		echo "<tr><td colspan=\"2\"><hr /></td></tr>\n";
+	}
+}
+
+
+/* Anzeige der Bewerbungsmappe
+//if ($s_loggedin=="yes" && ($s_firmenlevel>1 || $num_rows == 1 || $gesuchedbzahl > 0)) {
+if ($s_loggedin=="yes" && $userid) {
+$modifydatum=$eintrag['modifydatum'];
+bewerbermappeeinzelansicht($userid,$modifydatum,$num_rows);
+}
+*/
+echo "</table>\n";
+
+if(isset($_REQUEST["wkvalue"]) && $_REQUEST["wkvalue"]=="true") 
+{
+	$values=-2;
+}
+else
+{
+	$values=-1;
+}
+
+
+if((isset($_REQUEST["wkvalue"]) && $_REQUEST["wkvalue"]) || (isset($_REQUEST["wkid"]))) { ?>
+            <form>
+              <hr>
+              <input type="BUTTON" value="<? echo $language['strZurueck']; ?>" onClick=javascript:history.go(<? echo $values; ?>)>
+            </form>
+<? } ?>
+
+<? bodyoff(); ?>

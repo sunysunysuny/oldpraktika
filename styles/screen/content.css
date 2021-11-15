@@ -1,0 +1,1081 @@
+div#content {
+	float: left;
+	padding: 0 10px 0 20px;
+	width: 604px;
+}
+
+body#admin #col3 #content {
+	width: auto;
+}
+
+
+#content a.cc,
+#content a.cv,
+#content .control_panel a {
+	background: #000000 url("/gifs/zentralelemente/button_schwarz.gif") no-repeat center center;
+	border-top: 1px solid #ffffff;
+	border-left: 1px solid #ffffff;
+	border-bottom: 1px solid #c0c0c0;
+	border-right: 1px solid #c0c0c0;
+	color: #ffffff;
+	line-height: 25px;
+	margin: .5em auto 1em;
+	padding: 0 .5em;
+	text-transform: uppercase;
+}
+
+p.cc_alone {
+	text-align: center;
+	margin-top: 20px;
+}
+
+
+
+/*#content a.cc span,
+#content a.cv span {
+	display: none; 
+}*/
+
+div#content div,
+div#content h2,
+div#content h3,
+div#content h4,
+div#content h5,
+div#content h6,
+div#content p,
+div#content ul,
+div#content ol {
+	margin-bottom: 1em;
+}
+
+div#content h2 {
+	font-size: 1.15em;	
+}
+
+div#content h3 {
+	font-size: 1em;	
+}
+
+div#content h4 {
+	margin: 0 0 0 1em;
+	float: left;
+	font-size: 1em;	
+}
+
+div#content div.tabs h4 {
+	margin-left: 0;
+}
+
+
+
+
+
+
+
+
+
+
+ 
+div#content h5 a {
+	color: #3138B5;
+}
+
+
+
+#home div#content h4 {
+	/*line-height: 2em;
+	color: #fff;
+	font-size: 1em;
+	font-weight: bold;
+	line-height: 1.6em;
+	padding: 0 0 0 1em;
+	text-transform: uppercase;*/
+}
+
+div#content h4 span {
+	display: block;
+}
+
+div#content h4 > span {
+	background: #1494ad url("/gifs/zentralelemente/reiter_blue_left.gif") no-repeat left top;
+	color: #ffffff;
+	text-align: center;
+}
+
+div#content h4 > span > span {
+	background: transparent url("/gifs/zentralelemente/reiter_blue_right.gif") no-repeat right top;
+	margin-left: 8px;
+	padding-right: 8px;
+	width: auto;
+}
+div#content h4 > span > span > span {
+	background-color: transparent;
+	background-image: none;
+	padding: .2em .5em;
+}
+
+
+
+
+
+
+
+
+
+
+
+div#content noscript {
+	background: url("/gifs/icon_wichtig.gif") no-repeat center left;
+	clear: both;
+	color: #f00;
+	display: block;
+	line-height: 20px;
+	padding-left: 18px;
+}
+
+
+
+#content ul {
+	list-style: disc outside;
+}
+
+#content ul li {
+	margin-left: 2em;
+}
+
+#content ol {
+	list-style: decimal outside;
+}
+
+#content ol li {
+	margin-left: 2em;
+}
+
+
+
+#content table tr td {
+	vertical-align: top;
+}
+#content table tr th {
+	padding-top: 10px;
+	text-align: left;
+}
+
+
+
+div#content div#buchempfehlungen {
+	/*font-size: .8em;*/
+}
+
+div#content div#buchempfehlungen h3 {
+	color:#3130B5;
+	display: block;
+	font-size: 1.2em;
+	margin-bottom: 1.5em;
+}
+
+div#content div#buchempfehlungen ul li {
+	float: left;
+	margin: 0 2% 1em;
+	padding-top: 140px;
+	position: relative;
+	width: 21%;
+}
+
+div#content div#buchempfehlungen ul li p {
+	margin-bottom: .2em;
+	text-align: center;
+}
+
+div#content div#buchempfehlungen ul li p.image {
+	line-height: 140px;
+	position: absolute;
+	top: 0;
+	width: 100%;
+}
+
+div#content div#buchempfehlungen ul li p.image img {
+	vertical-align: middle;
+}
+
+
+
+div#content div#channels {
+	float: left;
+	margin: 0 2.5% 2em;
+	min-width: 45%;
+}
+
+div#content div#channels h4 span {
+	width: 14em;
+}
+
+div#content div#channels ul {
+	background: #FFFBEF;
+	border: 1px solid #6B9A8C;
+	padding: 1em 2.5em;
+}
+
+div#content div#channels ul li {
+	background: no-repeat left center;
+	line-height: 3em;
+	padding-left: 3em;
+}
+
+div#content div#channels ul li.maschinenbau {
+	background-image: url(../gifs/zentralelemente/channel_maschinenbau.gif);
+}
+
+div#content div#channels ul li.ingenieur {
+	background-image: url(../gifs/zentralelemente/channel_ingenieur.gif);
+}
+
+div#content div#channels ul li.bildung {
+	background-image: url(../gifs/zentralelemente/channel_bildung.gif);
+}
+
+div#content div#channels ul li.pharmazie {
+	background-image: url(../gifs/zentralelemente/channel_pharmazie.gif);
+}
+
+div#content div#channels ul li a {
+	font-weight: bold;
+	color: #000;
+}
+
+
+div#content div#jobmail {
+	margin-left: 75%;
+	padding: 0 3.5%;
+	width: 18%;
+}
+
+div#content div#jobmail h4 {
+	padding: 0;
+	color: #3138B5;
+	line-height: 1em;
+	margin-bottom: 0em;
+	text-align: center;
+}
+
+div#content div#jobmail p {
+	/*font-size: .8em;*/
+}
+
+div#content div#jobmail p.image {
+	margin-bottom: .2em;
+	text-align: center;
+}
+
+div#content div#karriereveranstaltungen {
+	float: left;
+	width: 75%;
+}
+
+div#content div#karriereveranstaltungen h4 {
+
+}
+
+div#content div#karriereveranstaltungen table { clear: left;
+	border: 1px solid #6B9A8C;
+}
+
+div#content div#karriereveranstaltungen table tbody th,
+div#content div#karriereveranstaltungen table tbody td {
+	padding: 0 .5em;
+}
+
+div#content div#karriereveranstaltungen table tfoot {
+	background: transparent;
+}
+
+div#content div#karriereveranstaltungen table tfoot td {
+	text-align: right;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+div#content div#itchy-feet,
+div#content div#praktikumsknigge {
+	border: 1px solid #940400;
+	width: 50%;
+}
+
+div#content div#itchy-feet h5,
+div#content div#praktikumsknigge h5 {
+	padding: .2em .5em;
+	margin-bottom: 1em;
+}
+
+div#content div#itchy-feet p,
+div#content div#praktikumsknigge p {
+	/*font-size: .8em;*/
+}
+
+div#content div#itchy-feet p.image,
+div#content div#praktikumsknigge p.image {
+	float: left;
+	margin: 0 1.5em 1em 1.5em;
+}
+
+div#content div#itchy-feet p.more,
+div#content div#praktikumsknigge p.more {
+	clear: left;
+	text-align: right;
+	margin: 0 .5em .5em 0;
+}
+
+div#content div#itchy-feet p.more a,
+div#content div#praktikumsknigge p.more a {
+	background: #F77100;
+	color: #fff;
+}
+
+
+
+
+
+/*
+#berufseinstieg #neueintraege h4 span {
+	width: 32em;
+}
+
+#diplom #neueintraege h4 span {
+	width: 27em;
+}
+
+#nebenjobs #neueintraege h4 span {
+	width: 29em;
+}
+
+#praktikum #neueintraege h4 span {
+	width: 29em;
+}
+
+div#content div#suchergebnis {
+	margin-top: 2.5em;
+}
+
+div#content div#suchergebnis h4 {
+	float: left;
+}
+
+div#content div#suchergebnis h4 span {
+	width: 18em;
+}
+
+div#content div#suchergebnis p.paging {
+	line-height: 1.6em;
+	margin-bottom: 0;
+	text-align: right;
+}*/
+
+div#content div#products {
+	margin-bottom: 2em;
+}
+
+div#content div#products div.item {
+	float: left;
+	margin-bottom: 0;
+	width: 25%;
+}
+
+div#content div#products h4 {
+	/*font-size: 1em;*/
+	margin: 0 0 .5em;
+	line-height: 1em;
+	min-height: 2em;
+	padding: 0 .5em;
+	text-align: center;
+}
+
+/*div#content div#products h4,*/
+div#content div#products h4 a {
+	color: #007bbb;
+}
+
+div#content div#products p {
+	font-size: .85em;
+	line-height: 1.5em;
+	margin: 0 .6em;
+}
+
+div#content div#products p.image {
+	text-align: center;
+	padding: 0;
+}
+
+
+div#content div#videos h4 span,
+div#content div#videos h4 {
+	
+}
+
+
+div#content div#videos h4 span {
+	background-color: #F78218;
+	background-image: url(../gifs/zentralelemente/mini_reiter_orange_middle.gif);
+	width: 6em;
+}
+
+div#content div#videos h4 span span {
+	background-color: transparent;
+	background-image: url(../gifs/zentralelemente/mini_reiter_orange_left.gif);
+}
+
+div#content div#videos h4 span span span {
+	background-color: transparent;
+	background-image: url(../gifs/zentralelemente/mini_reiter_orange_right.gif);
+}
+
+div#content div#videos ul {
+	background: #FFFBEF;
+	border: 1px solid #F76D00;
+	padding: .5em;
+}
+
+div#content div#videos ul li {
+	float: left;
+	/*font-size: .8em;*/
+	width: 20%;
+}
+
+div#content div#videos ul li.weitere_videos {
+	float: none;
+	clear: left;
+	text-align: right;
+	width: 100%;
+}
+
+div#content div#videos ul li p {
+	margin-bottom: .2em;
+}
+
+
+
+
+
+/*#home div#content div#voting {
+}
+
+#praktikum div#content div#voting {
+	float: right;
+}*/
+
+
+div#content div#voting {
+	/*font-size: .8em;*/
+	background: #C6D7EF;
+	float: left;
+	margin-bottom: 2em;
+	padding: .5em 2%;
+	width: 43%;
+}
+
+div#content div#voting form fieldset {
+	border-top-width: 0;
+}
+
+div#content div#voting form fieldset legend {
+	display: none;
+}
+
+div#content div#voting form label {
+	margin-left: 2em;
+	float: none;
+	width: auto;
+}
+
+div#content div#voting form p {
+	line-height: 1.5em;
+	margin-bottom: .5em;
+}
+
+div#content div#voting form p input.radio {
+	float: left;
+	margin-top: .3em;
+	width: auto;
+}
+
+div#content div#voting form p.overview, 
+div#content div#voting form p.submit {
+	clear: left;
+	float: none;
+	text-align: center;
+	width: 100%;
+}
+
+
+
+div#content div#voting h4 {
+	color: #000;
+	float: none;
+	line-height: 1.1em;
+	margin-left: 0;
+	text-align: left;
+}
+
+div#content div#voting li {
+	margin-bottom: .3em;
+}
+
+div#content div#voting li p {
+	margin-bottom: 0;
+}
+
+div#content div#voting p.percent {
+	padding-left: .5em;
+	text-align: right;
+}
+
+
+
+
+
+
+#community div#content #mitmachen {
+	background: url("/gifs/community/community_anmelden.jpg") no-repeat top right;
+	float: right;
+	padding-top: 130px; 
+	width: 48%;
+}
+
+#community div#content #mitmachen ul {
+	background: #fbf8e9;
+	border: 1px solid #f2831e;
+	clear: left;
+	list-style: none;
+	padding: .5em 0 0;
+	text-align: center;
+}
+
+#community div#content #mitmachen ul li {
+	margin: 0 0 .5em 0;
+}
+
+#community div#content #mitmachen h4 > span {
+	background-color: #f2831e; 
+	background-image: url("/gifs/zentralelemente/reiter_orange_left.gif");
+}
+
+#community div#content #mitmachen h4 > span > span {
+	background-image: url("/gifs/zentralelemente/reiter_orange_right.gif");
+}
+
+#community div#content #wer-ist-wo {
+	float: left;
+	width: 49%;
+}
+
+#community div#content #country_favorites {
+	float: right;
+	width: 48%;
+}
+
+#community div#content #country_favorites ul {
+	background: #fbf8e9;
+	border: 1px solid #c44c94;
+	clear: left;
+	padding: 1em 0;
+}
+
+#community div#content #profile {
+
+}
+
+#community div#content #profile dl dt {
+	/*font-weight: bold;*/
+	float: left;
+}
+
+#community div#content #profile dl dd {
+	margin-left: 30%;
+}
+
+
+
+
+
+
+
+#community div#content #community_intro {
+	float: left;
+	width: 51%;
+}
+
+
+#community div#content a {
+	color: #c74c8f;
+}
+
+
+#community div#content ul.send_mail {
+	list-style: none;
+}
+
+#community div#content ul.send_mail li {
+	margin-left: 0;
+	text-align: left !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+div#content dl.notes dt,
+div#content dl.notes dd {
+	float: left;
+	line-height: 2.5em;
+}
+
+div#content dl.notes dt {
+	width: 5% !important;
+}
+
+div#content dl.notes dd {
+	width: 40% !important;
+}
+
+div#content dl.notes dd.col_1 {
+	clear: none !important;
+}
+
+div#content dl.notes dt img {
+	vertical-align: bottom
+}
+
+
+
+
+
+
+
+
+div#content p#community {
+	margin-left: 50%;
+	width: 50%;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+div#content #map {
+	clear:both;
+}
+
+div#content #map #googlemap {
+	background: #ebebeb url("/gifs/zentralelemente/wait.gif") no-repeat center 5em;
+	height: 380px;
+	padding-top: 3.5em;
+	text-align: center;
+}
+
+div#content #map #googlemap div {
+	margin-bottom: 0;
+}
+
+div#content #map #googlemap blockqoute {
+	
+}
+
+div#content #map #googlemap p {
+	font-size: .9em;
+	margin-bottom: .2em;
+}
+
+div#content #map #googlemap p a {
+	color: #000000;
+	text-decoration: underline;
+}
+
+div#content #map .hint {
+	color: #bebebe;
+}
+
+
+
+div#content #cv_intro h4 {
+	float: none;
+	margin-bottom: 1em;
+}
+
+#content #cvdata h4,
+#content #profile h4 {
+	float: left;
+	line-height: 1.2em;
+	margin: .4em 0 0 1em;
+}
+
+
+#content #cvdata h4 {
+	margin-top: 2.4em;
+}
+
+
+
+#content #cvdata ul 
+{
+	background: #eeeeee url("/gifs/zentralelemente/lebenslauf_toolbar.gif") no-repeat left top;
+	list-style: none;
+	min-height: 4em;
+	margin: 0 0 0 auto;
+	width: 300px;
+}
+
+#content #cvdata ul li {
+	float: left;
+	line-height: 50px;
+	margin-left: 0;
+	text-align: center;
+	width: 50px;
+}
+
+#content #cvdata ul li:last-child,
+#content #cvdata ul li.pdf_mail
+{
+	background: url("/gifs/zentralelemente/lebenslauf_toolbar_right.gif") no-repeat right top;
+}
+
+#content #cvdata ul li img {
+	vertical-align: middle;
+}
+
+
+
+#content #cvdata ol,
+#content #profile ol {
+	background: #fef8e9;
+	list-style-position: inside;
+	padding-top: .5em;
+}
+
+#content #cvdata ol {
+	border: 1px solid #1494ad;
+}
+
+#content #profile ol {
+	border: 1px solid #e41d20;
+}
+
+#content #cvdata ol li,
+#content #profile ol li {
+	font-weight: bold;
+	font-size: .85em;
+	width: 48%;
+	margin: 0;
+	padding: 0 1%;
+}
+
+
+#content #cvdata ol li.em {
+	background: #e9ecbf;
+}
+
+
+#content #cvdata ol li a,
+#content #profile ol li a {
+	color: #000000;
+}
+
+#content #cvdata ol li h5,
+#content #profile ol li h5 {
+	display: inline;
+	font-size: 1em;
+	margin: 0;
+}
+
+#content #cvdata ol li p,
+#content #profile ol li p {
+	background-repeat: no-repeat;
+	font-weight: normal;
+	line-height: 1.5em;
+	padding: .15em 10px .25em 35px;
+}
+
+#content #cvdata ol li.empty p,
+#content #profile ol li.empty p {
+	background-image: url("/gifs/karriere/lebenslauf_red.gif");
+	background-position: 7px;
+}
+
+#content #cvdata ol li.filled p,
+#content #profile ol li.filled p {
+	background-image: url("/gifs/karriere/lebenslauf_haken.gif");
+	background-position: 5px;
+}
+
+#content #cvdata ol li.filled.em p,
+#content #profile ol li.filled.em p {
+	background-image: url("/gifs/karriere/lebenslauf_haken_green.gif");
+}
+
+
+
+
+
+#my div#content #kcenter {
+	background: url(/gifs/kcenter/verlauf.gif) repeat-x top left;
+}
+
+#my div#content #hint_box {
+	float: right;	
+	margin-right: 10px;
+	width: 58%;
+}
+
+#my div#content #hint_box h4 {
+	float: left;
+	margin-top: 10px;
+	margin-bottom: 0;
+}
+#my div#content #hint_box h4 > span {
+	background-color: transparent;
+	background-image: url("/gifs/kcenter/reiter_white_left.gif");
+}
+#my div#content #hint_box h4 > span > span {
+	background-color: #ffffff;
+	background-color: transparent;
+	background-image: url("/gifs/kcenter/reiter_white_right.gif");
+	color: #000000;
+}
+#my div#content #hint_box h4 > span > span > span {
+	background-color: #ffffff;
+}
+
+#content #kcenter #hint_box ul {
+	background: #ffffff;
+	clear: left;
+	padding: 1em 0;
+	list-style: none;
+	font-weight: bold;
+}
+#content #kcenter #hint_box ul li {
+	padding: 0 1em 0 2em;
+}
+#content #kcenter #hint_box ul li.red_hint {
+	background: url(/gifs/kcenter/red_hint.gif) no-repeat top left;
+	color: #ff0000;
+}
+#content #kcenter #hint_box ul li.yellow_hint {
+	background: url(/gifs/kcenter/yellow_hint.gif) no-repeat top left;
+	color: #e7c352;
+}
+
+#content #kcenter p.links_right {
+	float: right;
+	width: 100%;
+}
+#content #kcenter p.links_right span {
+	float: right;
+	width: 130px;
+	height: 60px;
+	display: block;
+}
+#content #kcenter p.links_right a {
+	width: 75px;
+	height: 45px;
+	display: block;
+	text-transform: uppercase;
+	font-size: 0.8em;
+	color: #ffffff;
+	font-weight: bold;	
+}
+#content #kcenter p.links_right span.gesuch_link {
+	background: url(/gifs/kcenter/gesuch.gif) no-repeat top center;
+}
+#content #kcenter p.links_right span.gesuch_link a {
+	padding: 18px 0px 0px 52px;
+}
+#content #kcenter p.links_right span.ordner_link {
+	background: url(/gifs/kcenter/ordner.gif) no-repeat top center;
+}
+#content #kcenter p.links_right span.ordner_link a {
+	padding: 18px 0px 0px 46px;
+}
+#content #kcenter p.links_right span.jobmail_link {
+	background: url(/gifs/kcenter/jobmail.gif) no-repeat top center;
+}
+#content #kcenter p.links_right span.jobmail_link a {
+	padding: 18px 0px 0px 52px;
+}
+
+#content #usermenu_left {
+	float: left;
+	width: 40%;
+	background: transparent;
+	height: auto;
+}
+#content #usermenu_left h5 {
+	background: url(/gifs/kcenter/opened.gif) no-repeat center left;
+	margin: 10px 0 0 10px;
+	padding-left: 30px;
+	line-height: 25px;
+	font-size: 0.9em;
+}
+#content #usermenu_left ul {
+	margin: -9px 0 0 20px;
+	padding: 0;
+	list-style: none;
+}
+#content #usermenu_left ul li {
+	line-height: 1.7em;
+	padding: 0.5em 0;
+	margin: 0;
+	word-wrap: no-break;
+}
+#content #usermenu_left ul li.first_node {
+	background: url(/gifs/kcenter/first_node.gif) no-repeat left 0.5em;
+	padding-left: 15px;
+	padding-top: 18px;
+}
+#content #usermenu_left ul li.last_node {
+	background: url(/gifs/kcenter/last_node.gif) no-repeat top left;
+	padding-left: 15px;
+}
+#content #usermenu_left ul li.middle_node {
+	background: url(/gifs/kcenter/middle_node.gif) no-repeat top left;
+	padding-left: 15px;
+}
+#content #usermenu_left ul li a {
+	display: block;
+	height: 100%;
+	font-size: 0.9em;
+	color: #000000;
+}
+#content #usermenu_left ul li a.opened {
+	background: url(/gifs/kcenter/opened.gif) no-repeat left top;
+	padding-left: 30px;
+	font-weight: bold;
+}
+#content #usermenu_left ul li a.closed {
+	background: url(/gifs/kcenter/closed.gif) no-repeat left top;
+	padding-left: 30px;
+}
+#content #usermenu_left ul li.first_node a.closed {
+	background-position: left center;
+}
+#content #usermenu_left ul.submenu {
+	margin: 0 0 0 12px;
+}
+#content #usermenu_left ul.submenu li.first_node {
+	margin-top: -7px;
+}
+
+
+
+#content #kcenter p.nothing {
+	clear: both;
+}
+
+
+
+
+
+
+
+#search div#content {
+	background: url("/gifs/zentralelemente/lister.jpg") no-repeat right 5%;
+/*padding-right: 125px;*/
+	width: 604px;
+}
+
+#search div#content form {
+/*	padding: .5em 1em;*/
+}
+
+#search div#content div.tabs {
+	padding: 0 0 0 1em;
+	margin: 0;
+	height: 21px;
+}
+#search div#content div.tabs_content {
+	margin: 0;
+	padding: 0;
+	border: 1px solid #005584;
+}
+#search div#content div.tabs_content form {
+	clear: left;
+}
+
+#search div#content div.tabs a {
+	cursor: pointer;
+}
+
+#search div#content p.info {
+	padding: 0 125px 75px 0;
+	width: 479px;
+}
+
+
+
+
+div#content div#cv_intro {
+	background: url("/gifs/zentralelemente/lebenslauf_stift.gif") no-repeat top right;
+	padding-right: 75px;
+	width: 529px;
+}
+
+
+
+
+
+div#content #photo_service {
+	background: #ffffe0;
+	margin: 0 auto 1em;
+	padding: 1em 2em;
+	width: 75%;
+}
+
+
+div#content .hint {
+	font-size: .8em;
+	text-align: center;
+}
+
+
+
+.col_1,
+.col_2 {
+	width: 48%;
+	margin: 0;
+	padding: 0 1%;
+}
+
+.col_1 {
+	clear: left !important;
+	float: left !important;
+}
+
+.col_2 {
+	/*margin-left: 50%;*/
+}

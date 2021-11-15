@@ -1,0 +1,222 @@
+<?php
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+header('Content-Type: text/html; charset=utf-8');
+# header("Content-Type: text/html; charset=ISO-8859-1");
+header("Content-Transfer-Encoding: 8bit");
+
+praktikaInclude(array("db.php"));
+$hDB = new Praktika_Db();
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (isset($_SESSION['s_unternehmen']) && $_SESSION['s_unternehmen'] == true) {
+		/********************************************************************/
+		/* Mail an Bewerber, wenn eMail erstmals als gelesen markiert wurde */	
+		/********************************************************************/
+		$mailBewerber = $hDB->query('SELECT bewerbung.*, stellen.berufsfeld FROM
+		    '.$database_db.'.bewerbung
+		    LEFT JOIN prakt2.stellen ON(stellen.id = bewerbung.prakstellenid)
+		    WHERE bewerbung.firmenid = '.$_SESSION['s_firmenid'].' AND bewerbung.preview = \'false\' AND bewerbung.inactive = \'false\' AND bewerbung.id = '.intval($_GET['id']),$praktdbslave);
+
+		$nutzerid = mysql_result($mailBewerber,0,'nutzerid');
+		$berufsfeldID = mysql_result($mailBewerber,0,'berufsfeld');
+
+		$bewerber = mysql_db_query($database_db,'SELECT * FROM nutzer WHERE id = '.$nutzerid.' AND email != \'\' AND inactive = \'false\'',$praktdbslave);
+
+        $firmennamen = mysql_db_query($database_db,'SELECT firma FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+        $firmenname = mysql_result($firmennamen,0,'firma');
+
+        Praktika_Stream::log(8, utf8_encode($_SESSION["s_anrede"]." ".$_SESSION["s_name"]), $firmenname, Praktika_Listen::getTextById("berufsfeld", $berufsfeldID), $_SESSION['s_firmenid']);
+
+		if (mysql_result($mailBewerber,0,'bewerber_lesebestaetigt') == 'false') {
+
+			/* Mail an den Bewerber */
+			
+			if (mysql_num_rows($bewerber) != 0) {
+				$bmail = mysql_result($bewerber,0,'email');
+				
+				// Best&auml;tigungsmail zusammenbauen
+				$emailobj = new emailtemplate(39);
+				$emailobj->replace('{vname}',mysql_result($bewerber,0,'vname'));
+				$emailobj->replace('{name}',mysql_result($bewerber,0,'name'));
+				$emailobj->replace('{anrede}',mysql_result($bewerber,0,'anrede'));
+				$emailobj->replace('{firma}',$firmenname);
+				#$emailobj->send_email($bmail);
+				unset($emailobj);
+			}
+
+
+			$bewerbungupdate = 'UPDATE '.$database_db.'.bewerbung SET bewerber_lesebestaetigt = \'true\', gelesen = \'true\' WHERE id = '.intval($_GET['id']).' AND firmenid = '.$_SESSION['s_firmenid'];
+			$hDB->query($bewerbungupdate, $praktdbmaster);
+			error_log($bewerbungupdate);
+		}
+		
+		/********************************************************************/
+		/* Mail an Bewerber Ende */	
+		/********************************************************************/
+	} else {
+		$bewerber = $hDB->query('SELECT * FROM '.$database_db.'.nutzer WHERE id = '.$_SESSION['s_nutzerid'].' AND email != \'\' AND inactive = \'false\'',$praktdbslave);
+	}
+
+	if(empty($_SESSION["s_firmenid"])) {
+		$mailBewerber = $hDB->query('SELECT bewerbung.firmenid FROM
+		    '.$database_db.'.bewerbung
+		    WHERE bewerbung.inactive = \'false\' AND bewerbung.id = '.intval($_GET['id']),$praktdbslave);
+
+		$firmenid = mysql_result($mailBewerber,0,'firmenid');
+
+	} else {
+		$firmenid = $_SESSION["s_firmenid"];
+	}
+
+	$objBewerbung = new Praktika_Kcenter_Bewerbung($_GET['id'], $firmenid);
+	if($objBewerbung->checkAuth() == false) {
+		$sql = "INSERT INTO prakt2_temp.log SET value = 'Unerlaubter Anschreiben Zugriff (Bewerbung ".intval($_GET['id']).")', tid='".($_SESSION['s_unternehmen']?"b":"n").$_SESSION["s_nutzerid"]."', ip = '".$_SERVER["REMOTE_ADDR"]."'";
+		$hDB->query($sql, $praktdbmaster);
+
+		echo "<div style='text-align:center;font-family:Arial;color:darkred;'>Sie besitzen <b>NICHT</b> die notwendigen Zugangsrechte um diese Bewerbung betrachten zu k&ouml;nnen.</div>";
+		exit();
+		# header('Location: /');
+	}
+
+	/* Check, ob berechtigt */
+	#$test = $hDB->query('SELECT * FROM '.$database_db.'.bewerbung WHERE id = '.intval($_GET['id']),$praktdbslave);
+
+	#if ($test != false) {
+	#	$testi = mysql_fetch_array($test);
+		
+	#	if ((isset($_SESSION['s_firmenid']) && $testi['firmenid'] != $_SESSION['s_firmenid']) && (isset($_SESSION['s_nutzerid']) && $testi['nutzerid'] != $_SESSION['s_nutzerid'])) {
+
+	#	}
+	#}
+
+	echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+	echo '<html>'."\n";
+
+	echo '<head>'."\n";
+	# metatags($_SESSION['s_sprache']);
+	echo '	<title>Bewerbungsmappe - Bewerbung</title>'."\n";
+	echo '  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">'."\n";
+	echo '	<link rel="icon" type="image/ico" href="/favicon.ico" />'."\n";
+	echo '	<link rel="shortcut icon" href="/favicon.ico" />'."\n";
+	
+	echo '	<link rel="stylesheet" type="text/css" media="screen" href="/styles/v3/module//cv.css" />'."\n";
+	echo '</head>'."\n";
+
+	echo '<body>'."\n";
+
+	//echo '	<h2>Bewerbungsmappe - Bewerbung</h2><br />'."\n";
+
+	mysql_set_charset('utf8', $praktdbslave); 
+	$data = $objBewerbung->getBewerbungsDaten();
+	
+	$firmenid = $data['firmenid'];
+	$stellenid = $data['prakstellenid'];
+
+
+
+	$anschreiben["text"] = $objBewerbung->anschreiben["text"];
+	$anschreiben["daten"] = &$data;
+	$anschreiben["firma"] = $objBewerbung->getFirmenDaten();
+	
+	$bewerberfetch = &$anschreiben["daten"];
+
+?>
+	
+<table cellspacing="0" cellpadding="0">
+	<tr> 
+		<td><? echo ((isset($bewerberfetch['titel']) && !empty($bewerberfetch['titel'])) ? $bewerberfetch['titel'].' ' : '').$bewerberfetch['vname'].' '.$bewerberfetch['name'] ?></td>
+		<td style="text-align: right;"><? echo $anschreiben["daten"]['ort'].', '.$anschreiben["daten"]['datum'] ?></td>
+	</tr>
+	<tr> 
+		<td><? echo $bewerberfetch['strasse'] ?></td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr> 
+		<td><? echo $bewerberfetch['plz'].' '.$bewerberfetch['ort'] ?></td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr> 
+		<td><? echo $bewerberfetch['tel'] ?></td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr> 
+		<td><a href="mailto:<? echo $bewerberfetch['email'] ?>"><? echo $bewerberfetch['email'] ?></a></td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr> 
+		<td colspan="2" style="padding-top: 40px;">
+
+<?php 
+	$bearbeiterid = $anschreiben["firma"]['bearbeiterid'];
+
+	if (isset($bearbeiterid) && ($bearbeiterid != 0)) {
+		$bearbeiterquery = $hDB->query('SELECT bearbeiter.anrede,bearbeiter.titel,bearbeiter.vname,bearbeiter.name,bearbeiter.abteilung FROM '.$database_db.'.bearbeiter WHERE id = '.$bearbeiterid,$praktdbslave);
+	} else {
+		$bearbeiterquery = $hDB->query('SELECT bearbeiter.anrede,bearbeiter.titel,bearbeiter.vname,bearbeiter.name,bearbeiter.abteilung FROM '.$database_db.'.bearbeiter WHERE firmenid = '.$firmenid.' ORDER BY inactive DESC LIMIT 1',$praktdbslave);
+	}
+	$bearbeitereintrag = mysql_fetch_array ( $bearbeiterquery );
+	
+	echo '<b>'.$anschreiben["firma"]['firma'].'<br /></b>'.$language ['strHD'].' '.$bearbeitereintrag['vname'].' '.$bearbeitereintrag['name'];
+	
+	if (isset($bearbeitereintrag['abteilung']) && !empty($bearbeitereintrag['abteilung'])) {
+		echo '<br />Abteilung '.$bearbeitereintrag['abteilung'];
+	}
+	
+	// Wenn die Stelle mit Post-Bewerbung ist, Strasse ausgeben
+	echo $anschreiben["firma"]['bewerbungperpost'] == "true" ? '<br />'.$anschreiben["firma"]['strasse'] : '';
+	
+	echo '<br />'.$anschreiben["firma"]['plz'].' '.$anschreiben["firma"]['ort'].'</b>'; 
+
+?>
+		</td>
+	</tr>
+	<tr> 
+		<td colspan="2" style="padding-top: 70px;">
+<?
+	if (empty($anschreiben["daten"]['betreff'])) {
+		if ($anschreiben["daten"]['spalte'] == 1) {
+			$betreff = $language['strBewerbung'].' Praktikumsplatz';
+		} elseif ($anschreiben["daten"]['spalte'] == 2) {
+			$betreff = $language ['strBewerbung'].' Bechelor-/Masterarbeit';
+		} elseif ($anschreiben["daten"]['spalte'] == 3) {
+			$betreff = $language ['strBewerbung'].' Nebenjob';
+		} elseif ($anschreiben["daten"]['spalte'] == 4) {
+			$betreff = $language ['strBewerbung'].' Ausbildungsplatz';
+		} elseif ($anschreiben["daten"]['spalte'] == 5) {
+			$betreff = $language ['strBewerbung'].' Arbeitsplatz';
+		} elseif ($anschreiben["daten"]['spalte'] == 6) {
+			$betreff = $language ['strBewerbung'].' Projekt';
+		} elseif ($anschreiben["daten"]['spalte'] == 7) {
+			$betreff = $language ['strBewerbung'].' Traineestelle';
+		}
+	} else {
+		$betreff = $anschreiben["daten"]['betreff'];
+	}
+
+	echo '<br /><b>'.stripslashes($betreff).'<br />'.((isset($anschreiben["firma"]['taetigkeit']) && !empty($anschreiben["firma"]['taetigkeit'])) ? '('.$anschreiben["firma"]['taetigkeit'].')' : '').'</b>';
+	echo '<br />'.((isset($anschreiben["firma"]['jobcode']) && !empty($anschreiben["firma"]['jobcode'])) ? 'Jobcode: praktika.de '.$anschreiben["firma"]['jobcode'] : '');
+?>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="2" style="padding-top: 15px;">
+			<p><? echo nl2br($anschreiben["text"]) ?></p>
+		</td>
+	</tr>
+
+<? if ($_SESSION['s_loggedin'] == true) { ?>
+	<tr>
+		<td colspan="2" style="text-align: right;padding-top:20px;font-size:10px;">powered by <img src="/styles/images/logo.png" height="30" alt="" /></td>
+	</tr>
+<? } ?>
+</table>
+
+<?php	
+}
+
+echo '</body>'."\n";
+echo '</html>'."\n";
+
+?>

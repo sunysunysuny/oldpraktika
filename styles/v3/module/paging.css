@@ -1,0 +1,36 @@
+/* 
+    Document   : paging.css
+    Created on : 26.01.2010, 16:36:50
+    Author     : swarnat
+    Description:
+        Stylesheet für Paging-Komponente
+*/
+
+.pageButton {
+	line-height:20px;
+	padding:1px 5px;
+	margin-right:2px;
+	border:1px solid #ccc;
+	cursor:pointer;
+	background: #fff;
+	font-size:12px;
+
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+
+}
+.pageButton:hover {
+	background-color:#0f5ba3 !important;
+	color:#fff !important;
+	border:1px solid #0a3c6c;
+}
+.pageButton.aktPage:hover {
+	background-color:#faf0bd !important;
+	border:1px solid #ccc !important;
+	color:#000 !important;
+}
+.pageButton.aktPage {
+	font-weight:bold;
+	background-color:#faf0bd;
+	cursor:default;
+}

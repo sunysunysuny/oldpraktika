@@ -1,0 +1,335 @@
+<?
+$sprachbasisdatei="/home/praktikanten/profilausgabe/profilleistung.phtml";
+$sprachbasisdatei2="/home/praktikanten/profil/profil_leistung.phtml";
+ob_start();
+
+require("/home/praktika/etc/gb_config.inc.php");
+
+$_SESSION["s_sprachid"] = substr($_GET["l"],0,1)==0?2:1;
+
+if (isset($_GET['b'])) {
+	$bewerberid = intval($_GET['b']);
+} else {
+	$bewerberid = $_SESSION['s_nutzerid'];
+}
+
+function convertText($value) {
+	return htmlentities(Praktika_String::getISOString(stripslashes(nl2br($value))));
+}
+
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+echo '<html>'."\n";
+
+echo '<head>'."\n";
+# metatags($_SESSION['s_sprache']);
+echo '	<title>Bewerbungsmappe - Bewerbung</title>'."\n";
+
+echo '	<link rel="icon" type="image/ico" href="/favicon.ico" />'."\n";
+echo '	<link rel="shortcut icon" href="/favicon.ico" />'."\n";
+
+echo '	<link rel="stylesheet" type="text/css" media="screen" href="/styles/v3/module/cv.css" />'."\n";
+echo '</head>'."\n";
+
+echo '<body onload="parent.resize_me(\'frame_content\')">'."\n";
+
+if (isset($bewerberid)) {
+	$result = $hDB->query('SELECT *,date_format(geburtsdatum, \'%d\') AS tag, date_format(geburtsdatum, \'%m\') AS monat, date_format(geburtsdatum, \'%Y\') AS jahr, date_format(modify, \'%d.%m.%Y\') AS datum FROM '.$database_db.'.nutzer WHERE id='.$bewerberid,$praktdbslave);
+	$fetch = mysql_fetch_array($result);
+} 
+
+if ($_SESSION['s_loggedin'] == false) {
+    echo '<p class="error">Ihre Abfrage ist ung&uuml;ltig!</p>'."\n";
+} else {
+	// Check ob Nutzer auf Merkzettel der Firma
+	$firmenbookmark = $hDB->query('SELECT nutzerid FROM '.$database_db.'.firmenbookmark WHERE nutzerid='.$bewerberid,$praktdbslave);
+	$gesuchedb = mysql_num_rows($firmenbookmark);
+	
+	if (isset($_SESSION['s_firmenlevel']) && $_SESSION['s_firmenlevel'] > 0 || $_SESSION['s_loggedin'] == true || $gesuchedb > 0 || $gesuche == 'no') {
+		$landid = $fetch['land'];
+		$land = $hDB->query('SELECT german FROM '.$database_db.'.land WHERE id='.$landid,$praktdbslave);
+			
+		if (!empty($sprachbasisdatei)) {
+			$stringabfrage = 'uri=\''.$sprachbasisdatei.'\' OR';
+		}
+		// spracharray erzeugen //
+		$sprachenselect = $hDB->query('SELECT DISTINCT stringname,'.$_SESSION['s_sprache'].' FROM '.$database_db.'.menulanguage WHERE '.$stringabfrage.' uri=\''.$_SERVER['PHP_SELF'].'\'',$praktdbslave);
+
+		while (list($stringname, $wert) = mysql_fetch_row($sprachenselect)) {
+
+			$language[$stringname] = $wert;
+		}
+		
+		// Sprachvariable
+		if ($_SESSION['s_sprachid'] == 1) {
+			$sprachvar1 = 'Expert knowledge';
+			$sprachvar2 = 'Professional experience';
+			$sprachvar3 = 'Project experience';
+			$sprachvar4 = 'Leadership experience';
+			$sprachvar5 = 'Intercultural experience';
+			$sprachvar6 = 'Social skills';
+			$sprachvar7 = 'Methodic ability';
+			$sprachvar8 = 'Entrepreneurial ability';
+			$sprachvar9 = 'Work habbits';
+		} else {
+			$sprachvar1 = 'Leistungsbeschreibung';
+			$sprachvar2 = 'Berufserfahrung';
+			$sprachvar3 = 'Projekterfahrung';
+			$sprachvar4 = 'F&uuml;hrungserfahrung';
+			$sprachvar5 = 'interkulturelle Erfahrung';
+			$sprachvar6 = 'soziale F&auml;higkeiten';
+			$sprachvar7 = 'methodische F&auml;higkeiten';
+			$sprachvar8 = 'unternehmerische F&auml;higkeiten';
+			$sprachvar9 = 'Arbeitsverhalten';
+		}
+		
+		// Ab hier werden die Profile ausgelesen
+		$result = $hDB->query('SELECT * FROM '.$database_bprofil.'.profil_leistung WHERE nutzerid='.$bewerberid.' AND sprachid='.$_SESSION['s_sprachid'], $praktdbslave);
+		if (mysql_num_rows($result) > 0) { 
+		
+			echo '<table>'."\n";
+			echo '	<colgroup>'."\n";
+			echo '		<col style="width: 200px;" />'."\n";
+			echo '		<col />'."\n";
+			echo '	</colgroup>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<th style="text-align: left;">'.$sprachvar1.'</th>'."\n";
+			echo '		<th style="text-align: left;">';
+		
+			if (!empty($fetch['titel'])) {
+				echo $fetch['titel'].' ';
+			} else {
+				echo '&nbsp;';
+			}
+			
+			echo $fetch['vname'].' '.$fetch['name'];
+			echo '</th>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><hr /></td>'."\n";
+			echo '	</tr>'."\n";
+		
+			$fetchleistung = mysql_fetch_array($result);
+		
+			if (intval($fetchleistung['berufserfahrung']) == 1) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar2.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.convertText($fetchleistung['berufserfahrungtext']).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if (intval($fetchleistung['projekterfahrung']) == 1) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar3.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.convertText($fetchleistung['projekterfahrungtext']).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if (intval($fetchleistung['fuehrungserfahrung']) == 1) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar4.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.convertText($fetchleistung['fuehrungserfahrungtext']).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if (intval($fetchleistung['interkerfahrung']) == 1) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar5.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.convertText($fetchleistung['interkerfahrungtext']).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if ($fetchleistung['sozial1'] == 'true' || $fetchleistung['sozial2'] == 'true' || $fetchleistung['sozial3'] == 'true' || $fetchleistung['sozial4'] == 'true' || $fetchleistung['sozial5'] == 'true' || $fetchleistung['sozial6'] == 'true' || $fetchleistung['sozial7'] == 'true') {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar6.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+	
+				$sozial = array();
+				
+				if ($fetchleistung['sozial1'] == 'true') {
+					$sozial[] = $language['strAnpassungsf'];
+				}
+				if ($fetchleistung['sozial2'] == 'true') {
+					$sozial[] = $language['strInitiative'];
+				}
+				if ($fetchleistung['sozial3'] == 'true') {
+					$sozial[] = $language['strKonfliktfaehigkeit'];
+				}
+				if ($fetchleistung['sozial4'] == 'true') {
+					$sozial[] = $language['strKommunikationsfaehigkeit'];
+				}
+				if ($fetchleistung['sozial5'] == 'true') {
+					$sozial[] = $language['strSelbstaendigkeit'];
+				}
+				if ($fetchleistung['sozial6'] == 'true') {
+					$sozial[] = $language['strTeamfaehigkeit'];
+				}
+				if ($fetchleistung['sozial7'] == 'true') {
+					$sozial[] = $language['strVeraenderungsfaehigkeit'];
+				}
+				
+				$sozialString = '';
+				
+				foreach ($sozial as $key => $value) {
+					$sozialString .= Praktika_String::getISOString($value).', ';
+				}
+				
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.substr($sozialString,0,strlen($sozialString)-2).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if ($fetchleistung['methode1'] == 'true' || $fetchleistung['methode2'] == 'true' || $fetchleistung['methode3'] == 'true' || $fetchleistung['methode4'] == 'true' || $fetchleistung['methode5'] == 'true' || $fetchleistung['methode6'] == 'true') {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar7.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				
+				$methode = array();
+				
+				if ($fetchleistung['methode1'] == 'true') {
+					$methode[] = $language['strAnalysefaehigkeit'];
+				}
+				if ($fetchleistung['methode2'] == 'true') {
+					$methode[] = $language['strEntscheidungsfaehigkeit'];
+				}
+				if ($fetchleistung['methode3'] == 'true') {
+					$methode[] = $language['strGestaltungsfaehigkeit'];
+				}
+				if ($fetchleistung['methode4'] == 'true') {
+					$methode[] = $language['strLernfaehigkeit'];
+				}
+				if ($fetchleistung['methode5'] == 'true') {
+					$methode[] = $language['strPlanung'];
+				}
+				if ($fetchleistung['methode6'] == 'true') {
+					$methode[] = $language['strVD'];
+				}
+				
+				$methodeString = '';
+				
+				foreach ($methode as $key => $value) {
+					$methodeString .=  Praktika_String::getISOString($value).', ';
+				}
+				
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.substr($methodeString,0,strlen($methodeString)-2).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+		
+			if ($fetchleistung['faehigkeit1'] == 'true' || $fetchleistung['faehigkeit2'] == 'true' || $fetchleistung['faehigkeit3'] == 'true' || $fetchleistung['faehigkeit4'] == 'true' || $fetchleistung['faehigkeit5'] == 'true' || $fetchleistung['faehigkeit6'] == 'true'|| $fetchleistung['faehigkeit7'] == 'true'|| $fetchleistung['faehigkeit8'] == 'true') {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar8.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				
+				$faehigkeit = array();
+
+				if ($fetchleistung['faehigkeit1'] == 'true') {
+					$faehigkeit[] = $language['strCoaching'];
+				}
+				if ($fetchleistung['faehigkeit2'] == 'true') {
+					$faehigkeit[] = $language['strDurchsetzungsvermoegen'];
+				}
+				if ($fetchleistung['faehigkeit3'] == 'true') {
+					$faehigkeit[] = $language['strEntscheidungsfaehigkeit'];
+				}
+				if ($fetchleistung['faehigkeit4'] == 'true') {
+					$faehigkeit[] = $language['strErgebnisorientierung'];
+				}
+				if ($fetchleistung['faehigkeit5'] == 'true') {
+					$faehigkeit[] = $language['strKundenorientierung'];
+				}
+				if ($fetchleistung['faehigkeit6'] == 'true') {
+					$faehigkeit[] = $language['strMotivationsfaehigkeit'];
+				}
+				if ($fetchleistung['faehigkeit7'] == 'true') {
+					$faehigkeit[] = $language['strSD'];
+				}
+				if ($fetchleistung['faehigkeit8'] == 'true') {
+					$faehigkeit[] = $language['strVerhandlungsfaehigkeit'];
+				}
+				
+				$faehigkeitString = '';
+				
+				foreach ($faehigkeit as $key => $value) {
+					$faehigkeitString .=  Praktika_String::getISOString($value).', ';
+				}
+
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.substr($faehigkeitString,0,strlen($faehigkeitString)-2).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			if ($fetchleistung['arbeitsverhalten1'] == 'true' || $fetchleistung['arbeitsverhalten2'] == 'true' || $fetchleistung['arbeitsverhalten3'] == 'true' || $fetchleistung['arbeitsverhalten4'] == 'true' || $fetchleistung['arbeitsverhalten5'] == 'true' || $fetchleistung['arbeitsverhalten6'] == 'true' || $fetchleistung['arbeitsverhalten7'] == 'true') {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar9.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				
+				$arbeitsverhalten = array();
+				
+				if ($fetchleistung['arbeitsverhalten1'] == 'true') {
+					$arbeitsverhalten[] = $language['strAusdauer'];
+				}
+				if ($fetchleistung['arbeitsverhalten2'] == 'true') {
+					$arbeitsverhalten[] = $language['strBelastbarkeit'];
+				}
+				if ($fetchleistung['arbeitsverhalten3'] == 'true') {
+					$arbeitsverhalten[] = $language['strDurchsetzungsfaehigkeit'];
+				}
+				if ($fetchleistung['arbeitsverhalten4'] == 'true') {
+					$arbeitsverhalten[] = $language['strFlexibilitaet'];
+				}
+				if ($fetchleistung['arbeitsverhalten5'] == 'true') {
+					$arbeitsverhalten[] = $language['strQualitaetsdenken'];
+				}
+				if ($fetchleistung['arbeitsverhalten6'] == 'true') {
+					$arbeitsverhalten[] = $language['strZielorientierung'];
+				}
+				if ($fetchleistung['arbeitsverhalten7'] == 'true') {
+					$arbeitsverhalten[] = $language['strZuverlaessigkeit'];
+				}
+				
+				$arbeitsverhaltenString = '';
+				
+				foreach ($arbeitsverhalten as $key => $value) {
+					$arbeitsverhaltenString .=  Praktika_String::getISOString($value).', ';
+				}
+
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.substr($arbeitsverhaltenString,0,strlen($arbeitsverhaltenString)-2).'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			if ($_SESSION['s_loggedin'] == true) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2" style="text-align: right;"><br /><br />powered by <img src="/styles/images/logo.png" height="30" alt="" /></td>'."\n";
+				echo '	</tr>'."\n";
+			}
+
+			echo '</table>'."\n";
+		} else {
+			echo '<p class="error">Der Bewerber hat kein Profil in diesem Bereich hinterlegt!</p>'."\n";
+		}
+	}
+	
+	if (isset($_SESSION['s_firmenlevel']) && $_SESSION['s_firmenlevel'] == 0 && $_SESSION['s_loggedin'] == false && $gesuchedb == 0 && !$gesuche) {
+		echo 'Die Anzeige des Bewerber-Profils erfordert die Buchung des Produktes Servicelizenz "KOMFORT"!'."\n";
+		echo '<br /><br />Hier erhalten Sie mehr <span class="normal"><a href="/cms/Produkte_Mediadaten.524.0.html" target="_blank">Informationen</a></span> &uuml;ber unsere <span class="normal"><a href="/cms/Produkte_Mediadaten.524.0.html" target="_blank">Produkte</a></span> oder buchen Sie die <span class="normal"><a href="/cms/Produkte_Mediadaten.527.0.html" target="_blank">Servicelizenz "KOMFORT"</a></span> direkt. Sie erhalten sofort Zugriff auf die Profile Ihrer Bewerbungen.</b>'."\n";
+	}
+}?>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<?
+ $gruppe = "praktikanten";
+ $sprachbasisdatei="/home/quicklogin/index.phtml";
+ require("/home/praktika/etc/config.inc.php");
+
+if ($s_loggedinnutzer == true && $logout == "yes") {
+ header ("Location: /home/praktikanten/kcenter/");
+}
+
+if ($s_loggedin=="yes" && $logout == "yes") {
+ header ("Location: /home/firmen/bcenter/");
+}
+
+if ($loginidemail != "" && $passwort != "") {
+	/* passwort richtig ?? */
+	$logincheck=sessionnutzerlogin($database_db,$loginidemail,$passwort,session_id());
+	if ($logincheck == "true") {
+		require("/home/praktika/etc/login_bewerber.inc.php");
+		if ($s_uri == "") {
+			header("Location: /".$s_homedir."/praktikanten/kcenter/");
+			exit;
+		} else {
+			header("Location: ".$s_uri);
+			exit;
+		}
+	}
+}
+
+pageheader(session_id(), session_name());
+
+?>
+      <table width="90%">
+        <tr>
+          <td><h1 class="layout1">Loginmeldung</h1><br>
+              <?
+if ($loginidemail == "") {
+?>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td><font color="red"><? echo $language["strKeineID"]; ?><br>
+                    <br>
+                    </font></td>
+                </tr>
+                <tr>
+                  <td><font color="black"><? echo linkparse($language["strProbleme"]); ?></font></td>
+                </tr>
+              </table>
+            <form name="x" action="">
+              <hr>
+              <input type="BUTTON" value="zur&uuml;ck" onClick="location.replace('index.phtml?<?=session_name()."=".session_id()?>')" name="BUTTON">
+            </form>
+          </td>
+        </tr>
+<? }
+
+elseif ($passwort == "") {
+?>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td><font color="red"><? echo $language["strNoPW"]; ?><br>
+                    <br>
+                    </font></td>
+                </tr>
+                <tr>
+                  <td><font color="black"><? echo linkparse($language["strProbleme"]); ?></font></td>
+                </tr>
+              </table>
+            <form name="x" action="">
+              <hr>
+              <input type="BUTTON" value="zur&uuml;ck" onClick="location.replace('index.phtml?<?=session_name()."=".session_id()?>')" name="BUTTON">
+            </form>
+          </td>
+        </tr>
+        <? }
+else {
+
+if ($logincheck != "true") {?>
+        <table width="100%">
+          <tr>
+<?
+// bei Fehlern
+if ($logincheck == "false") $keinlogin="yes";
+if ($logincheck == "passwdfalsch") $passwdfalsch="yes";
+if ($logincheck == "gesperrt") $gesperrt="yes";
+if ($passwdfalsch=="yes")$ausgabe="<font color=\"red\">".$language["strpasswdfalsch"]."</font>";
+if ($gesperrt=="yes") $ausgabe="<font color=\"red\">".$language["strGesperrt"]."</font>";
+if ($keinlogin=="yes") $ausgabe="<font color=\"red\">".$language["strKeinLogin"]."</font>";
+?>
+
+            <td><font color="red"><? echo $ausgabe; ?><br>
+            <!--<td><font color="red"><? echo $language["strFalsch"]; ?><br>-->
+              <br></font></td>
+          </tr>
+          <tr>
+            <td><font color="black"><? echo linkparse($language["strProbleme"]); ?></font></td>
+          </tr>
+        </table>
+        <form name="x" action="">
+          <hr>
+          <input type="BUTTON" value="zur&uuml;ck" onClick="location.replace('/home/praktikanten/?<?=session_name()."=".session_id()?>')" name="BUTTON2">
+        </form>
+        <? }}  ?>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

@@ -1,0 +1,62 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+// pageheader(array('page_title' => $language['strNewsletter']));
+$_SESSION["s_firmenproparray"]["lastPage"] = "bearbeiter/newsletter";
+
+$bearbeiterID = intval($_POST['id']);
+
+if (isset($_POST['save'])) { 
+	/* Datenbank */
+	if ($_POST['check'] != "false") $_POST['check'] = "true";
+	$dbstring = 'UPDATE bearbeiter SET no_newsletter = \''.$_POST['check'].'\' WHERE id = '.$bearbeiterID.' AND firmenid = '.intval($_SESSION['s_firmenid']);
+
+	/* datensatz &auml;ndern */
+	mysql_db_query($database_db,$dbstring,$praktdbmaster);
+}
+
+/* Datensatz anzeigen */
+
+$newsletterresult = mysql_db_query($database_db,'SELECT email,no_newsletter FROM bearbeiter WHERE id = '.intval(isset($_GET['id']) ? $_GET['id'] : $_POST['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']),$praktdbmaster);
+if (mysql_num_rows($newsletterresult) > 0) {
+	$no_newsletter = mysql_fetch_array($newsletterresult);
+}
+
+echo '<form action="#" method="post">'."\n";
+echo '	<h4>Newsletter</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p class="checkboxes">'."\n";
+echo '			<input id="check" name="check" value="false" type="checkbox"'.((isset($no_newsletter['no_newsletter']) && $no_newsletter['no_newsletter'] == 'false') ? ' checked="checked"' : '');
+
+if (isset($no_newsletter['no_newsletter']) && $no_newsletter['no_newsletter'] == 'false') {
+	echo ' value="true" /><label for="check"><span class="succes">Newsletterversand ist Aktiviert</span></label>'."\n";
+} else {
+	echo ' value="false" /><label for="check"><span class="error">Newsletterversand ist Deaktiviert</span></label>'."\n";
+}
+
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="speichern"><span><span><span>SPEICHERN</span></span></span></button>'."\n";
+echo '			<input type="hidden" name="id" value="'.$bearbeiterID.'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<button type="button" name="back" value="zur&uuml;ck zur Bearbeiter&uuml;bersicht" onclick="loadContent(\'bearbeiter/index\')"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+echo '<p>Ihre eMail Adresse: '.(isset($no_newsletter['email']) ? $no_newsletter['email'] : '').'</p>'."\n";
+
+?>
+</fieldset>

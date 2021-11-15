@@ -1,0 +1,218 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/profil/index.phtml";
+
+require_once("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['current_page'] = PAGE_CV;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$saved = false;
+
+// Speichern der Daten
+if(isset($_POST['save'])) {
+	$sql = sprintf("	INSERT INTO
+                            einstellungen (nutzerid, lebenslauftemplate, sprachid, datum_eintrag, modify)
+                        VALUES
+                            (%1\$d, '%2\$s', %3\$d, NOW(), NOW()) 
+                        ON DUPLICATE KEY UPDATE  
+                            lebenslauftemplate = '%2\$s',sprachid = '%3\$d';",
+					$_SESSION['s_loginid'],
+					(string) $_POST['lebenslaufwahl'][0],
+					(int) $_POST['lebenslaufwahl'][1]);
+					
+	if (mysql_db_query($database_bprofil, $sql, $praktdbmaster)) {
+		$saved = true;
+	}
+
+}
+
+// Sprachausgabe der Textfelder
+if ($_SESSION['s_sprachid'] == 2) {
+	$headline = 'Lebenslauflayouts';
+	$variable1 = 'deutsche Vorlagen';
+	$variable2 = 'Vorlagen f&uuml;r Gro&szlig;britannien';
+	$variable3 = 'Vorlagen f&uuml;r USA';
+	$variable4 = 'deutscher Lebenslauf Variante';
+	$variable5 = 'Curiculum Vitae Variante';
+	$variable6 = 'Resume Variante';
+	$variable7 = 'Ihre Auswahl des Lebenslauflayouts wurde gespeichert!';
+	$variable8 = 'Bitte legen Sie erst ein englisches Profil an.';
+	$variable9 = '%s Vorlage';
+	$variable10 = 'Ihren Lebenslauf als PDF-Dokument in diesem Layout anzeigen';
+	$variableb1 = 'Speichern';
+	$variableb2 = 'Vorschau';
+	$variableb3 = 'zum KarriereCenter';
+	$variableb4 = 'zum Profil';
+	$text1 = 'Bewerberprofil in';
+	$text2 = 'Anzahl der Eintr&auml;ge';
+	$text3 = 'Was sind Ihre Hobbies, Interessen und speziellen F&auml;higkeiten? Erfassen Sie bitte alles Interessante in diesem Men&uuml;punkt. ';
+	$text4 = 'Ihr Eintrag wurde gespeichert!';
+	$text5 = 'Baustein';
+	$text6 = 'von';
+	$giftext = 'Vorschau Lebenslauf!';
+
+	$layouts = array(
+					'einfache',
+					'erweiterte',
+					'professionelle'
+					);
+}
+
+if ($_SESSION['s_sprachid'] == 1) {
+	$headline = 'CV &amp; Resume Layouts';
+	$variable1 = 'CV &amp; Resume Layouts in german';
+	$variable2 = 'CV Layouts';
+	$variable3 = 'Resume Layouts';
+	$variable4 = 'German CV/Resmue Template';
+	$variable5 = 'Curiculum Vitae Template';
+	$variable6 = 'Resume Template';
+	$variable7 = 'Your Selection has been saved.';
+	$variable8 = 'Please fill out the english profile.';
+	$variable9 = '%s Template';
+	$variable10 = 'Display your CV/Resmue as pdf document';
+	$variableb1 = 'Save';
+	$variableb2 = 'Preview';
+	$variableb3 = 'to the career center';
+	$variableb4 = 'to the profile';
+	$text1 = 'Profile in';
+	$text2 = 'choose number of forms below';
+	$text3 = 'What are your hobbies, interests and special talents? Please insert anything of interest here.';
+	$text4 = 'Your entry has been saved!';
+	$text5 = 'Part';
+	$text6 = 'of';
+	$giftext = 'preview resume!';
+
+	$layouts = array(
+					'simple',
+					'advanced',
+					'professional'
+					);
+}
+
+if(!$_SESSION["s_sprachid"] || empty($_SESSION["s_sprachid"])) $_SESSION["s_sprachid"] = 2;
+
+//Auslesen des Profils
+$sql = sprintf("SELECT
+                    lebenslauftemplate,
+                    sprachid
+                FROM
+                    einstellungen
+                WHERE
+                    nutzerid = %1\$d
+                AND
+                	sprachid = %2\$d;",
+				$_SESSION['s_loginid'],
+				$_SESSION["s_sprachid"]);
+$result = mysql_db_query($database_bprofil, $sql, $praktdbmaster);
+$record = mysql_fetch_array ($result, MYSQL_ASSOC);
+
+pageheader(array('page_title' => $headline));
+
+language_select($text1);
+
+if ($saved) {
+	echo '<p class="success">'.$text4.'</p>';
+}
+?>
+
+<form method="post" action="<?=$_SERVER['PHP_SELF']?>">
+  <table summary="">
+    <colgroup>
+      <col width="20%" />
+      <col />
+      <col width="15%" />
+      <col width="15%" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Standard</th>
+        <th style="text-align: left;">Name</th>
+        <th colspan="2">&nbsp;</th>
+      </tr>
+    </thead>
+<?php
+//$areas = array('de', 'en_GB', 'en_US');
+	$areas = array(
+					array(
+						'title'		=> $variable1,
+						'sprachid'	=> 2,
+						'aplic'		=> 'g'
+					),
+					array(
+						'title'		=> $variable2,
+						'sprachid'	=> 1,
+						'aplic'		=> 'b'
+					),
+					array(
+						'title'		=> $variable3,
+						'sprachid'	=> 1,
+						'aplic'		=> 'u'
+					)
+				);
+
+
+
+unset($temp);
+
+for ($i = 0; $i < count($areas); $i++) {
+	if (!isset($temp[$areas[$i]['sprachid']])) {
+		//$tables = array('schule', 'studium', '');
+		$sql = sprintf("SELECT sum(count) FROM (SELECT COUNT(schule.id) AS count FROM profil_schule AS schule) AS test;",
+						$_SESSION['s_loginid'],
+						$areas[$i]['sprachid']);
+		
+		$result = mysql_db_query($database_bprofil, $sql, $praktdbslave);
+	}	
+?>
+    <tbody>
+      <tr class="odd">
+        <th colspan="4"><?=$areas[$i]['title']?></th>
+      </tr>
+<?php
+	if (false or isset($temp[$areas[$i]['sprachid']]) and (int) $temp[$areas[$i]['sprachid']] == 0) {
+?>
+      <tr>
+        <td colspan="4" class="no_profile"><?=$variable8?></td>
+      </tr>
+<?php
+		continue;
+	}
+
+	$j = 1;
+	foreach ($layouts as $layout) {
+		$layoutvalue = $i.$j;
+		$checked = (isset($record['lebenslauftemplate']) && ((int) $record['lebenslauftemplate'] == (string) $layoutvalue)) ? true : false;
+?>
+      <tr class="<?=(($j % 2 == 0) ? 'odd' : 'even');?>">
+        <td style="text-align: center;"><input type="radio" id="lebenslaufwahl_<?=$layoutvalue;?>" name="lebenslaufwahl[]" value="<?=$layoutvalue;?>"<?=($checked == true ? ' checked="checked"' : '')?> /></td>
+        <td><label for="lebenslaufwahl_<?=$layoutvalue;?>"><?=sprintf($variable9, $layout); ?></label></td>
+        <td style="text-align: center;"><a href="/lebenslauf/pdf/view/<?=$areas[(($j == 1) ? 0 : $i)]['aplic'].$j?>/<?=($i != 0 ? '1' : '2')?>/" class="pdf" title="<?=$variable10?>" target="_blank">PDF</a></td>
+        <td style="text-align: center;"><a href="/lebenslauf/layout/preview/<?=$i.$j?>/<?=(($areas[$i]['sprachid'] == 1) ? 'en' : 'de')?>" class="preview" onclick="return PB_showFullScreen('', this.href)" title="<?=sprintf($variable9, $layout); ?>"><?php echo $variableb2 ?></a></td>
+      </tr>
+<?php
+		$j++;
+	}
+?>
+    </tbody>
+<?php
+}
+?>
+  </table>
+<input type="hidden" name="lebenslaufwahl[1]" value="<?=$_SESSION['s_sprachid'];?>" />
+<fieldset class="control_panel">
+	<p>
+		<button type="submit" id="save" name="save" value="speichern"><span><span><span>speichern</span></span></span></button>
+	</p>
+	<p>
+		<a href="/karriere/account/" class="button"><span><span><span>mein Account</span></span></span></a> | <a href="/lebenslauf/" class="button"><span><span><span>zum Profil</span></span></span></a>
+	</p>
+</fieldset>
+
+</form>
+<?php 
+bodyoff();
+?>

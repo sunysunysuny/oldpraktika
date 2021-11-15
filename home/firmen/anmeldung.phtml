@@ -1,0 +1,942 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['sidebar'] = "companies";
+
+$error = array("step1" => array(), "step2" => array());
+// Schritt 2 abgeschlossen => eMail muss gepr�ft werden, ob Sie im System schon existiert
+
+if(isset($_POST['save2']) && !empty($_POST["email2"])) {
+	$sql = sprintf("SELECT 
+						bearbeiter.id, firmen.firma, UNIX_TIMESTAMP(bearbeiter.datum_eintrag) as ts_eintrag
+					FROM 
+						".$database_db.".bearbeiter 
+						LEFT JOIN ".$database_db.".firmen
+						ON(firmen.id = bearbeiter.firmenid) 
+					WHERE 
+						bearbeiter.email = '%1\$s' OR firmen.email = '%1\$s'",
+					mysql_real_escape_string($_POST['email2']));
+	$rs = $hDB->query($sql, $praktdbslave);
+	$num_bearbeiter = mysql_num_rows($rs);
+	$bearbeiter = mysql_fetch_assoc($rs);
+	
+	if($num_bearbeiter > 0) {
+		$error["step2"]["multiMail"] = true;
+		$error["step2"]["multiMailCompany"] = $bearbeiter["firma"];
+		$error["step2"]["multiMailEintrag"] = $bearbeiter["ts_eintrag"];
+	}
+	
+	$validtext = Praktika_Validate::validateMail($_POST['email2']);
+	if($validtext[0] === false) {
+		$error["step2"]["MailError"] = true;
+	}		
+}
+
+
+if (!isset($_POST['save']) ||
+	!isset($_POST['firma']) ||
+	!isset($_POST['agentur']) ||
+	!isset($_POST['strasse']) ||
+	!isset($_POST['plz']) ||
+	!isset($_POST['ort']) ||
+	!isset($_POST['email']) ||
+	!isset($_POST['passwort']) ||
+	!isset($_POST['passwort2']) ||
+	empty($_POST['firma']) ||
+	empty($_POST['agentur']) ||
+	empty($_POST['strasse']) ||
+	empty($_POST['plz']) ||
+	empty($_POST['ort']) ||
+	empty($_POST['email']) ||
+	empty($_POST['passwort']) ||
+	empty($_POST['passwort2']) ||
+	$_POST['passwort'] != $_POST['passwort2']) {
+		
+	pageheader(array('page_title' => 'Neuanmeldung Unternehmen - <br>Schritt 1 von 2'));
+
+	echo '<script type="text/javascript" src="/static.php?type=javascript&files=framework/base.js"></script>'."\n";
+	echo '<p>Um mit praktika.de Ihr komplettes Praktikantenmanagement durchzuf&uuml;hren, m&uuml;ssen Sie zuerst die Unternehmensstammdaten eingeben.<br />Wenn Sie Ihr Unternehmen das erste Mal anmelden, dann werden Sie automatisch Administrator des gesamten Unternehmens-Accounts. Sie k&ouml;nnen jederzeit weitere Personal-Bearbeiter anlegen, welche dann den Unternehmens-Account mitbenutzen k&ouml;nnen.</p>'."\n";
+	
+	if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'on') {
+		echo '<p><a href="https://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?'.ltrim($_SERVER['QUERY_STRING'],'&').'">'.$language['strSSL'].'</a></p>'."\n";
+	}
+	
+	if (isset($_POST['email'])) {
+		$_GET['email'] = $_POST['email'];
+	}
+	
+	if (isset($_POST['save'])) {
+		echo '<p class="hint error">Leider haben Sie die Felder nicht vollst&auml;ndig ausgef&uuml;llt. Bitte korrigieren Sie Ihre Eingaben in den rot markierten Feldern.</p>'."\n";
+	}
+	
+	if (isset($_POST['save']) && isset($_POST['passwort']) && empty($_POST['passwort'])) {
+		echo '<p class="hint error">Sie m&uuml;ssen ein Passwort zu Ihrer Sicherheit vergeben.</p>'."\n";
+	}
+	
+	if (isset($_POST['land'])) {
+		$landid = $_POST['land'];
+	} else {
+		$landid = 68;
+	}
+	
+	$branchen = $hDB->query('SELECT '.$_SESSION['s_sprache'].',id FROM '.$database_db.'.branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_branchen = mysql_num_rows($branchen);
+	
+	$landselect = $hDB->query('SELECT '.$_SESSION['s_sprache'].',id FROM '.$database_db.'.land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_land = mysql_num_rows($landselect);
+	
+	$bundeslandselect = $hDB->query('SELECT * FROM '.$database_db.'.bundesland WHERE landid='.$landid.' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_bundesland = mysql_num_rows($bundeslandselect);
+	
+	if ($anz_bundesland > 0) {
+		$bundeslandsel = mysql_result($bundeslandselect,0,'id');
+		
+		if (isset($_POST['bundesland']) && empty($_POST['bundesland'])) {
+			$_POST['bundesland'] = $bundeslandsel;
+		}
+		
+		$grossraumselect = $hDB->query('SELECT grossraum,id FROM '.$database_db.'.grossraum WHERE bundesland='.(isset($_POST['bundesland']) ? $_POST['bundesland'] : mysql_result($bundeslandselect,0,'id')).' ORDER BY grossraum',$praktdbslave);
+		$anz_grossraum = mysql_num_rows($grossraumselect);
+	}
+	echo '<form action="/neuanmeldung/company/" method="post" name="anmeldung">'."\n";
+	echo '	<h4>Unternehmensstammdaten</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="firma"'.((isset($_POST['save']) && isset($_POST['firma']) && empty($_POST['firma'])) ? ' class="error"' : '').'>Firma:</label>'."\n";
+	echo '			<input type="text" id="firma" name="firma" maxlength="100" value="'.(isset($_POST['firma']) ? stripslashes($_POST['firma']) : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="branche">Branche:</label>'."\n";
+	echo '			<select id="branche" name="branche">'."\n";
+	
+	$i=0;
+	while ($i < $anz_branchen) {
+		$html = htmlspecialchars(mysql_result($branchen,$i,$_SESSION['s_sprache']));
+		echo '				<option '.((isset($_POST['branche']) && $_POST['branche'] == (mysql_result($branchen,$i,'id'))) ? 'selected="selected" ' : '').'value="'.mysql_result($branchen,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="strasse"'.((isset($_POST['save']) && isset($_POST['strasse']) && empty($_POST['strasse'])) ? ' class="error"' : '').'>Stra&szlig;e:</label>'."\n";
+	echo '			<input type="text" id="strasse" name="strasse" value="'.(isset($_POST['strasse']) ? stripslashes($_POST['strasse']) : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="plz"'.((isset($_POST['save']) && ((isset($_POST['plz']) && empty($_POST['plz'])) || (isset($_POST['ort']) && empty($_POST['ort'])))) ? ' class="error"' : '').'>PLZ / Ort:</label>'."\n";
+	echo '			<span id="adresse_ort"><input autocomplete="off" type="text" id="plz" name="plz" value="'.(isset($_POST['plz']) ? $_POST['plz'] : '').'" /><input type="text" autocomplete="off" id="ort" name="ort" value="'.(isset($_POST['ort']) ? $_POST['ort'] : '').'" /></span>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="land">Land:</label>'."\n";
+	echo '			<select id="land" name="land">'."\n";
+	
+	$i=0;
+	while ($i < $anz_land) {
+		$html = htmlspecialchars(mysql_result($landselect,$i,$_SESSION['s_sprache']));
+		echo '				<option '.((mysql_result($landselect,$i,'id') == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($landselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="bundesland">Bundesland:</label>'."\n";
+	echo '			<select id="bundesland" name="bundesland">'."\n";
+	
+	$i=0;
+	while ($i < $anz_bundesland) {
+		$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+		echo '				<option '.((mysql_result($bundeslandselect,$i,'id') == $_POST['bundesland']) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="grossraum">Gro&szlig;raum:</label>'."\n";
+	echo '			<select id="grossraum" name="grossraum">'."\n";
+	
+	$i=0;
+	while ($i < $anz_grossraum) {
+		$html = htmlspecialchars(mysql_result($grossraumselect,$i));
+		echo '				<option '.((mysql_result($grossraumselect,$i,'id') == $_POST['grossraum']) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+?>
+<script type="text/javascript">
+	P_Framework.addModule("autocomplete");
+	P_Framework.addModule("validator");
+
+	//execute as soon as DOM is loaded
+	P_Framework.onload(initFunction);
+
+	function initFunction() {
+			var ortAC = new P_Autocomplete();
+			ortAC.init([$('plz'), $('ort')],"/admin/ajax/einsatzort.phtml", function(value) {
+				parts = value.split("-");
+
+				xhr("/api/geo/getdata.html?v=1.0","plz=" + trim(parts[0]) + "&ort="+ encodeURI(trim(parts[1].split(",")[0])) ,function(text) {
+					data = JSON.parse(text);
+					$('land').value = data["land_id"];
+					$('bundesland').value = data["bundesland_id"];
+
+					$('ort').value = data["ort"];
+					$('plz').value = data["plz"];
+
+
+					var event = {};
+					event.type = "change";
+					event.target = new Object();
+					event.target.value = data["bundesland_id"];
+
+					bundesland.handleEvent(event);
+					if(data["grossraum_id"] != undefined && data["grossraum_id"] != 0) {
+						window.setTimeout("document.getElementById('grossraum').value = '" + data["grossraum_id"] + "';","600");
+					}
+				});
+      },{ resultSizeContainer: 'adresse_ort' });
+
+			// P_Validator.setField("tel", "tel");
+      }
+
+</script>
+<?	
+	echo '		<p>'."\n";
+	echo '			<label for="tel">Telefonnummer (Zentral):</label>'."\n";
+	echo '			<input type="text" id="tel" name="tel" maxlength="50" value="'.(isset($_POST['tel']) ? stripslashes($_POST['tel']) : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="fax">Faxnummer (Zentral):</label>'."\n";
+	echo '			<input type="text" id="fax" name="fax" maxlength="50" value="'.(isset($_POST['fax']) ? stripslashes($_POST['fax']) : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="email">Firmen eMail:</label>'."\n";
+	echo '			<input type="text" id="email" name="email" maxlength="50" value="'.(isset($_GET['email']) ? $_GET['email'] : '').'" readonly="readonly" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="homepage">Homepage Adresse:</label>'."\n";
+	echo '			<input type="text" id="homepage" name="homepage" maxlength="50" value="'.(isset($_POST['homepage']) ? stripslashes($_POST['homepage']) : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="agentur1"'.((isset($_POST['save']) && !isset($_POST['agentur'])) ? ' class="error"' : '').'>Personalagentur oder Personalvermittler</label>'."\n";
+	echo '			<span class="checklist">'."\n";
+	echo '				<label for="agentur1"><input type="radio" id="agentur1" name="agentur" value="true" '.((isset($_POST['agentur']) && $_POST['agentur'] == 'true') ? ' checked="checked"' : '').' /> ja</label>'."\n";
+	echo '				<label for="agentur2"><input type="radio" id="agentur2" name="agentur" value="false" '.((isset($_POST['agentur']) && $_POST['agentur'] == 'false') ? ' checked="checked"' : '').' /> nein</label>'."\n";
+	echo '			</span>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<h4>Passwort</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="pwd"'.((isset($_POST['save']) && isset($_POST['passwort']) && (empty($_POST['passwort']) || $_POST['passwort'] != $_POST['passwort2'])) ? ' class="error"' : '').'>eigenes Zugangspasswort:</label>'."\n";
+	echo '			<input type="password" id="pwd" name="passwort" maxlength="30" value="" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="pwd2"'.((isset($_POST['save']) && isset($_POST['passwort2']) && (empty($_POST['passwort']) || $_POST['passwort'] != $_POST['passwort2'])) ? ' class="error"' : '').'>Passwortwiederholung:</label>'."\n";
+	echo '			<input type="password" id="pwd2" name="passwort2" maxlength="30" value="" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="passwd" class="komplette_breite"><input type="checkbox" value="true" id="passwd" name="passwd"'.((isset($_POST['passwd']) && ($_POST['passwd'] == "true")) ? ' checked="checked"' : '').' /> Passwort nicht in Anmeldebest&auml;tigung (per eMail) anzeigen!</label>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit"class="button red small" id="save" name="save" value="ABSENDEN" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+} elseif (	(isset($_POST['save']) &&
+			isset($_POST['firma']) &&
+			isset($_POST['agentur']) &&
+			isset($_POST['strasse']) &&
+			isset($_POST['plz']) &&
+			isset($_POST['ort']) &&
+			isset($_POST['passwort']) &&
+			isset($_POST['passwort2']) &&
+			!empty($_POST['firma']) &&
+			!empty($_POST['agentur']) &&
+			!empty($_POST['strasse']) &&
+			!empty($_POST['plz']) &&
+			!empty($_POST['ort']) &&
+			!empty($_POST['passwort']) &&
+			!empty($_POST['passwort2']) &&
+			$_POST['passwort'] == $_POST['passwort2'])
+			&&
+			(!isset($_POST['save2']) ||
+			$error["step2"]["multiMail"] == true ||
+			$error["step2"]["MailError"] == true ||
+			!isset($_POST['vname']) ||
+			!isset($_POST['lname']) ||
+			!isset($_POST['funktion']) ||
+			!isset($_POST['tel1']) ||
+			!isset($_POST['email2']) ||
+			!isset($_POST['agbok']) ||
+			empty($_POST['vname']) ||
+			empty($_POST['lname']) ||
+			empty($_POST['funktion']) ||
+			empty($_POST['tel1']) ||
+			empty($_POST['email2']) ||
+			empty($_POST['agbok']))) {
+
+	pageheader(array('page_title' => 'Neuanmeldung Unternehmen - Schritt 2 von 2'));
+	
+	echo '<p>Geben Sie nun Ihre pers&ouml;nlichen Daten an.</p>'."\n";
+	echo '<p class="hint info">Wichtiger Hinweis: Sollten Sie im Unternehmen befristet oder nur zeitweise t&auml;tig sein z.B. Praktikum, so tragen Sie bitte bei Ansprechpartner einen festangestellten Mitarbeiter der Abteilung bzw. die Abteilungsleitung ein. Damit verhindern Sie die Unzustellbarkeit von Bewerbungen und Anfragen!</p>'."\n";
+	
+	if (isset($_POST['save2'])) {
+		echo '<p class="hint error">Bitte f&uuml;llen Sie alle rot markierten Felder aus.</p>'."\n";
+	}
+	
+	if ($error['step2']['multiMail'] == true) {
+		echo '<p class="hint error">Die angegebene eMail-Adresse existiert bereits in unserer Datenbank.<br />Sie wurde am '.date('d.m.Y', $error['step2']['multiMailEintrag']).' mit dem Unternehmen "<strong>'.$error['step2']['multiMailCompany'].'</strong>" verkn&uuml;pft.<br /><br />Bitte nutzen Sie den <a onclick="smallbox.loadLogin(function(e) { if(e==false) return; window.location.href=\'/login/\'; }); return false;" href="/login/">Login</a> oder die <a href="#" onclick="smallbox.loadUrl(\'\', \'/home/quicklogin/passwdwindow_smallbox.phtml\', \'\', {id:\'login\',width:440, title:\'Passwort vergessen\'}); return false;">Passwort vergessen</a> Funktion.<br />Bei weiterhin bestehenden Problemen kontaktieren Sie bitte unser Servicecenter.</p>'."\n";
+	}
+	
+	echo '<form action="/neuanmeldung/company/" method="post" name="anmeldung">'."\n";
+	echo '	<h4>Ansprechpartner</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="titel">Titel:</label>'."\n";
+	echo '			<input type="text" id="titel" name="titel" maxlength="35" value="'.(isset($_POST['title']) ? $_POST['title'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="anrede">Anrede:</label>'."\n";
+	echo '			<select id="anrede" name="anrede">'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Herr') ? 'selected="selected" ' : '').'value="Herr">Herr</option>'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Frau') ? 'selected="selected" ' : '').'value="Frau">Frau</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="vname"'.((isset($_POST['save2']) && isset($_POST['vname']) && empty($_POST['vname'])) ? ' class="error"' : '').'>Vorname:</label>'."\n";
+	echo '			<input type="text" id="vname" name="vname" maxlength="35" value="'.(isset($_POST['vname']) ? $_POST['vname'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="lname"'.((isset($_POST['save2']) && isset($_POST['lname']) && empty($_POST['lname'])) ? ' class="error"' : '').'>Nachname:</label>'."\n";
+	echo '			<input type="text" id="lname" name="lname" maxlength="35" value="'.(isset($_POST['lname']) ? $_POST['lname'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="abteilung">Abteilung:</label>'."\n";
+	echo '			<input type="text" id="abteilung" name="abteilung" maxlength="35" value="'.(isset($_POST['abteilung']) ? $_POST['abteilung'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="funktion"'.((isset($_POST['save2']) && isset($_POST['funktion']) && empty($_POST['funktion'])) ? ' class="error"' : '').'>Funktion:</label>'."\n";
+	echo '			<input type="text" id="funktion" name="funktion" maxlength="35" value="'.(isset($_POST['funktion']) ? $_POST['funktion'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="tel1"'.((isset($_POST['save2']) && isset($_POST['tel1']) && empty($_POST['tel1'])) ? ' class="error"' : '').'>Tel. (Arbeitsplatz):</label>'."\n";
+	echo '			<input type="text" id="tel1" name="tel1" maxlength="35" value="'.(isset($_POST['tel1']) ? $_POST['tel1'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="fax1">Fax (Arbeitsplatz):</label>'."\n";
+	echo '			<input type="text" id="fax1" name="fax1" maxlength="35" value="'.(isset($_POST['fax1']) ? $_POST['fax1'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="email2"'.($error["step2"]["MailError"]==true || $error["step2"]["multiMail"]==true || (isset($_POST['save2']) && isset($_POST['email2']) && empty($_POST['email2'])) ? ' class="error"' : '').'> pers&ouml;nliche eMail:</label>'."\n";
+	echo '			<input type="text" id="email2" name="email2" maxlength="255" value="'.(isset($_POST['email2']) ? $_POST['email2'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<h4>Abteilungsleitung</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>Wir bitten Sie, auch die Kontaktdaten der Abteilungsleitung des zust&auml;ndigen Personalwesens einzutragen. Sollte einmal ein Ansprechpartner bzw. Personalmitarbeiter das Unternehmen verlassen, so k&ouml;nnen wir Bewerbungen und Anfragen ohne Zeitverluste an die richtige Abteilung weiterleiten. Bitte helfen Sie mit, dass Bewerbungen schnell bearbeitet werden k&ouml;nnen.</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="anredeabt">Anrede:</label>'."\n";
+	echo '			<select id="anredeabt" name="anredeabt">'."\n";
+	echo '				<option '.((isset($_POST['anredeabt']) && $_POST['anredeabt'] == 'Herr') ? 'selected="selected" ' : '').'value="Herr">Herr</option>'."\n";
+	echo '				<option '.((isset($_POST['anredeabt']) && $_POST['anredeabt'] == 'Frau') ? 'selected="selected" ' : '').'value="Frau">Frau</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="abtname">Name:</label>'."\n";
+	echo '			<input type="text" id="abtname" name="abtname" maxlength="35" value="'.(isset($_POST['abtname']) ? $_POST['abtname'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="abttelefon">Telefon:</label>'."\n";
+	echo '			<input type="text" id="abttelefon" name="abttelefon" maxlength="35" value="'.(isset($_POST['abttelefon']) ? $_POST['abttelefon'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="abtemail">eMail:</label>'."\n";
+	echo '			<input type="text" id="abtemail" name="abtemail" maxlength="35" value="'.(isset($_POST['abtemail']) ? $_POST['abtemail'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<h4>Unternehmensdaten</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>Diese Angaben dienen ausschlie&szlig;lich statistischen Zwecken und werden vertraulich behandelt.</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="mitarbeiter">Mitarbeiter:</label>'."\n";
+	echo '			<select id="mitarbeiter" name="mitarbeiter">'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '1') ? 'selected="selected" ' : '').'value="1">1-20</option>'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '21') ? 'selected="selected" ' : '').'value="21">21-50</option>'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '51') ? 'selected="selected" ' : '').'value="51">51-250</option>'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '251') ? 'selected="selected" ' : '').'value="251">251-500</option>'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '500') ? 'selected="selected" ' : '').'value="500">500-1000</option>'."\n";
+	echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '1000') ? 'selected="selected" ' : '').'value="1000">&gt;&gt; 1000</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="umsatz">Jahresumsatz:<br /><span class="hint">in Millionen Euro</span></label>'."\n";
+	echo '			<select id="umsatz" name="umsatz">'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '-1') ? 'selected="selected" ' : '').'value="-1">keine Angabe</option>'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '0') ? 'selected="selected" ' : '').'value="0">0-5</option>'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '5') ? 'selected="selected" ' : '').'value="5">5-25</option>'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '25') ? 'selected="selected" ' : '').'value="25">25-50</option>'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '50') ? 'selected="selected" ' : '').'value="50">50-100</option>'."\n";
+	echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '100') ? 'selected="selected" ' : '').'value="100">&gt;&gt; 100</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="agbok" class="komplette_breite'.((isset($_POST['save2']) && !isset($_POST['agbok'])) ? ' error' : '').'"><input type="checkbox" value="true" id="agbok" name="agbok"'.((isset($_POST['agbok']) && ($_POST['agbok'] == 'true')) ? ' checked="checked"' : '').' /> Ich habe die <a target="_blank" href="/cms/Nutzungsbedingungen.278.0.html">Nutzungsbedingungen</a> von praktika.de gelesen und stimme diesen zu.</label>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit" class="button red small" id="save2" name="save2" value="ANMELDUNG ABSCHLIE&szlig;EN" />'."\n";
+	echo '			<input type="hidden" name="firma" value="'.((isset($_POST['firma']) && !empty($_POST['firma'])) ? $_POST['firma'] : '').'">'."\n";
+	echo '			<input type="hidden" name="branche" value="'.((isset($_POST['branche']) && !empty($_POST['branche'])) ? $_POST['branche'] : '').'">'."\n";
+	echo '			<input type="hidden" name="strasse" value="'.((isset($_POST['strasse']) && !empty($_POST['strasse'])) ? $_POST['strasse'] : '').'">'."\n";
+	echo '			<input type="hidden" name="plz" value="'.((isset($_POST['plz']) && !empty($_POST['plz'])) ? $_POST['plz'] : '').'">'."\n";
+	echo '			<input type="hidden" name="ort" value="'.((isset($_POST['ort']) && !empty($_POST['ort'])) ? $_POST['ort'] : '').'">'."\n";
+	echo '			<input type="hidden" name="grossraum" value="'.((isset($_POST['grossraum']) && !empty($_POST['grossraum'])) ? $_POST['grossraum'] : '').'">'."\n";
+	echo '			<input type="hidden" name="bundesland" value="'.((isset($_POST['bundesland']) && !empty($_POST['bundesland'])) ? $_POST['bundesland'] : '').'">'."\n";
+	echo '			<input type="hidden" name="land" value="'.((isset($_POST['land']) && !empty($_POST['land'])) ? $_POST['land'] : '').'">'."\n";
+	echo '			<input type="hidden" name="tel" value="'.((isset($_POST['tel']) && !empty($_POST['tel'])) ? $_POST['tel'] : '').'">'."\n";
+	echo '			<input type="hidden" name="fax" value="'.((isset($_POST['fax']) && !empty($_POST['fax'])) ? $_POST['fax'] : '').'">'."\n";
+	echo '			<input type="hidden" name="email" value="'.((isset($_POST['email']) && !empty($_POST['email'])) ? $_POST['email'] : '').'">'."\n";
+	echo '			<input type="hidden" name="homepage" value="'.((isset($_POST['homepage']) && !empty($_POST['homepage'])) ? $_POST['homepage'] : '').'">'."\n";
+	echo '			<input type="hidden" name="agentur" value="'.((isset($_POST['agentur']) && !empty($_POST['agentur'])) ? $_POST['agentur'] : '').'">'."\n";
+	echo '			<input type="hidden" name="passwort" value="'.((isset($_POST['passwort']) && !empty($_POST['passwort'])) ? $_POST['passwort'] : '').'">'."\n";
+	echo '			<input type="hidden" name="passwort2" value="'.((isset($_POST['passwort2']) && !empty($_POST['passwort2'])) ? $_POST['passwort2'] : '').'">'."\n";
+	echo '			<input type="hidden" name="passwd" value="'.((isset($_POST['passwd']) && !empty($_POST['passwd'])) ? $_POST['passwd'] : '').'">'."\n";
+	echo '			<input type="hidden" name="save" value="'.((isset($_POST['save']) && !empty($_POST['save'])) ? $_POST['save'] : '').'">'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+} elseif (	isset($_POST['save2']) &&
+			isset($_POST['vname']) &&
+			isset($_POST['lname']) &&
+			isset($_POST['funktion']) &&
+			isset($_POST['tel1']) &&
+			isset($_POST['email2']) &&
+			isset($_POST['agbok']) &&
+			!empty($_POST['vname']) &&
+			!empty($_POST['lname']) &&
+			!empty($_POST['funktion']) &&
+			!empty($_POST['tel1']) &&
+			!empty($_POST['email2']) &&
+			!empty($_POST['agbok'])) {
+
+
+	if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+		$reload_gedrueckt = $hDB->query('SELECT email FROM '.$database_db.'.firmen WHERE email = \''.mysql_real_escape_string($_POST['email']).'\'',$praktdbmaster);
+		
+		//mehrfache Eintr�ge vermeiden, wenn reload gedr�ckt wird
+		if (mysql_num_rows($reload_gedrueckt) == 0) {
+			/* hp checken */
+			if ($_POST['homepage'] == 'http://') {
+				$_POST['homepage'] = '';
+			}
+			if (!empty($_POST['homepage'])) {
+				if (strlen($_POST['homepage']) > 7) {
+					$anfang = substr($_POST['homepage'],0,7);
+				} else {
+					$anfang = '';
+				}
+				
+				if ($anfang != 'http://') {
+					$homepage = 'http://'.$_POST['homepage'];
+				}
+				
+			}
+			# $_POST["passwort"] = $_POST["passwort"]);
+	
+			/* Gro&szlig;raum festlegen */
+			if (empty($_POST['grossraum'])) {
+				$_POST['grossraum'] = 94;
+			}
+
+			/* einfuegestring zusammensetzen */
+			$insertstring = 'INSERT INTO '.$database_db.'.firmen (
+								inactive,
+								firma,
+								strasse,
+								plz,
+								ort,
+								bundesland,
+								land,
+								grossraum,
+								tel,
+								fax,
+								email,
+								homepage,
+								branche,
+								bearbeiter,
+								sprache,
+								host,
+								ip,
+								datum_eintrag,
+								modify
+							) VALUES(
+								\'false\',
+								\''.mysql_real_escape_string($_POST['firma']).'\',
+								\''.mysql_real_escape_string($_POST['strasse']).'\',
+								\''.mysql_real_escape_string($_POST['plz']).'\',
+								\''.mysql_real_escape_string($_POST['ort']).'\',
+								'.intval($_POST['bundesland']).',
+								'.intval($_POST['land']).',
+								'.intval($_POST['grossraum']).',
+								\''.mysql_real_escape_string($_POST['tel']).'\',
+								\''.mysql_real_escape_string($_POST['fax']).'\',
+								\''.mysql_real_escape_string($_POST['email']).'\',
+								\''.mysql_real_escape_string($_POST['homepage']).'\',
+								'.intval($_POST['branche']).',
+								\''.mysql_real_escape_string($_POST['bearbeiter']).'\',
+								'.intval($_SESSION['s_sprachid']).',
+								\''.mysql_real_escape_string($host).'\',
+								\''.mysql_real_escape_string($ip).'\',
+								NOW(),
+								NOW())';
+			$hDB->query($insertstring, $praktdbmaster);
+	
+			/* id bestimmen */
+			$insert_id = mysql_insert_id($praktdbmaster);
+		
+			/* einfuegestring ansprechpartner zusammensetzen */
+			$insertstring2 = 'INSERT INTO '.$database_db.'.bearbeiter (
+								inactive,
+								firmenid,
+								titel,
+								anrede,
+								vname,
+								name,
+								abteilung,
+								funktion,
+								tel,
+								fax,
+								email,
+								passwort,
+								passwort_plain,
+								admin,
+								anredeabt,
+								abtname,
+								abttelefon,
+								abtemail,
+								host,
+								ip,
+								datum_eintrag,
+								modify
+							) VALUES (
+								\'false\',
+								'.intval($insert_id).',
+								\''.mysql_real_escape_string($_POST['titel']).'\',
+								\''.mysql_real_escape_string($_POST['anrede']).'\',
+								\''.mysql_real_escape_string($_POST['vname']).'\',
+								\''.mysql_real_escape_string($_POST['lname']).'\',
+								\''.mysql_real_escape_string($_POST['abteilung']).'\',
+								\''.mysql_real_escape_string($_POST['funktion']).'\',
+								\''.mysql_real_escape_string($_POST['tel1']).'\',
+								\''.mysql_real_escape_string($_POST['fax1']).'\',
+								\''.mysql_real_escape_string($_POST['email2']).'\',
+								OLD_PASSWORD(\''.mysql_real_escape_string($_POST['passwort']).'\'),
+								\''.mysql_real_escape_string($_POST['passwort']).'\',
+								\'true\',
+								\''.mysql_real_escape_string($_POST['anredeabt']).'\',
+								\''.mysql_real_escape_string($_POST['abtname']).'\',
+								\''.mysql_real_escape_string($_POST['abttelefon']).'\',
+								\''.mysql_real_escape_string($_POST['abtemail']).'\',
+								\''.mysql_real_escape_string($host).'\',
+								\''.mysql_real_escape_string($ip).'\',
+								NOW(),
+								NOW())';
+			# var_dump($insertstring2);
+			
+			$hDB->query($insertstring2,$praktdbmaster);
+		
+			/* id bestimmen */
+			$bearbeiter_id = mysql_insert_id($praktdbmaster);
+		
+			switch ($_POST['umsatz']) {
+				case -1:
+					$umsatz = 'keine Angabe';
+					break;
+				case 0:
+					$umsatz = '0-5000000';
+					break;
+				case 5:
+					$umsatz = '5000000-25000000';
+					break;
+				case 25:
+					$umsatz = '25000000-50000000';
+					break;
+				case 50:
+					$umsatz = '50000000-100000000';
+					break;
+				case 100:
+					$umsatz = '100000000';
+					break;
+			}
+		
+			$insertstring3 = '	INSERT INTO '.$database_db.'.firmen_prop_assign (
+									firmenid,
+									agentur,
+									nutzungbed,
+									agb,
+									mitarbeiter,
+									umsatz,
+									datum_eintrag,
+									modify
+								) VALUES (
+									'.intval($insert_id).',
+									\''.mysql_real_escape_string($_POST['agentur']).'\',
+									\''.mysql_real_escape_string($_POST['agbok']).'\',
+									\'false\',
+									\''.mysql_real_escape_string($_POST['mitarbeiter']).'\',
+									\''.mysql_real_escape_string($_POST['umsatz']).'\',
+									NOW(),
+									NOW())';
+			$hDB->query($insertstring3,$praktdbmaster);
+		
+			/* Newslettereintrag vornehmen */
+			$emaildoppelt = $hDB->query('SELECT email FROM '.$database_db.'.newsletter WHERE email = "'.$_POST['email2'].'"',$praktdbslave);
+			
+			if (isset($emaildoppelt) && $emaildoppelt != false) {
+				$anz_eintrag = mysql_num_rows($emaildoppelt);
+			
+				if ((isset($_POST['email2']) && !empty($_POST['email2'])) && (!$anz_eintrag > 0)) {
+					$insertstring4 = '	INSERT INTO '.$database_db.'.newsletter (
+											email,
+											type,
+											language,
+											gruppe,
+											modify
+										) VALUES(
+											\''.mysql_real_escape_string($_POST['email2']).'\',
+											\'text\',
+											'.intval($_SESSION['s_sprache']).',
+											\''.mysql_real_escape_string($_POST['firma']).'\',
+											NOW())';
+					$hDB->query($insertstring4,$praktdbmaster);
+				}
+			}
+		
+			/* Logfile eintragen */
+			$fp = @fopen( $logfile, 'a');
+			@fputs($fp, $insertstring);
+			@fputs($fp, "\n");
+			@fputs($fp, $insertstring2);
+			@fputs($fp, "\n");
+			@fclose($fp);
+		}
+	}
+	
+	/* datensatz zur bestaetigung auslesen */
+	$eintrag = $hDB->query('SELECT 
+			*,
+			bearbeiter.email AS bemail,
+			bearbeiter.tel AS btel,
+			bearbeiter.fax AS bfax 
+		FROM '.$database_db.'.firmen, 
+			'.$database_db.'.bearbeiter 
+		WHERE 
+			firmen.id = '.((isset($insert_id) && !empty($insert_id)) ? $insert_id : $_SESSION['s_firmenid']).' AND 
+			firmen.id = bearbeiter.firmenid', $praktdbmaster);
+	
+	#echo "-".$insert_id."-";
+        #echo "-".$_SESSION['s_firmenid']."-";
+        #echo 'SELECT *,bearbeiter.email AS bemail,bearbeiter.tel AS btel,bearbeiter.fax AS bfax FROM firmen, bearbeiter WHERE firmen.id = '.((isset($insert_id) && !empty($insert_id)) ? $insert_id : $_SESSION['s_firmenid']).' AND firmen.id = bearbeiter.firmenid';
+
+        if (!isset($_SESSION['s_loginid']) && !isset($_SESSION['s_firmenid'])) {
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(7);
+		
+		$passwort = mysql_result($eintrag, 0, 'passwort_plain');
+		
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace('{id}',mysql_result($eintrag, 0, 'id'));
+		$emailobj->replace('{firma}',mysql_result($eintrag, 0, 'firma'));
+		$emailobj->replace('{strasse}',mysql_result($eintrag, 0, 'strasse'));
+		$emailobj->replace('{plz}',mysql_result($eintrag, 0, 'plz'));
+		$emailobj->replace('{ort}',mysql_result($eintrag, 0, 'ort'));
+		$emailobj->replace('{land}',mysql_result($eintrag, 0, 'land'));
+		$emailobj->replace('{bundesland}',mysql_result($eintrag, 0, 'bundesland'));
+		$emailobj->replace('{grossraum}',mysql_result($eintrag, 0, 'grossraum'));
+		$emailobj->replace('{tel}',mysql_result($eintrag, 0, 'tel'));
+		$emailobj->replace('{fax}',mysql_result($eintrag, 0, 'fax'));
+		$emailobj->replace('{email}',mysql_result($eintrag, 0, 'email'));
+		$emailobj->replace('{homepage}',mysql_result($eintrag, 0, 'homepage'));
+		$emailobj->replace('{branche}',mysql_result($eintrag, 0, 'branche'));
+		$emailobj->replace('{sprache}',mysql_result($eintrag, 0, 'sprache'));
+		$emailobj->replace('{anrede}',mysql_result($eintrag, 0, 'anrede'));
+		$emailobj->replace('{vname}',mysql_result($eintrag, 0, 'vname'));
+		$emailobj->replace('{name}',mysql_result($eintrag, 0, 'name'));
+		$emailobj->replace('{abteilung}',mysql_result($eintrag, 0, 'abteilung'));
+		$emailobj->replace('{funktion}',mysql_result($eintrag, 0, 'funktion'));
+		$emailobj->replace('{durchwahl}',mysql_result($eintrag, 0, 'btel'));
+		$emailobj->replace('{personalfax}',mysql_result($eintrag, 0, 'bfax'));
+		$emailobj->replace('{passwort}',mysql_result($eintrag, 0, 'passwort'));
+		$emailobj->replace('{passwort_plain}', $passwort);
+		$emailobj->replace('{admin}',mysql_result($eintrag, 0, 'admin'));
+		$emailobj->replace('{host}',mysql_result($eintrag, 0, 'host'));
+		$emailobj->replace('{ip}',mysql_result($eintrag, 0, 'ip'));
+		$emailobj->replace('{insertstring}',$insertstring);
+		$emailobj->replace('{insertstring2}',$insertstring2);
+	
+		// infomail verschicken
+		$emailobj->send_email();
+		
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+	
+	
+		// Benachrichtigung wegen Agentur
+		if ($_POST['agentur'] == 'true') {
+			// Templatesystem vorbereiten
+			$emailobj = new emailtemplate(8);
+			
+			// Ersetzungen durchf&uuml;hren
+			$emailobj->replace('{id}',mysql_result($eintrag, 0, 'id'));
+			$emailobj->replace('{firma}',mysql_result($eintrag, 0, 'firma'));
+			$emailobj->replace('{strasse}',mysql_result($eintrag, 0, 'strasse'));
+			$emailobj->replace('{plz}',mysql_result($eintrag, 0, 'plz'));
+			$emailobj->replace('{ort}',mysql_result($eintrag, 0, 'ort'));
+			$emailobj->replace('{land}',mysql_result($eintrag, 0, 'land'));
+			$emailobj->replace('{bundesland}',mysql_result($eintrag, 0, 'bundesland'));
+			$emailobj->replace('{grossraum}',mysql_result($eintrag, 0, 'grossraum'));
+			$emailobj->replace('{tel}',mysql_result($eintrag, 0, 'tel'));
+			$emailobj->replace('{fax}',mysql_result($eintrag, 0, 'fax'));
+			$emailobj->replace('{email}',mysql_result($eintrag, 0, 'email'));
+			$emailobj->replace('{homepage}',mysql_result($eintrag, 0, 'homepage'));
+			$emailobj->replace('{branche}',mysql_result($eintrag, 0, 'branche'));
+			$emailobj->replace('{sprache}',mysql_result($eintrag, 0, 'sprache'));
+			$emailobj->replace('{anrede}',mysql_result($eintrag, 0, 'anrede'));
+			$emailobj->replace('{vname}',mysql_result($eintrag, 0, 'vname'));
+			$emailobj->replace('{name}',mysql_result($eintrag, 0, 'name'));
+			$emailobj->replace('{abteilung}',mysql_result($eintrag, 0, 'abteilung'));
+			$emailobj->replace('{funktion}',mysql_result($eintrag, 0, 'funktion'));
+			$emailobj->replace('{durchwahl}',mysql_result($eintrag, 0, 'btel'));
+			$emailobj->replace('{personalfax}',mysql_result($eintrag, 0, 'bfax'));
+	
+			// infomail verschicken
+			$emailobj->send_email();
+			
+			// Emailobjekt l&ouml;schen
+			unset($emailobj);
+		}
+	
+		// Neues Emailtemplatesystem nutzen
+		$mailtoaddr = mysql_result($eintrag, 0, 'bemail');
+	
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(9);
+	
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace('{bearbeiterid}',$bearbeiter_id);
+	
+		if ($_POST['passwd'] != 'true') {
+			$emailobj->replace('{passwort}', $passwort);
+		} else {
+			$emailobj->replace('{passwort}', 'nicht mitgesendet');
+		}
+		
+		// infomail verschicken
+		$emailobj->send_email($mailtoaddr);
+	
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+	
+		
+		/* --Doppelte Firmen pr&uuml;fen-------------------------- */
+		$ba_domain = explode('@',mysql_result($eintrag, 0, 'bemail'));
+		$ba_domain = end($ba_domain);
+		$anzahl_firmenid = $hDB->query('SELECT firmen.id,firmen.inactive FROM '.$database_db.'.firmen,'.$database_db.'.bearbeiter WHERE firmen.id=bearbeiter.firmenid AND bearbeiter.email LIKE \'%'.$ba_domain.'\' GROUP BY firmen.id',$praktdbmaster);
+	
+		if (mysql_num_rows($anzahl_firmenid) > 1) {
+			// Templatesystem vorbereiten
+			$emailobj = new emailtemplate(10);
+	
+			// Ersetzungen durchf&uuml;hren
+			$emailobj->replace('{id}',mysql_result($eintrag, 0, 'id'));
+			$emailobj->replace('{firma}',mysql_result($eintrag, 0, 'firma'));
+			$firmenids = '';
+			
+			while ($row = mysql_fetch_array($anzahl_firmenid, MYSQL_BOTH)) {
+				$firmenids = $firmenids.$row['id'];
+				
+				if ($row['inactive'] == 'true') {
+					$firmenids = $firmenids . ' - inactive';
+				}
+				
+				$firmenids = $firmenids.'\n';
+			}
+			
+			$emailobj->replace('{firmenids}',$firmenids);
+			$emailobj->replace('{strasse}',mysql_result($eintrag, 0, 'strasse'));
+			$emailobj->replace('{plz}',mysql_result($eintrag, 0, 'plz'));
+			$emailobj->replace('{ort}',mysql_result($eintrag, 0, 'ort'));
+			$emailobj->replace('{land}',mysql_result($eintrag, 0, 'land'));
+			$emailobj->replace('{bundesland}',mysql_result($eintrag, 0, 'bundesland'));
+			$emailobj->replace('{grossraum}',mysql_result($eintrag, 0, 'grossraum'));
+			$emailobj->replace('{tel}',mysql_result($eintrag, 0, 'tel'));
+			$emailobj->replace('{fax}',mysql_result($eintrag, 0, 'fax'));
+			$emailobj->replace('{email}',mysql_result($eintrag, 0, 'email'));
+			$emailobj->replace('{homepage}',mysql_result($eintrag, 0, 'homepage'));
+			$emailobj->replace('{branche}',mysql_result($eintrag, 0, 'branche'));
+			$emailobj->replace('{sprache}',mysql_result($eintrag, 0, 'sprache'));
+			$emailobj->replace('{anrede}',mysql_result($eintrag, 0, 'anrede'));
+			$emailobj->replace('{vname}',mysql_result($eintrag, 0, 'vname'));
+			$emailobj->replace('{name}',mysql_result($eintrag, 0, 'name'));
+			$emailobj->replace('{abteilung}',mysql_result($eintrag, 0, 'abteilung'));
+			$emailobj->replace('{funktion}',mysql_result($eintrag, 0, 'funktion'));
+			$emailobj->replace('{durchwahl}',mysql_result($eintrag, 0, 'btel'));
+			$emailobj->replace('{personalfax}',mysql_result($eintrag, 0, 'bfax'));
+	
+			// infomail verschicken
+			$emailobj->send_email();
+			
+			// Emailobjekt l&ouml;schen
+			unset($emailobj);
+		}
+#echo "vor".$bearbeiter_id."--".$_POST['passwort']."<br />";
+
+		$objUser = new Praktika_User($bearbeiter_id);
+	
+		Praktika_User::loginById($bearbeiter_id, LOGIN_COMPANIES);
+	}
+
+	$branchenid = mysql_result($eintrag,0,'branche');
+	$branche = $hDB->query('SELECT '.$_SESSION['s_sprache'].' FROM '.$database_db.'.branchen WHERE id='.$branchenid,$praktdbslave);
+
+	$landid = mysql_result($eintrag,0,'land');
+	$land = $hDB->query('SELECT '.$_SESSION['s_sprache'].' FROM '.$database_db.'.land WHERE id='.$landid,$praktdbslave);
+
+	$grossraumid = mysql_result($eintrag,0,'grossraum');
+	if ($grossraumid != 0) {
+		$grossraum = $hDB->query('SELECT grossraum FROM '.$database_db.'.grossraum WHERE bundesland='.intval($_POST['bundesland']).' AND id='.$grossraumid,$praktdbslave);
+		$grossraumausgabe = ', '.mysql_result($grossraum,0,'grossraum');
+	}
+
+	$bundeslandid = mysql_result($eintrag,0,'bundesland');
+	if ($bundeslandid != 0) {
+		$bundeslandsel = $hDB->query('SELECT '.$_SESSION['s_sprache'].' FROM '.$database_db.'.bundesland WHERE id='.$bundeslandid,$praktdbslave);
+		$bundeslandausgabe = ', '.mysql_result($bundeslandsel,0,$_SESSION['s_sprache']);
+	}
+
+	$titel = mysql_result($eintrag,0,'titel');
+	$person = mysql_result($eintrag,0,'anrede').' '.(!empty($titel) ? $titel.' ' : '').mysql_result($eintrag,0,'vname').' '.mysql_result($eintrag,0,'name');
+
+	pageheader(array('page_title' => 'Neuanmeldung Unternehmen - Schritt 2 von 2'));
+
+	/* zugangsdaten */
+	echo '<table summary="Zugangsdaten">'."\n";
+	echo '	<colgroup>'."\n";
+	echo '		<col />'."\n";
+	echo '		<col />'."\n";
+	echo '	</colgroup>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">Ihre Zugangsdaten (f&uuml;r &Auml;nderungen oder L&ouml;schung)</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Identifikationnummer:</td>'."\n";
+	echo '		<td>'.((isset($bearbeiter_id) && !empty($bearbeiter_id))? $bearbeiter_id : $_SESSION['s_loginid']).'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Passwort:</td>'."\n";
+	echo '		<td>wird per eMail'.($_POST['passwd'] == 'true' ? ' <strong>nicht</strong>' : '').' gesendet</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">Ihre Firmendaten</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Firma:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'firma').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Branche:</td>'."\n";
+	echo '		<td>'.mysql_result($branche,0,$_SESSION['s_sprache']).'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Stra&szlig;e:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'strasse').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>PLZ / Ort:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'plz').' '.mysql_result($eintrag,0,'ort').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Gebiet:</td>'."\n";
+	echo '		<td>'.mysql_result($land,0,$_SESSION['s_sprache']).$bundeslandausgabe.$grossraumausgabe.'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Telefonnummer:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'tel').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Faxnummer:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'fax').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>eMail-Adresse:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'email').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Homepage Adresse:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'homepage').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">Ansprechpartner</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Ansprechpartner:</td>'."\n";
+	echo '		<td>'.$person.'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Abteilung:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'abteilung').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Funktion:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'funktion').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Durchwahl:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'btel').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Faxnummer:</td>'."\n";
+	echo '		<td>'.mysql_result($eintrag,0,'bfax').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>pers&ouml;nliche eMail:</td>'."\n";
+	echo '		<td><a href="mailto:'.mysql_result($eintrag,0,'bemail').'">'.mysql_result($eintrag,0,'bemail').'</a></td>'."\n";
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	if(isset($_SESSION["mitglied_werden"]) && $_SESSION["mitglied_werden"] == true) {
+		echo '		<a href="/recruiting/" class="button red small">zum n&auml;chsten Schritt: Recruiting Center</a>'."\n";
+	} else {
+		echo '		<a href="/firmen/stelle/0/content.html" class="button red small">zum n&auml;chsten Schritt: Stelle ausschreiben</a>'."\n";		
+	}
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+
+    $objOptivo = new Praktika_Optivo();
+
+    $data = array("firma" => mysql_result($eintrag,0,'firma'),
+        "strasse" => mysql_result($eintrag,0,'strasse'),
+        "email" => mysql_result($eintrag,0,'bemail'),
+        "plz" => mysql_result($eintrag,0,'plz'),
+        "ort" => mysql_result($eintrag,0,'ort'),
+        "bundesland" => mysql_result($bundeslandsel,0,$_SESSION['s_sprache']),
+        "land" => mysql_result($land,0,$_SESSION['s_sprache']),
+        "grossraum" => mysql_result($grossraum,0,'grossraum'),
+        "branche" => mysql_result($branche,0,$_SESSION['s_sprache'])
+        );
+	# error_log(var_dump($data));
+    $objOptivo->addCompany($data);
+	
+}
+?><script type="text/javascript">P_Framework.write();</script><?
+bodyoff();
+?>

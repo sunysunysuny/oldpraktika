@@ -1,0 +1,81 @@
+<?
+$restricted = "nutzer";
+$gruppe = "praktikanten";
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+require("/home/praktika/etc/config.inc.php");
+require("/home/praktika/etc/emailverify.inc.php");
+$captchaWord = "sicherheit";
+
+pageheader(array('page_title' => 'Best&auml;tigungsmail erneut zuschicken'));
+
+if(!empty($_GET["id"])) {
+
+}
+ if(!empty($_POST["email"]) && $_POST["captcha"] == $captchaWord) {
+	$results = mysql_db_query($database_db,"SELECT id, emailverify FROM nutzer WHERE email = '".$_POST["email"]."'",$praktdbslave);
+	
+	// datensaetze gefunden ? //
+	$num_rows = mysql_num_rows( $results );
+	
+	if($num_rows > 0) {
+		$daten = mysql_fetch_array($results, MYSQL_ASSOC);
+	} else {
+		?>
+		<br />
+		<p class="hint error">
+			Diese eMail-Adresse konnte in unserer Datenbank leider nicht gefunden werden.
+		</p>
+		<br /><br />
+		<a href="/home/praktikanten/verify_email.phtml" class="button small">Zur&uuml;ck</a>
+		<?
+		bodyoff();
+		exit();
+	}
+
+	if($daten["emailverify"] == "true") {
+		echo "<br /><br />Ihr Account wurde schon best&auml;tigt!<br />";
+		exit();
+	}	
+
+	$_SESSION["s_nutzerid"] = $daten["id"];
+	verify_nutzeremail($_POST["email"]);
+	unset($_SESSION["s_nutzerid"]);
+	?>
+<br />
+<p class="hint success">
+	Eine eMail zur Best&auml;tigung ist an die angegebene Adresse versendet wurden.
+</p>
+<br /><br />
+<a href="/" class="button small">Zur&uuml;ck zur Startseite</a>
+<?
+ } else {
+?>
+	<form action="/home/praktikanten/verify_email.phtml" method="post">
+		<br />
+		<fieldset>
+			<p>
+				Um Missbrauch dieser Funktion vorzubeugen, geben Sie bitte nochmals Ihre eMail-Adresse an.
+			</p>
+			<br /><br />
+			<p>
+				<label for="email">Ihre eMail-Adresse:</label>
+				<input type="text" id="email" name="email" />
+			</p>
+			<p id='captchaContainer' style=''>
+				<label for="captcha">Um Sie wirksam vor SPAM zu sch&uuml;tzen, geben Sie in das folgende Feld bitte das Wort '<b><?=$captchaWord ?></b>' ein!'</label>
+				<input type="text" id="captcha" name="captcha" />
+			</p>
+		</fieldset>
+		<script type="text/javascript">
+			document.getElementById('captchaContainer').style.display='none';
+			document.getElementById('captcha').value = "<?=$captchaWord ?>";
+		</script>
+		<fieldset class="control_panel">
+			<p>
+				<input type="submit" name="search" value="Mail absenden" class="button small" />
+			</p>
+		</fieldset>
+	</form>
+<? } 
+bodyoff(); ?>

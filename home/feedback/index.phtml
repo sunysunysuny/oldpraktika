@@ -1,0 +1,196 @@
+<?
+$gruppe = 'feedback';
+require('/home/praktika/etc/config.inc.php'); 
+
+pageheader(array('page_title' => 'Feedback')); 
+
+if (isset($_POST['send_it']) &&
+	isset($_POST['email']) &&
+	isset($_POST['name']) &&
+	isset($_POST['kontakt']) &&
+	isset($_POST['kommentar']) &&
+	isset($_POST['tel']) &&
+	!empty($_POST['email']) &&
+	!empty($_POST['name']) &&
+	!empty($_POST['kontakt']) &&
+	!empty($_POST['kommentar']) &&
+	!empty($_POST['tel']) && 
+	$_POST["sicherheit"] == substr(md5("praktika"),2,5)) { 
+		
+	/* Bestaetigungsmail an Firma basteln*/
+	$subject = 'Feedback Mail - ' . ($_SESSION['s_unternehmen'] == true ? 'Unternehmensbereich' : 'Bewerberbereich');
+	
+	$mailtoaddr = 'info@praktika.de';
+	
+	$mailstring = 'Soeben hat '.$_POST['anrede'].' '.$_POST['vorname'].' '.$_POST['name'].' von Praktika ein Feedbackformular ausgefüllt.'."\n\n";
+	$mailstring = $mailstring.'Firma...........: '.$_POST['firma']."\n";
+	$mailstring = $mailstring.'Vorname.........: '.$_POST['vorname']."\n";
+	$mailstring = $mailstring.'Name............: '.$_POST['name']."\n";
+	$mailstring = $mailstring.'Strasse.........: '.$_POST['strasse']."\n";
+	$mailstring = $mailstring.'Plz, Ort........: '.$_POST['plz'].' '.$ort."\n";
+	$mailstring = $mailstring.'Telefon.........: '.$_POST['tel']."\n\n";
+	$mailstring = $mailstring.'Homepage........: '.$_POST['homepage']."\n\n";
+	$mailstring = $mailstring.'eMail Adresse..: '.$_POST['email']."\n\n\n";
+	$mailstring = $mailstring.'Kommentar: '."\n".$_POST['kommentar']."\n\n";
+	
+	if ($_POST['kontakt'] == 'true') {
+		$mailstring = $mailstring.'Betreff '."\n".$_POST['text']."\n\n";
+	} else {
+		$mailstring = $mailstring.'Betreff '."\n".$_POST['kontakt']."\n\n";
+	}
+	
+	if ($_POST['antwort'] == 'true') {
+		$mailstring = $mailstring.'Antwort erwünscht!'."\n\n";
+	} else {
+		$mailstring = $mailstring.'Antwort unerwünscht!'."\n\n";
+	}	
+
+	$mailstring = $mailstring.'Loginid.........:  '.$_POST['userugid']."\n\n";
+	
+	/* Bestaetigunsmail verschicken */
+	mail($mailtoaddr, $subject, Praktika_String::getISOString($mailstring), 'From: '.$_POST['email']."\nX-Mailer: praktika.de Mailscript PHP");
+
+	echo '<p class="hint success">Ihre Nachricht wurde erfolgreich versendet.<br />Bitte geben Sie uns f&uuml;r eine Antwort bis zu zwei Werktage Zeit.</p>'."\n";
+	echo '<p class="control">'."\n";
+	echo '	<a href="/" class="button alternative">zur&uuml;ck</a>'."\n";
+	echo '</p>'."\n";
+} else {	
+	if ($_SESSION['s_loggedin'] == true && $_SESSION['s_unternehmen']) {
+		$firma = mysql_db_query($database_db,'SELECT firmen.firma,firmen.strasse,firmen.plz,firmen.ort,firmen.tel,firmen.homepage,bearbeiter.name,bearbeiter.vname,bearbeiter.email,bearbeiter.anrede FROM firmen,bearbeiter WHERE firmen.id='.$_SESSION['s_firmenid'].' AND bearbeiter.id='.$_SESSION['s_loginid'],$praktdbslave);
+		$fetch = mysql_fetch_array($firma);
+		$userugid = $_SESSION['s_loginid'];
+	} else {
+		if (isset($_SESSION['s_nutzerid']) && !empty($_SESSION['s_nutzerid'])) {
+			$nutzer = $hDB->query('SELECT * FROM nutzer WHERE id='.$_SESSION['s_nutzerid'], $praktdbslave);
+
+			$fetch = mysql_fetch_array($nutzer);
+			$userugid = $fetch['id'];
+		}
+	}
+	
+	$vorname = '';
+	$name = '';
+	$firma = '';
+	$strasse = '';
+	$plz = '';
+	$ort = '';
+	$tel = '';
+	$email = '';
+	$homepage = '';
+	$anrede = '';
+
+	if (isset($fetch['name']) && !empty($fetch['name'])) {
+		$vorname = $fetch['vname'];
+		$name = $fetch['name'];
+		$firma = $fetch['firma'];
+		$strasse = $fetch['strasse'];
+		$plz = $fetch['plz'];
+		$ort = $fetch['ort'];
+		$tel = $fetch['tel'];
+		$email = $fetch['email'];
+		$homepage = $fetch['homepage'];
+		$anrede = $fetch['anrede'];
+	}
+
+	if (isset($_POST['send_it'])) {
+		echo '<p class="hint error">Bitte f&uuml;llen Sie die rot hervorgehobenen Felder aus.</p>'."\n";
+	}
+    
+	echo '<p class="hint info">Hinweis: Bei einem Problem mit Login oder Passwort, benutzen Sie bitte zuerst die <a href="/passwort/" onclick="'."smallbox.loadUrl('','/home/quicklogin/passwdwindow_smallbox.phtml','',{width:440, title:'Passwort vergessen'}); return false;".'return false;"> elektronische Passwortabfrage</a>.</p>'."\n";
+	echo '<p class="hint info">* wichtig f&uuml;r eine schnelle Bearbeitung</p>'."\n";
+	echo '<p>Bitte schreiben Sie uns, wenn Sie Anregungen, Vorschl&auml;ge oder Kritik an <strong>praktika.de</strong> haben. Nutzen Sie dazu das nachfolgende Formular:</p>'."\n";
+	echo '<form method="post" action="/feedback/" name="feedbackForm">'."\n";
+	echo '	<h4>Ihre Nachricht</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="anrede"'.((isset($_POST['send_it']) && isset($_POST['anrede']) && $_POST['anrede'] == '-1') ? ' class="error"' : '').'>Anrede:<sup>*</sup></label>'."\n";
+	echo '			<select id="anrede" name="anrede">'."\n";
+	echo '				<option value="-1">----------------</option>'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Herr') ? 'selected="selected" ' : ((isset($anrede) && !empty($anrede) && $anrede == 'Herr') ? 'selected="selected" ' : '')).'value="Herr">Herr</option>'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Frau') ? 'selected="selected" ' : ((isset($anrede) && !empty($anrede) && $anrede == 'Frau') ? 'selected="selected" ' : '')).'value="Frau">Frau</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="vorname">Vorname:</label>'."\n";
+	echo '			<input type="text" id="vorname" name="vorname" maxlength="50" value="'.(isset($_POST['vorname']) ? $_POST['vorname'] : $vorname).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="name"'.((isset($_POST['send_it']) && isset($_POST['name']) && empty($_POST['name'])) ? ' class="error"' : '').'>Nachname:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="name" name="name" maxlength="50" value="'.(isset($_POST['name']) ? $_POST['name'] : $name).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="firma">Firma:</label>'."\n";
+	echo '			<input type="text" id="firma" name="firma" maxlength="50" value="'.(isset($_POST['firma']) ? $_POST['firma'] : $firma).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="strasse">Stra&szlig;e:</label>'."\n";
+	echo '			<input type="text" id="strasse" name="strasse" maxlength="50" value="'.(isset($_POST['strasse']) ? $_POST['strasse'] : $strasse).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="plz">PLZ / Ort:</label>'."\n";
+	echo '			<input type="text" id="plz" name="plz" maxlength="7" value="'.(isset($_POST['plz']) ? $_POST['plz'] : $plz).'" /><input type="text" id="ort" name="ort" maxlength="50" value="'.(isset($_POST['ort']) ? $_POST['ort'] : $ort).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="tel"'.((isset($_POST['send_it']) && isset($_POST['tel']) && empty($_POST['tel'])) ? ' class="error"' : '').'>Telefonnummer:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="tel" name="tel" maxlength="50" value="'.(isset($_POST['tel']) ? $_POST['tel'] : $tel).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="email"'.((isset($_POST['send_it']) && isset($_POST['email']) && empty($_POST['email'])) ? ' class="error"' : '').'>eMail-Adresse:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="email" name="email" maxlength="50" value="'.(isset($_POST['email']) ? $_POST['email'] : $email).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="homepage">Homepage-Adresse:</label>'."\n";
+	echo '			<input type="text" id="homepage" name="homepage" maxlength="50" value="'.(isset($_POST['homepage']) ? $_POST['homepage'] : $homepage).'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="kontakt1"'.((isset($_POST['send_it']) && !isset($_POST['kontakt'])) ? ' class="error"' : '').'>Betreff:<sup>*</sup></label>'."\n";
+	echo '			<span class="checklist">'."\n";
+	echo '				<label for="kontakt1" class="komplette_breite"><input type="radio" value="Angebot für Bannerwerbung" id="kontakt1" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Angebot für Bannerwerbung')) ? ' checked="checked"' : '').' /> Angebot f&uuml;r Bannerwerbung</label>'."\n";
+	echo '				<label for="kontakt2" class="komplette_breite"><input type="radio" value="Angebot für Newsletter/ Mailing" id="kontakt2" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Angebot für Newsletter/ Mailing')) ? ' checked="checked"' : '').' /> Angebot f&uuml;r Newsletter/ Mailing</label>'."\n";
+	echo '				<label for="kontakt3" class="komplette_breite"><input type="radio" value="Angebot für Online Videos" id="kontakt3" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Angebot für Online Videos')) ? ' checked="checked"' : '').' /> Angebot f&uuml;r Online Videos</label>'."\n";
+	echo '				<label for="kontakt4" class="komplette_breite"><input type="radio" value="PRAKTIKA Online-Print Kombi" id="kontakt4" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'PRAKTIKA Online-Print Kombi')) ? ' checked="checked"' : '').' /> PRAKTIKA Online-Print Kombi</label>'."\n";
+	echo '				<label for="kontakt5" class="komplette_breite"><input type="radio" value="Mediadaten PRAKTIKUMSF&Uuml;HRER" id="kontakt5" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Mediadaten PRAKTIKUMSF&Uuml;HRER')) ? ' checked="checked"' : '').' /> Mediadaten PRAKTIKUMSF&Uuml;HRER</label>'."\n";
+	echo '				<label for="kontakt6" class="komplette_breite"><input type="radio" value="Interesse am Empfehlungsprogramm" id="kontakt6" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Interesse am Empfehlungsprogramm')) ? ' checked="checked"' : '').' /> Interesse am Empfehlungsprogramm</label>'."\n";
+	echo '				<label for="kontakt7" class="komplette_breite"><input type="radio" value="Vorschlag für eine Umfrage" id="kontakt7" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Vorschlag für eine Umfrage')) ? ' checked="checked"' : '').' /> Vorschlag f&uuml;r eine Umfrage</label>'."\n";
+	echo '				<label for="kontakt8" class="komplette_breite"><input type="radio" value="Verbesserungsvorschlag" id="kontakt8" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Verbesserungsvorschlag')) ? ' checked="checked"' : '').' /> Verbesserungsvorschlag</label>'."\n";
+	echo '				<label for="kontakt9" class="komplette_breite"><input type="radio" value="Fehler melden" id="kontakt9" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Fehler melden')) ? ' checked="checked"' : '').' /> Fehler melden</label>'."\n";
+	echo '				<label for="kontakt10" class="komplette_breite"><input type="radio" value="Problem mit Login / Passwort" id="kontakt10" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == 'Problem mit Login / Passwort')) ? ' checked="checked"' : '').' /> Problem mit Login / Passwort</label>'."\n";
+	echo '				<label for="kontakt11" class="komplette_breite"><input type="radio" value="true" id="kontakt11" name="kontakt"'.((isset($_POST['kontakt']) && ($_POST['kontakt'] == "true")) ? ' checked="checked"' : '').' /> Anderer:</label>'."\n";
+	echo '				<input type="text" name="text" class="input_text" value="'.((isset($_POST['text']) && !empty($_POST['text']) ? $_POST['text'] : '')).'" />'."\n";
+	echo '			</span>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="kommentar"'.((isset($_POST['send_it']) && isset($_POST['kommentar']) && empty($_POST['kommentar'])) ? ' class="error"' : '').'>Mitteilung:<sup>*</sup></label>'."\n";
+	echo '			<textarea id="kommentar" name="kommentar" rows="5" cols="10">'.((isset($_POST['kommentar']) && !empty($_POST['kommentar']) ? $_POST['kommentar'] : '')).'</textarea>'."\n";
+	echo '		</p>'."\n";
+?>		<? # Hidden-CAPTCHA gegen Bots ?>
+		<p id="sicherheit_container">
+			<label for="homepage">Zur Spamabwehr bitte "<?=substr(md5("praktika"),2,5) ?>" eintragen:<sup>*</sup></label>
+			<input id="sicherheit" name="sicherheit" value="spam" type="text" />
+		</p>	
+		<script type="text/javascript">
+			$('#sicherheit_container').css("display", "none");
+			$('#sicherheit').val("<?=substr(md5("praktika"),2,5) ?>");
+		</script>		
+<?
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="antwort" class="komplette_breite"><input type="checkbox" value="true" id="antwort" name="antwort"'.((isset($_POST['antwort']) && ($_POST['antwort'] == 'true')) ? ' checked="checked"' : '').' /> Ich w&uuml;nsche eine Antwort.</label>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<a href="#" class="button small'.($_SESSION['current_user_group'] == USER_GROUP_COMPANIES ? ' red' : '').'" onclick="document.feedbackForm.submit(); return false;">senden</a>'."\n";
+	echo '			<input type="hidden" name="userugid" value="'.$userugid.'" />'."\n";
+	echo '			<input type="hidden" name="send_it" value="1" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+}
+bodyoff();
+?>

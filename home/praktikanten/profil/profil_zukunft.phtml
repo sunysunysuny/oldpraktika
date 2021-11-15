@@ -1,0 +1,432 @@
+<?
+$sprachbasisdatei = '/home/praktikanten/profil/profil_zukunft.phtml';
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if ($_SESSION['s_sprache'] == 'german') {
+	$text1 = 'Bewerberprofil in';
+	$text2 = 'Anzahl der Eintr&auml;ge';
+	$myaccount = 'Mein Account';
+	$lebenslaufprofil = 'zum Profil';
+	$variableb1 = 'speichern';
+} elseif ($_SESSION['s_sprache'] == 'english') {
+	$text1 = 'Profile in';
+	$text2 = 'choose number of forms below';
+	$myaccount = 'my account';
+	$lebenslaufprofil = 'profile';
+	$variableb1 = 'speichern';
+}
+
+if (isset($_POST['save'])) {
+	$select = mysql_db_query($database_bprofil, 'SELECT * FROM profil_zukunft WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+	$test = mysql_num_rows($select);
+
+	if ($test < 1) {
+		$insertstring = 'INSERT INTO profil_zukunft (nutzerid, sprachid, datum_eintrag, modify) VALUES ('.intval($_SESSION['s_loginid']).', '.intval($_SESSION['s_sprachid']).', NOW(), NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+	}
+
+	$updatestring = 'UPDATE
+						profil_zukunft
+					SET
+						sprachid='.$_SESSION['s_sprachid'].',
+						ausbildungsende_monat=\''.(isset($_POST['ausbildungsende_monat']) ? $_POST['ausbildungsende_monat'] : '').'\',
+						ausbildungsende_jahr=\''.(isset($_POST['ausbildungsende_jahr']) ? $_POST['ausbildungsende_jahr'] : '').'\',
+						berufsabschluss=\''.(isset($_POST['berufsabschluss']) ? $_POST['berufsabschluss'] : '').'\',
+						universitaet=\''.(isset($_POST['universitaet']) ? $_POST['universitaet'] : '').'\',
+						anderebildungseinr=\''.(isset($_POST['anderebildungseinr']) ? $_POST['anderebildungseinr'] : '').'\',
+						trainee=\''.(isset($_POST['trainee']) ? $_POST['trainee'] : '').'\',
+						branche=\''.(isset($_POST['branche']) ? $_POST['branche'] : '').'\',
+						berufsfeld=\''.(isset($_POST['berufsfeld']) ? $_POST['berufsfeld'] : '').'\',
+						branche2=\''.(isset($_POST['branche2']) ? $_POST['branche2'] : '').'\',
+						berufsfeld2=\''.(isset($_POST['berufsfeld2']) ? $_POST['berufsfeld2'] : '').'\',
+						branche3=\''.(isset($_POST['branche3']) ? $_POST['branche3'] : '').'\',
+						berufsfeld3=\''.(isset($_POST['berufsfeld3']) ? $_POST['berufsfeld3'] : '').'\',
+						weiterbildung=\''.(isset($_POST['weiterbildung']) ? $_POST['weiterbildung'] : '').'\',
+						kurse=\''.(isset($_POST['kurse']) ? $_POST['kurse'] : '').'\',
+						kurse2=\''.(isset($_POST['kurse2']) ? $_POST['kurse2'] : '').'\',
+						kurse3=\''.(isset($_POST['kurse3']) ? $_POST['kurse3'] : '').'\',
+						zukunftstrainee=\''.(isset($_POST['zukunftstrainee']) ? $_POST['zukunftstrainee'] : '').'\',
+						zukunftstrainee2=\''.(isset($_POST['zukunftstrainee2']) ? $_POST['zukunftstrainee2'] : '').'\',
+						zukunftstrainee3=\''.(isset($_POST['zukunftstrainee3']) ? $_POST['zukunftstrainee3'] : '').'\',
+						zukunftstrainee4=\''.(isset($_POST['zukunftstrainee4']) ? $_POST['zukunftstrainee4'] : '').'\',
+						zukunftstrainee5=\''.(isset($_POST['zukunftstrainee5']) ? $_POST['zukunftstrainee5'] : '').'\',
+						zukunftstrainee6=\''.(isset($_POST['zukunftstrainee6']) ? $_POST['zukunftstrainee6'] : '').'\',
+						zukunftstrainee7=\''.(isset($_POST['zukunftstrainee7']) ? $_POST['zukunftstrainee7'] : '').'\',
+						zukunftstrainee8=\''.(isset($_POST['zukunftstrainee8']) ? $_POST['zukunftstrainee8'] : '').'\',
+						zukunftstrainee9=\''.(isset($_POST['zukunftstrainee9']) ? $_POST['zukunftstrainee9'] : '').'\',
+						zukunftstraineetext=\''.(isset($_POST['zukunftstraineetext']) ? $_POST['zukunftstraineetext'] : '').'\',
+						zukunftstraineetext2=\''.(isset($_POST['zukunftstraineetext2']) ? $_POST['zukunftstraineetext2'] : '').'\',
+						zukunftstraineetext3=\''.(isset($_POST['zukunftstraineetext3']) ? $_POST['zukunftstraineetext3'] : '').'\',
+						fremdspracheverb=\''.(isset($_POST['fremdspracheverb']) ? $_POST['fremdspracheverb'] : '').'\',
+						land=\''.(isset($_POST['land']) ? $_POST['land'] : '').'\',
+						sprachkenntnisse1=\''.(isset($_POST['sprachkenntnisse1']) ? $_POST['sprachkenntnisse1'] : '').'\',
+						sprachkenntnisse2=\''.(isset($_POST['sprachkenntnisse2']) ? $_POST['sprachkenntnisse2'] : '').'\',
+						sprachkenntnisse3=\''.(isset($_POST['sprachkenntnisse3']) ? $_POST['sprachkenntnisse3'] : '').'\',
+						anderesprachen=\''.(isset($_POST['anderesprachen']) ? $_POST['anderesprachen'] : '').'\',
+						sonstiges=\''.(isset($_POST['sonstiges']) ? $_POST['sonstiges'] : '').'\',
+						modify=NOW()
+					WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+	recalc_profilquali();
+	Praktika_Lebenslauf::deleteCache();	
+	
+	if($_POST["backToStart"] == "1") {
+		header("Location: /lebenslauf/?ok=1");
+	}		
+}
+
+$select = mysql_db_query($database_bprofil, 'SELECT * FROM profil_zukunft WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+$profil = mysql_fetch_array($select);
+
+pageheader(array('page_title' => $language['strUeberschrift'])); 
+
+if (isset($_POST['save'])) {
+
+	if (isset($_POST['vorschau'])) {
+		echo '			<script type="text/javascript">'."\n";
+		echo '				vorschau = window.open(\'/home/praktikanten/profilausgabe/einzelansicht.phtml\',\'BewerbungsWindow\',\'scrollbars=yes,status=no,toolbar=no,width=720,height=580\');'."\n";
+		echo '			</script>'."\n";
+	}
+
+	echo '<p class="success">Gespeichert</p>'."\n";
+}
+
+echo '<div id="recruitingCenter">';
+
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+# language_select($text1);
+echo '		<br /><p>'.$language['strZukunftInfo'].'</p>'."\n";
+echo '		<form id="contentform" action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post">'."\n";
+echo '			<br /><h4>'.$language['strStandAusbildung'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+
+$berufsfelder = mysql_db_query($database_db,'SELECT * FROM berufsfelder WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'].'',$praktdbslave);
+$anz_berufsfelder = mysql_num_rows($berufsfelder);
+
+$branchen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'].'',$praktdbslave);
+$anz_branchen = mysql_num_rows($branchen);
+
+$land = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'].'',$praktdbslave);
+$anz_land = mysql_num_rows($land);
+
+$sprachen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM sprachen WHERE inactive=\'false\' ORDER BY '.$_SESSION['s_sprache'].'',$praktdbslave);
+$anz_sprachen = mysql_num_rows($sprachen);
+
+echo '				<p>'."\n";
+echo '					<label for="ausbildungsende_monat">'.$language['strAusbildungAbschluss'].'</label>'."\n";
+echo '					<select id="ausbildungsende_monat" name="ausbildungsende_monat" class="month html_controlled">'."\n";
+echo '						<option value="">-</option>';
+for ($i = 1; $i <= 12; $i++) {
+	echo '						<option value="'.$i.'"';
+	if (isset($profil['ausbildungsende_monat']) && $i == $profil['ausbildungsende_monat']) {
+		echo ' selected="selected"';
+	}
+	echo '>'.$i.'</option>'."\n";
+}
+echo '					</select> / '."\n";
+echo '					<select id="ausbildungsende_jahr" name="ausbildungsende_jahr" class="year html_controlled">'."\n";
+echo '						<option value="">- - -</option>';
+for ($i = date("Y"); $i <= date("Y")+10; $i++) {
+	echo '					<option value="'.$i.'"';
+	if (isset($profil['ausbildungsende_jahr']) && $i == $profil['ausbildungsende_jahr']) {
+		echo ' selected="selected"';
+	}
+	echo '>'.$i.'</option>'."\n";
+}
+echo '					</select>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="berufsabschluss">'.$language['strBAbschluss'].'</label>'."\n";
+echo '					<input type="text" id="berufsabschluss" name="berufsabschluss" value="'.($profil['berufsabschluss']).'" /><br /><span class="hint">(z.B. Diplom Betriebswirt, Bankkauffrau, etc.)</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="universitaet">'.$language['strHochschule'].'</label>'."\n";
+echo '					<input type="text" id="universitaet" name="universitaet" value="'.($profil['universitaet']).'" />'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="anderebildungseinr">'.$language['strAB'].'</label>'."\n";
+echo '					<input type="text" id="anderebildungseinr" name="anderebildungseinr" value="'.$profil['anderebildungseinr'].'" />'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strZBA'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="trainee">'.$language['strTraineeJa'].'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="trainee"><input type="radio" id="trainee" name="trainee" value="ja" '.($profil['trainee'] == 'ja' ? ' checked="checked"' : '').' /> '.$language['strJa'].'</label>'."\n";
+echo '						<label for="trainee2"><input type="radio" id="trainee2" name="trainee" value="nein" '.($profil['trainee'] == 'nein' ? ' checked="checked"' : '').' /> '.$language['strNein'].'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'.$language['strBrancheT'].'</p>'."\n";
+echo '				<table cellspacing="0" cellpadding="0">'."\n";
+echo '					<colgroup>'."\n";
+echo '						<col width="47%" />'."\n";
+echo '						<col width="4%" />'."\n";
+echo '						<col width="47%" />'."\n";
+echo '						<col width="2%" />'."\n";
+echo '					</colgroup>'."\n";
+echo '					<tr>'."\n";
+echo '						<th>'."\n";
+echo '							<label for="branche"><b>'.$language['strBranche'].'</b></label>'."\n";
+echo '						</th>'."\n";
+echo '						<th>&nbsp;</th>'."\n";
+echo '						<th>'."\n";
+echo '							<label for="berufsfeld"><b>'.$language['strBerufsfeld'].'</b></label>'."\n";
+echo '						</th>'."\n";
+echo '						<th>&nbsp;</th>'."\n";
+echo '					</tr>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="branche" name="branche">'."\n";
+echo '								<option value="">'.$language['strBitteW'].'</option>'."\n";
+$i=0;
+while ($i < $anz_branchen):
+	$html = (mysql_result($branchen,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['branche'] == (mysql_result($branchen,$i,"id"))) {
+	     echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($branchen,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;">'.$language['strIm'].'</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="berufsfeld" name="berufsfeld">'."\n";
+echo '								<option value="">'.$language['strBitteW'].'</option>'."\n";
+$i=0;
+while ($i < $anz_berufsfelder):
+	$html = (mysql_result($berufsfelder,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['berufsfeld'] == (mysql_result($berufsfelder,$i,"id"))) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($berufsfelder,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td>&nbsp;</td>'."\n";
+echo '					</tr>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="branche2" name="branche2">'."\n";
+echo '								<option value="">'.$language['strOptional'].'</option>'."\n";
+$i=0;
+while ($i<$anz_branchen):
+	$html = (mysql_result($branchen,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['branche2'] == (mysql_result($branchen,$i,"id"))) {
+	     echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($branchen,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;">'.$language['strIm'].'</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select name="berufsfeld2">'."\n";
+echo '								<option value="">'.$language['strOptional'].'</option>'."\n";
+$i=0;
+while ($i<$anz_berufsfelder):
+	$html = (mysql_result($berufsfelder,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['berufsfeld2'] == (mysql_result($berufsfelder,$i,"id"))) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($berufsfelder,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td>&nbsp;</td>'."\n";
+echo '					</tr>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="branche3" name="branche3">'."\n";
+echo '								<option value="">'.$language['strOptional'].'</option>'."\n";
+$i=0;
+while ($i<$anz_branchen):
+	$html = (mysql_result($branchen,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['branche3'] == (mysql_result($branchen,$i,"id"))) {
+	     echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($branchen,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;">'.$language['strIm'].'</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select name="berufsfeld3">'."\n";
+echo '								<option value="">'.$language['strOptional'].'</option>'."\n";
+$i=0;
+while ($i<$anz_berufsfelder):
+	$html = (mysql_result($berufsfelder,$i,$_SESSION['s_sprache']));
+	echo '								<option ';
+	if ($profil['berufsfeld3'] == (mysql_result($berufsfelder,$i,"id"))) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($berufsfelder,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+endwhile;
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td>&nbsp;</td>'."\n";
+echo '					</tr>'."\n";
+echo '				</table>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strWeiterbildung'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="weiterbildung">Sind Sie an einer Weiterbildung interessiert?</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="weiterbildung"><input type="radio" id="weiterbildung" name="weiterbildung" value="ja" '.($profil['weiterbildung'] == 'ja' ? ' checked="checked"' : '').' /> '.$language['strJa'].'</label>'."\n";
+echo '						<label for="weiterbildung2"><input type="radio" id="weiterbildung2" name="weiterbildung" value="nein" '.($profil['weiterbildung'] == 'nein' ? ' checked="checked"' : '').' /> '.$language['strNein'].'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="kurse">'.$language['strRichtungen'].' I</label>'."\n";
+echo '					<textarea class="stdStyle"  id="kurse" name="kurse" rows="5" cols="5">'.stripslashes(($profil['kurse'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="kurse2">'.$language['strRichtungen'].' II</label>'."\n";
+echo '					<textarea class="stdStyle"  id="kurse2" name="kurse2" rows="5" cols="5">'.stripslashes(($profil['kurse2'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="kurse3">'.$language['strRichtungen'].' III</label>'."\n";
+echo '					<textarea class="stdStyle"  id="kurse3" name="kurse3" rows="5" cols="5">'.stripslashes(($profil['kurse3'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strZukunftsplanung'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="zukunftstrainee" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee" name="zukunftstrainee"'.($profil['zukunftstrainee'] == "true" ? ' checked="checked"' : '').' /> '.$language['strBewerbertraining'].'</label>'."\n";
+echo '					<label for="zukunftstrainee2" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee2" name="zukunftstrainee2"'.($profil['zukunftstrainee2'] == "true" ? ' checked="checked"' : '').' /> '.$language['strFuehrungstraining'].'</label>'."\n";
+echo '					<label for="zukunftstrainee3" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee3" name="zukunftstrainee3"'.($profil['zukunftstrainee3'] == "true" ? ' checked="checked"' : '').' /> '.$language['strRhetoriktraining'].'</label>'."\n";
+echo '					<label for="zukunftstrainee4" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee4" name="zukunftstrainee4"'.($profil['zukunftstrainee4'] == "true" ? ' checked="checked"' : '').' /> '.$language['strProfesssionelle'].'</label>'."\n";
+echo '					<label for="zukunftstrainee5" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee5" name="zukunftstrainee5"'.($profil['zukunftstrainee5'] == "true" ? ' checked="checked"' : '').' /> '.$language['strUebersetzung'].'</label>'."\n";
+echo '					<label for="zukunftstrainee6" class="komplette_breite"><input type="checkbox" value="true" id="zukunftstrainee6" name="zukunftstrainee6"'.($profil['zukunftstrainee6'] == "true" ? ' checked="checked"' : '').' /> '.$language['strGhostwriting'].'</label>'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<input type="checkbox" class="html_controlled" value="true" id="zukunftstrainee7" name="zukunftstrainee7"'.($profil['zukunftstrainee7'] == "true" ? ' checked="checked"' : '').' />'."\n";
+echo '					<input type="text" name="zukunftstraineetext" class="input_text" value="'. $profil['zukunftstraineetext'].'" />'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<input type="checkbox" class="html_controlled" value="true" id="zukunftstrainee8" name="zukunftstrainee8"'.($profil['zukunftstrainee8'] == "true" ? ' checked="checked"' : '').' />'."\n";
+echo '					<input type="text" name="zukunftstraineetext2" class="input_text" value="'. $profil['zukunftstraineetext2'].'" />'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<input type="checkbox" class="html_controlled" value="true" id="zukunftstrainee9" name="zukunftstrainee9"'.($profil['zukunftstrainee9'] == "true" ? ' checked="checked"' : '').' />'."\n";
+echo '					<input type="text" name="zukunftstraineetext3" class="input_text" value="'. $profil['zukunftstraineetext3'].'" />'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strSprachen'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="weiterbildung">'.$language['strFremdsprachee'].'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="fremdspracheverb"><input type="radio" id="fremdspracheverb" name="fremdspracheverb" value="ja" '.($profil['fremdspracheverb'] == 'ja' ? ' checked="checked"' : '').' /> '.$language['strJa'].'</label>'."\n";
+echo '						<label for="fremdspracheverb2"><input type="radio" id="fremdspracheverb2" name="fremdspracheverb" value="nein" '.($profil['fremdspracheverb'] == 'nein' ? ' checked="checked"' : '').' /> '.$language['strNein'].'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="land">'.$language['strLand'].'</label>'."\n";
+echo '					<select id="land" name="land">'."\n";
+echo '						<option value="">'.$language['strBitteW'].'</option>'."\n";
+$i = 0;
+while ($i < $anz_land):
+	$html = (mysql_result($land,$i,$_SESSION['s_sprache']));
+	echo '						<option ';
+	if  (mysql_result($land,$i,"id") == $profil['land']) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($land,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '					</select>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="sprachkenntnisse1">'.$language['strSprachen'].'</label>'."\n";
+echo '					<select id="sprachkenntnisse1" name="sprachkenntnisse1">'."\n";
+echo '						<option value="68">'.$language['strOptional'].'</option>'."\n";
+$i = 0;
+while ($i < $anz_sprachen):
+	$html = (mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+	echo '						<option ';
+	if (mysql_result($sprachen,$i,"id") == $profil['sprachkenntnisse1']) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($sprachen,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '					</select>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="sprachkenntnisse2">&nbsp;</label>'."\n";
+echo '					<select id="sprachkenntnisse2" name="sprachkenntnisse2">'."\n";
+echo '						<option value="68">'.$language['strOptional'].'</option>'."\n";
+$i = 0;
+while ($i < $anz_sprachen):
+	$html = (mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+	echo '						<option ';
+	if (mysql_result($sprachen,$i,"id") == $profil['sprachkenntnisse2']) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($sprachen,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '					</select>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="sprachkenntnisse3">&nbsp;</label>'."\n";
+echo '					<select id="sprachkenntnisse3" name="sprachkenntnisse3">'."\n";
+echo '						<option value="68">'.$language['strOptional'].'</option>'."\n";
+$i = 0;
+while ($i < $anz_sprachen):
+	$html = (mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+	echo '						<option ';
+	if (mysql_result($sprachen,$i,"id") == $profil['sprachkenntnisse3']) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($sprachen,$i,"id").'">'.$html.'</option>'."\n";
+$i++;
+endwhile;
+echo '					</select>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="anderesprachen">'.$language['strASprachen'].'</label>'."\n";
+echo '					<textarea id="anderesprachen" name="anderesprachen" rows="5" cols="5">'.stripslashes(($profil['anderesprachen'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strSonstiges'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="big_textarea">'."\n";
+echo '					<label for="sonstiges">'.$language['strZukunftsplan'].'</label>'."\n";
+echo '					<textarea class="stdStyle"  id="sonstiges" name="sonstiges" rows="5" cols="5">'.stripslashes(($profil['sonstiges'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p class="center"><input class="button small" type="submit" value="Speichern" name="save" /></p>'."\n";
+echo '				<p><label for="backToStart" class="komplette_breite"><input type="checkbox" class="html_controlled" name="backToStart" id="backToStart" value="1" '.(!isset($_SESSION["backToStart"]) || (isset($_SESSION["backToStart"]) && $_SESSION["backToStart"] != "1")?'':'checked="checked"').' /> Nach dem Speichern zur&uuml;ck zur Lebenslauf&uuml;bersicht</label></p>';
+echo '			</fieldset>'."\n";
+echo '		</form>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

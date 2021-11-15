@@ -1,0 +1,229 @@
+body.window div#page {
+	padding-top: 0;
+}
+body.window div#main {
+	margin-top: 0;
+}
+body.window div#content h2 {
+	padding-top: 0;
+}
+
+div#page {
+	padding: 10px;
+}
+
+h1 {
+	float: left;
+}
+
+p#short-access {
+	float: right;
+}
+
+#navigation ul li ul {
+	width: 200px;
+}
+#navigation ul li.form {
+	cursor: default;
+	border: none;
+	float: right;
+}
+#navigation ul li.form:hover {
+	cursor: default;
+	background: none;
+}
+#navigation ul li form fieldset {
+	float: left;
+	margin: 0 0 0 10px;
+	padding-top: 0;
+}
+#navigation ul li form fieldset.control_panel {
+	margin-left: 0;
+}
+#navigation ul li form fieldset p input {
+	width: 200px;
+}
+#navigation ul li form fieldset.control_panel p input {
+	width: auto;
+	margin-left: 10px;
+	margin-top: -2px;
+}
+
+#content {
+	clear: both;
+	float: none;
+}
+#content h2 {
+	clear: both;
+	float: none;
+	padding-top: 20px;
+}
+
+div#main form fieldset legend {
+	color: #000;
+	padding-bottom: 4px;
+	padding-top: 3px;
+	font-size: 14px;
+}
+#content form p.checkboxes label {
+	text-align: left;
+	margin-left: 190px;
+	width: 100%;
+}
+#content form.start-admin-page label {
+	width: 125px;
+}
+#content form.start-admin-page fieldset.control_panel p input.button {
+	margin-left: 135px;
+}
+#content form.free-clients fieldset.control_panel p input.button {
+	margin-left: 0;
+}
+#content form.free-clients fieldset {
+	margin-top: 0;
+}
+#content form.travel-warning fieldset {
+	float: left;
+	width: 300px;
+}
+#content form.free-clients fieldset label {
+	width: auto;
+	clear: both;
+}
+#content form fieldset.control_panel p input.no-margin {
+	margin: 0 5px 0 0;
+}
+div#main form fieldset p span.checklist {
+	width: 320px;
+}
+
+#content div.left {
+	width: 49%;
+	float: left;
+	margin-bottom: 30px;
+}
+#content div.right {
+	width: 49%;
+	float: right;
+	margin-bottom: 30px;
+}
+
+#content table tr th {
+	font-size: 14px;
+	padding: 5px 0;
+	border-bottom: 1px solid #b2c5d6;
+}
+
+ul#history {
+	margin: 11px 0 0 190px;
+}
+ul#history li {
+	margin-bottom: 15px;
+}
+
+span.notiz {
+	padding-left: 20px;
+	display: block;
+}
+.not-payed,
+.inactive-true {
+	color: #8b0000;
+}
+.payed {
+	color: #006400;
+}
+.storno-text {
+	margin-top: -10px;
+	color: #8b0000;
+}
+
+.whole_data {
+	widh: 75%;
+	border: 1px solid #000000;
+	padding: 0.5em;
+	margin-bottom: 20px;
+}
+.whole_data .single_data {
+	clear: both;
+	height: 30px;
+}
+.whole_data .single_data  p {
+		margin: 0;
+}
+.whole_data .single_data p.title {
+	width: 50%;
+	font-weight: bold;
+	float: left;
+}
+.whole_data .single_data p.value {
+	width: 50%;
+	float: left;
+}
+
+span.red {
+	background: #990000;
+}
+span.green {
+	background: #009900;
+}
+span.purple {
+	background: #990099;
+}
+span.turquoise {
+	background: #009999;
+}
+span.yellow {
+	background: #999900;
+}
+span.gray {
+	background: #cdcdcd;
+}
+option.purple {
+	color: #990099;
+	font-weight: bold;
+}
+option.turquoise {
+	color: #009999;
+	font-weight: bold;
+}
+option.yellow {
+	color: #999900;
+	font-weight: bold;
+}
+option.gray {
+	color: #cdcdcd;
+	font-weight: bold;
+}
+#counted_words,
+#counted_chars {
+	font-weight: bold;
+}
+div#main div#content p.legend {
+	font-size: 11px;
+	padding-left: 210px;
+}
+#tooltip {
+	position: absolute;
+	z-index: 9999;
+	color: #fff;
+	font-size: 10px;
+	width: 500px;   
+}
+#tooltip .tipBody {
+	background-color: #000;
+	padding: 5px 5px 5px 15px;
+	text-decoration: none;
+}
+a.tooltip {
+	text-decoration: none !important;
+}
+
+span.stream_date {
+	float: right;
+	color: #777;
+}
+span.logoContainer {
+	float: left;
+	display: block;
+	width: 80px;
+}

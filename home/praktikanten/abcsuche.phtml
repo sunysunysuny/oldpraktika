@@ -1,0 +1,140 @@
+<?
+$sprachbasisdatei = "/home/praktikanten/volltext.phtml";
+require("/home/praktika/etc/config.inc.php");
+require("/home/praktika/etc/firmenliste.inc.php"); 
+
+$spalte = 1;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = 'default';
+
+$splitval = split("/",$_GET['buchstabe']);
+$_GET['buchstabe'] = $splitval[0];
+if(isset($splitval[1])) $_GET['ds_count'] = $splitval[1];
+
+function getmicrotime() {
+	list($usec, $sec) = explode(" ",microtime());
+	return ((float)$usec + (float)$sec);
+}
+
+pageheader(array('page_title' => $language['strFirmenliste'], 'grid_system' => '4-2'));
+
+Praktika_Static::__(array("abcsuche", "paging"));
+
+if(!empty($_POST["searchValue"])) $_GET["buchstabe"] = "HH";
+?>
+<p class="hauptseite">In der alphabetischen Unternehmensliste finden Sie alle aktuellen Unternehmen im &Uuml;berblick die auf praktika.de ihre Angebote ver&ouml;ffentlichen.</p>
+<div class="unternehmenssuche box_gray">
+	<form method="post" action="#">
+		<fieldset>
+			<p>
+				<label for="searchValue">Unternehmen suchen:</label>
+				<input type="text" class="filterValue" id="searchValue" name="searchValue" value="<?= stripslashes($_POST["searchValue"]); ?>" onkeyup="searchKey(this.value)" />
+			</p>
+		</fieldset>
+		<fieldset class="control_panel">
+			<p>
+				<input type="submit" name="send" class="button small" value="SUCHEN" />
+			</p>
+		</fieldset>
+	</form>
+</div>
+<div class="katalogButton_Container clearfix">
+<?
+
+if (empty($_GET['buchstabe'])) {
+	$_GET['buchstabe'] = 'A';
+}
+$_GET["buchstabe"] = strtoupper($_GET["buchstabe"]);
+foreach(range(0, 25) as $number) {
+	
+	if (chr($number+65) == $_GET['buchstabe']) {
+		echo '<a class="button small inactive katalogBuchstabe selected" href="/praktikum/unternehmenssuche-'.chr($number+65).'1.html">';
+                echo chr($number+65).'</a>'."\n";
+	} else {
+		echo '<a class="button small alternative katalogBuchstabe" href="/praktikum/unternehmenssuche-'.chr($number+65).'1.html">';
+                echo chr($number+65).'</a>'."\n";
+	}
+	//if($number != 0) $suchesel .= " AND ";
+	//$suchesel .= "t1.firma NOT LIKE '".chr($number+65)."%'"; // Alte langsamere und umst&auml;ndlichere Query
+}
+
+$suchesel = '(not upper(left(t1.firma,1)) between \'A\' AND \'Z\')'; // neue und schnellere Query
+
+echo '<a class="button small alternative katalogBuchstabe"  href="/suche/alle_unternehmen/1-9/0/">1-9</a>'."\n";
+echo '</div>';
+// uebergabevariablen konvertieren //
+$ds_count = empty($_GET["ds_count"])?1:intval($_GET['ds_count']);
+$ds_pro_seite = 40;
+if(!empty($_POST["searchValue"])) $ds_pro_seite = 50;
+
+
+if ($_GET['buchstabe'] == '1-9') {
+	$suchwert = $suchesel;
+} else {
+	$suchwert = 't1.firma LIKE \''.$_GET['buchstabe'].'%\'';
+}
+
+$companies = Praktika_Suche::getCompaniesByABC($_GET['buchstabe'], !empty($_POST["searchValue"])?$_POST["searchValue"]:"");
+
+?>
+<?= !empty($_POST['searchValue']) ? '<p><em>Unternehmen durchsucht nach: '.htmlentities($_POST["searchValue"]).'*</em></p>' : '' ?>
+<div class="katalog_paging"><p>
+<? if(count($companies) > $ds_pro_seite) {
+    echo "Weitere Seiten: ";
+    echo Praktika_String::generatePaging($ds_count, round((count($companies) / $ds_pro_seite) + 0.5,0),"/praktikum/unternehmenssuche-".$_GET["buchstabe"]."{page}.html", 4);
+}
+echo "</p></div>";
+
+for($a = ($ds_count - 1) * $ds_pro_seite;$a < ($ds_count) * $ds_pro_seite;$a++) {
+    if($a >= count($companies)) break;
+	$logo = Praktika_Firma::getLogoUrl($companies[$a]["id"], "small");
+    ?>
+<span class="company_logo clearfix"><? if(!empty($logo)) { ?><img src="<?=$logo ?>" /><? } ?></span>
+<div class="company_titel"><a href='#' onclick="smallbox.loadUrl('','/firmendaten/<?=Praktika_String::toUrl($companies[$a]["firma"], false) ?>-<?=$companies[$a]["id"] ?>.html'); return false;"><?= stripslashes($companies[$a]["firma"]); ?></a></div>
+<div class="company_sub">
+			<p class="font11">
+            <? if(!empty($companies[$a]["branche_german"])) { ?>
+                <strong>Branche:</strong> <?= $companies[$a]["branche_german"]; ?>&nbsp;&nbsp;&nbsp;
+            <? } ?>
+            <? if(!empty($companies[$a]["grossraum_german"])) { ?>
+                <strong>Region:</strong> <?= $companies[$a]["grossraum_german"]; ?>, <?= $companies[$a]["land_german"]; ?>
+            <? } ?>
+			</p></div>
+    <?
+}
+?>
+
+<div class="katalog_paging"><p>
+<? if(count($companies) > $ds_pro_seite) {
+    echo "Weitere Seiten: ";
+    echo Praktika_String::generatePaging($ds_count, round((count($companies) / $ds_pro_seite) + 0.5,0),"/praktikum/unternehmenssuche-".$_GET["buchstabe"]."{page}.html", 4);
+}
+echo "</p></div>";
+bodyoff();
+exit();
+if (count($companies) > 0) {
+	$geldsuche = 'no';
+	$rueckgabe = suchergebnis($results,$ds_count,$ds_pro_seite,$num_rows,$geldsuche);
+
+	$ds_value = $ds_count;
+	$ds_count = $rueckgabe[0];
+	$ds_pro_seite = $rueckgabe[1];
+
+	mysql_free_result($results); 
+	
+	if ($ds_count > $ds_pro_seite) {
+		echo '<form action="/suche/alle_unternehmen/'.$_GET['buchstabe'].'/'.($ds_value-$ds_pro_seite).'/" method="get">'."\n";
+		echo '	<input type="hidden" name="ds_value" value="'.$ds_value.'" />';
+		echo '	<button type="submit" value="'.$language['strZurueck'].'"><span><span><span>'.$language['strZurueck'].'</span></span></span></button>';
+		echo '</form>';
+	}
+	if ($ds_count < $num_rows) {
+		echo '<form action="/suche/alle_unternehmen/'.$_GET['buchstabe'].'/'.$ds_count.'/" method="post">'."\n";
+		echo '	<button type="submit" value="'.$language['strZNaechsten'].' '.min($ds_pro_seite,($num_rows-$ds_count)).' '.$language['strErgebnisse'].'"><span><span><span>'.$language['strZNaechsten'].' '.min($ds_pro_seite,($num_rows-$ds_count)).' '.$language['strErgebnisse'].'</span></span></span></button>';
+		echo '</form>'."\n";
+	}
+} else {
+	echo $language['strKDS'];
+}
+bodyoff();
+?>

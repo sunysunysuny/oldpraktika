@@ -1,0 +1,153 @@
+/*kandidatensuche*/
+form#kanditatensuche {
+	padding: 10px;
+}
+form#kanditatensuche fieldset input.radio{
+	border: none;
+}
+div#main div#content form#kanditatensuche label {
+	text-align:left;
+	margin:0px;
+	width:300px;
+}
+div#main div#content form#kanditatensuche fieldset.control_panel input {
+	margin-left: 310px;
+}
+table#kandidatensuche {
+	width: 525px;
+	float: left;
+}
+table#kandidatensuche tr td {
+	padding: 0 !important;
+}
+table#kandidatensuche,
+table#kandidatensuche_top,
+table#kandidatensuche_quali,
+table#kandidatensuche_prakt,
+table#kandidatensuche_bm,
+table#kandidatensuche_brfe,
+table#kandidatensuche_nj,
+table#kandidatensuche_ausb {
+	text-align: left;
+	border: 0;
+}
+table#kandidatensuche fieldset.legend {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-top: 1px solid #dddddd;
+}
+table#kandidatensuche tr td.right_ks,
+table#kandidatensuche_top tr td.right_ks {
+	text-align: right;
+}
+table#kandidatensuche tr td.left_ks,
+table#kandidatensuche_top tr td.left_ks {
+	text-align: left;
+}
+table#kandidatensuche tr td button {
+	margin-left: 0;
+}
+#resultausgabe .kandidatensuche_kandidat {
+	width: 100%;
+	float: left;
+	border: 0;
+	border-top:1px dashed #777;
+	padding: 10px 0 10px 5px;
+
+}
+#resultausgabe .first {
+	border-top: none;
+}
+#resultausgabe .kandidatensuche_kandidat .daten {
+	width: 510px;
+	float: left;
+
+	margin-bottom:10px;
+}
+#resultausgabe .kandidatensuche_kandidat p.chiffre {
+	text-align: left;
+	width: 100%;
+	padding: 0 0 10px 0;
+	margin: 0;
+}
+#resultausgabe .kandidatensuche_kandidat p.title {
+	text-align: left;
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	clear: left;
+}
+#resultausgabe .kandidatensuche_kandidat p.left_cell {
+	float: left;
+	text-align: left;
+	width: 150px;
+	margin: 0 0 0 5px;
+	padding: 0;
+}
+#resultausgabe .kandidatensuche_kandidat p.right_cell {
+	float: right;
+	text-align: left;
+	width: 350px;
+	padding: 0;
+	margin: 0;
+}
+
+#resultausgabe div.photo_quali {
+	float: right;
+	margin: 33px 10px 0 0;
+	width: 125px;
+}
+#resultausgabe div.photo_quali img {
+	text-align: right;
+}
+#resultausgabe img {
+	border: 1px solid #dddddd;
+	margin: -30px 0 12px 0;
+}
+#resultausgabe p.profilquali_label {
+	margin: 0 0 5px 0;
+	padding: 0;
+	color:#777;
+	font-size:10px;
+	text-transform: uppercase;
+}
+#resultausgabe div.profilquali {
+	height: 5px;
+	overflow: hidden;
+	float: left;
+	
+}
+#resultausgabe .auswahl_nein,
+#resultausgabe .details {
+	float: left;
+	margin-right: 5px;
+}
+
+
+#resultausgabe .details  span {
+	background: url('/styles/images/Buttons/button_gray_left.gif') left top no-repeat;
+}
+#resultausgabe .details  span span {
+	background: url('/styles/images/Buttons/button_gray_right.gif') top right no-repeat;
+}
+#resultausgabe .details  span span span {
+	background: url('/styles/images/Buttons/button_gray_middle_small.gif') left top repeat-x;
+	color: #9a0203;
+}
+
+div#main div#content #resultausgabe label {
+	text-align:left;
+	margin:5px 0px;
+}
+
+div#main div#content #resultausgabe form#vertical_slide {
+	margin-bottom: 20px;
+}
+div#main div#content #resultausgabe form#vertical_slide fieldset.control_panel input{
+	margin-left: 252px;
+}
+div#main div#content p.noMargin a {
+	margin-left:0px;
+}
+

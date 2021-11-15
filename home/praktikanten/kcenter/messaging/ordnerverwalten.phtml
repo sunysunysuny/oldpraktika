@@ -1,0 +1,400 @@
+<?
+# require_once("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$bereichvars[1] = 'Eingang';
+$bereichvars[2] = 'Merkzettel';
+$bereichvars[3] = 'Ausgang';
+
+$sql = sprintf("SELECT
+					id, name, bereich
+				FROM
+					nutzerordner
+				WHERE
+					nutzerid = %d
+				ORDER BY
+					bereich,
+					reihenfolge;",
+				$_SESSION['s_nutzerid']
+			);
+
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+
+while (list($ordnerid, $name, $bereich) = mysql_fetch_row($result)) {
+	$nutzerordner[$bereich][] = $name;
+	$nutzerordnerid[$bereich][] = $ordnerid;
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+#pageheader(array('page_title' => 'Ordner verwalten'));
+
+if (isset($_POST['auswahl1']) && !empty($_POST['auswahl1'])) {
+	$auswahl = 1;
+}
+if (isset($_POST['auswahl2']) && !empty($_POST['auswahl2'])) {
+	$auswahl = 2;
+}
+if (isset($_POST['auswahl3']) && !empty($_POST['auswahl3'])) {
+	$auswahl = 3;
+}
+if (isset($_POST['auswahl4']) && !empty($_POST['auswahl4'])) {
+	$auswahl = 4;
+}
+if (isset($_POST['auswahl5']) && !empty($_POST['auswahl5'])) {
+	$auswahl = 5;
+}
+ 
+if (!isset($auswahl)) {
+	$auswahl = 1;
+}
+
+if (isset($_POST['action'])) {
+	switch ($auswahl) {
+		case 1:
+			mysql_db_query($database_db,'INSERT INTO nutzerordner (nutzerid,name,bereich,reihenfolge) VALUES ('.intval($_SESSION['s_loginid']).',\''.mysql_real_escape_string($_POST['newfolder']).'\','.intval($_POST['parentfolder']).',100)',$praktdbmaster);
+		break;
+		
+		case 2:
+			mysql_db_query($database_db,'UPDATE nutzerordner SET name = \''.mysql_real_escape_string($_POST['newfoldername']).'\' WHERE id = '.intval($_POST['folderchange']).' AND nutzerid = '.intval($_SESSION['s_loginid']),$praktdbmaster);
+		break;
+
+		case 3:
+			$reihenfolgearray = explode('|',$_POST['reihenfolge']);
+			$i = 1;
+			foreach($reihenfolgearray as $arrayvalue) {
+				mysql_db_query($database_db,'UPDATE nutzerordner SET reihenfolge = '.$i.' WHERE id = '.$arrayvalue.' AND nutzerid = '.intval($_SESSION['s_loginid']),$praktdbmaster);
+				$i++;
+			}
+		break;
+	
+		case 4:
+			if (!empty($_POST['loeschwahl'])) {
+				$loeschwahl = explode('-',$_POST['loeschwahl']);
+				
+				if ($_POST['radioloeschen'] == 1) {
+					if ($_SESSION['s_bereich'] == 1) {
+						$dbstring = 'UPDATE bewerberkontakte SET inactive = \'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 2) {
+						$dbstring = 'DELETE FROM nutzerbookmark WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 3) {
+						$dbstring = 'UPDATE bewerbung SET ninactive = \'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 4) {
+						$dbstring = 'UPDATE ext_firmen SET inactive = \'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 5) {
+						$dbstring = 'DELETE FROM jobmailsend WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					}
+					mysql_db_query($database_db,$dbstring,$praktdbmaster);
+					$dbstring = 'DELETE FROM nutzerordner WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND id='.intval($loeschwahl[1]);
+					mysql_db_query($database_db,$dbstring,$praktdbmaster);
+				} elseif ($_POST['radioloeschen'] == 2 && intval($loeschwahl[1]) != intval($_POST['ordnerloeschliste'])) {
+					if ($_SESSION['s_bereich'] == 1) {
+						$dbstring = 'UPDATE bewerberkontakte SET ordner='.intval($_POST['ordnerloeschliste']).' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 2) {
+						$dbstring = 'UPDATE nutzerbookmark SET ordner='.intval($_POST['ordnerloeschliste']).' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 3) {
+						$dbstring = 'UPDATE bewerbung SET ordner='.intval($_POST['ordnerloeschliste']).' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 4) {
+						$dbstring = 'UPDATE ext_firmen SET ordner='.intval($_POST['ordnerloeschliste']).' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($loeschwahl[1]);
+					} elseif ($_SESSION['s_bereich'] == 5) {
+						$dbstring = '';
+					}
+					mysql_db_query($database_db,$dbstring,$praktdbmaster);
+					$dbstring = 'DELETE FROM nutzerordner WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND id='.intval($loeschwahl[1]);
+					mysql_db_query($database_db,$dbstring,$praktdbmaster);
+				}
+			}
+		break;
+		
+		case 5:
+			if (!empty($_POST['loeschwahl2'])) {
+				if (intval($_POST['loeschwahl2']) < 6) {
+					$_POST['loeschwahl2'] = 0; // F&uuml;r die Standardverzeichnisse sind keine IDs vergeben
+				}
+				if ($_SESSION['s_bereich'] == 1) {
+					$dbstring = 'UPDATE bewerberkontakte SET inactive=\'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($_POST['loeschwahl2']);
+				} elseif ($_SESSION['s_bereich'] == 2) {
+					$dbstring = 'DELETE FROM nutzerbookmark WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($_POST['loeschwahl2']);
+				} elseif ($_SESSION['s_bereich'] == 3) {
+					$dbstring = 'UPDATE bewerbung SET ninactive=\'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($_POST['loeschwahl2']);
+				} elseif ($_SESSION['s_bereich'] == 4) {
+					$dbstring = 'UPDATE ext_firmen SET inactive=\'true\' WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($_POST['loeschwahl2']);
+				} elseif ($_SESSION['s_bereich'] == 5) {
+					$dbstring = 'DELETE FROM jobmailsend WHERE nutzerid = '.intval($_SESSION['s_loginid']).' AND ordner='.intval($_POST['loeschwahl2']);
+				}
+				mysql_db_query($database_db,$dbstring,$praktdbmaster);
+			}
+		break;	
+	}
+$sql = sprintf("SELECT
+					id, name, bereich
+				FROM
+					nutzerordner
+				WHERE
+					nutzerid = %d
+				ORDER BY
+					bereich,
+					reihenfolge;",
+				$_SESSION['s_nutzerid']
+			);
+
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$nutzerordner = array();
+	$nutzerordnerid = array();
+	while (list($ordnerid, $name, $bereich) = mysql_fetch_row($result)) {
+		$nutzerordner[$bereich][] = $name;
+		$nutzerordnerid[$bereich][] = $ordnerid;
+	}
+		
+} ?> 
+<script type="text/javascript">
+	function move(index,to) {
+		var list = document.form.ordnerliste;
+		var total = list.options.length-1;
+
+		if (index == -1) {
+			return false;
+		}
+		if (to == +1 && index == total) {
+			return false;
+		}
+		if (to == -1 && index == 0) {
+			return false;
+		}
+
+		var items = new Array;
+		var values = new Array;
+
+		for (i = total; i >= 0; i--) {
+			items[i] = list.options[i].text;
+			values[i] = list.options[i].value;
+		}
+
+		for (i = total; i >= 0; i--) {
+			if (index == i) {
+				list.options[i] = new Option(items[i + to],values[i + to], 0, 0);
+				list.options[i + to] = new Option(items[i], values[i], 0, 1);
+				i--;
+			} else {
+				list.options[i] = new Option(items[i], values[i]);
+   			}
+		}
+		
+		list.focus();
+	}
+
+	function setHidden(f) { 
+		var destVals = new Array(), opt = 0, separator = '|', d = f.ordnerliste; 
+	
+		while (d[opt]) {
+			destVals[opt] = d[opt++].value; 
+		}
+		
+		f.reihenfolge.value = destVals.join(separator); 
+		
+		return true; 
+	} 
+
+	function changeBereich(x,y) {
+		if(x == 'nothing') {
+			document.form.elements[0].blur();
+			return;
+		} else {
+			document.location.href = '/Karriere_Center/ordnerverwalten/?bereich=' + x + '&amp;auswahl=' + y;
+			document.form.reset();
+			document.form.elements[0].blur();
+		}
+	}
+	
+	function changeSubbereich(x,y) {
+		if(x == 'nothing') {
+			document.form.elements[0].blur();
+			return;
+		} else {
+			var werte;
+			werte = x.split('-');
+			document.location.href = '/Karriere_Center/ordnerverwalten/?bereich=' + werte[0] + '&auswahl=' + y + '&subbereich=' + werte[1];
+			document.form.reset();
+			document.form.elements[0].blur();
+		}
+	}
+</script>
+
+<? // $editMode = true; include "/home/praktika/etc/navibaumbewerber.inc.php"; ?>
+<button type="submit" name="auswahl1" value="1" style="float:right;margin:0px;" onclick="location.href='/karriere/'"><span><span><span>Zurück zum Karriere Center</span></span></span></button>
+<h3>Ordner verwalten</h3>
+<form method="post" action="/Karriere_Center/ordnerverwalten/" name="form" class="folderadmin" style="width:100%;">
+	<h4>Ordner anlegen</h4>
+	<fieldset class="clearfix">
+		<p>
+			<label for="parentfolder">in:</label>
+			<select name="parentfolder" id="parentfolder">
+<?
+foreach($bereichvars as $bereichskey => $bereichsval) {
+	echo '				<option value="'.$bereichskey.'">'.$bereichsval.'</option>'."\n";
+}	
+?>
+			</select>
+		</p>
+		<p>
+			<label for="newfolder">Ordner anlegen:</label>
+			<input type="text" name="newfolder" id="newfolder" maxlength="19" />
+		</p>
+		<p class="submit">
+			<button type="submit" name="auswahl1" value="1"><span><span><span>NEU ANLEGEN</span></span></span></button>
+		</p>
+	</fieldset>
+	<h4>Ordner umbennen</h4>
+	<fieldset>
+		<p>
+		<label for="folderchange">Ordner umbenennen:</label>
+				<select name="folderchange" id="folderchange">
+<?
+for ($i = 1; $i <= count($bereichvars); $i++) {
+	echo '				<optgroup label="'.$bereichvars[$i].'">'."\n";
+	if (isset($nutzerordner[$i]) && count($nutzerordner[$i]) > 0) {
+		for ($j = 1; $j <= count($nutzerordner[$i]); $j++) {
+			echo '					<option value="'.($nutzerordnerid[$i][($j-1)]).'">- '.($nutzerordner[$i][($j-1)]).'</option>'."\n";
+		}
+	}
+	echo '				</optgroup>'."\n";
+}	
+?>
+			</select>
+		</p>
+		<p>
+			<label for="newfoldername">Neuer Name:</label>
+			<input type="text" name="newfoldername" id="newfoldername" maxlength="19" />
+		</p>
+		<p class="submit">
+			<button type="submit" name="auswahl2" value="2"><span><span><span>UMBENENNEN</span></span></span></button>
+		</p>
+	</fieldset>
+	<h4>Reihenfolge &auml;ndern</h4>
+	<fieldset>
+		<p>
+			<label for="bereichswahl">Reihenfolge &auml;ndern</label>
+			<select name="bereichswahl" id="bereichswahl" onchange="changeBereich(this.form.bereichswahl.options[this.form.bereichswahl.options.selectedIndex].value,3)">
+<?
+foreach($bereichvars as $bereichskey => $bereichsval) {
+	echo '				<option value="'.$bereichskey.'"';
+	if ($bereichskey == $_SESSION['s_bereich']) {
+		echo ' selected="selected"';
+	}
+	echo '>'.$bereichsval.'</option>'."\n";
+}	
+?>
+			</select>
+		</p>
+		<p>
+<?
+if (isset($nutzerordner[$_SESSION['s_bereich']]) && count($nutzerordner[$_SESSION['s_bereich']]) > 0) {
+	echo '			<select name="ordnerliste" size="4">'."\n";
+
+	for ($j = 1; $j <= count($nutzerordner[$_SESSION['s_bereich']]); $j++) {
+		echo '				<option value="'.($nutzerordnerid[$_SESSION['s_bereich']][($j-1)]).'">'.($nutzerordner[$_SESSION['s_bereich']][($j-1)]).'</option>'."\n";
+	}
+
+	echo '			</select>'."\n";
+	echo '			<span style="height: 100%; width: 25px; float: right">'."\n";
+	echo '				<button type="button" value="&#8593;" onclick="move(this.form.ordnerliste.selectedIndex,-1)" style="float: none;"><img src="/styles/images/icons/pfeil_oben.png" alt="&#8593;" /></button>'."\n";
+	echo '				<button type="button" value="&#8595;" onclick="move(this.form.ordnerliste.selectedIndex,+1)" style="float: none;"><img src="/styles/images/icons/pfeil_unten.png" alt="&#8595;" /></button>'."\n";
+	echo '			</span>'."\n";
+}
+?>
+		</p>
+		<p class="submit">
+			<input type="hidden" name="reihenfolge" />
+			<button type="submit" name="auswahl3" value="3" onclick="return setHidden(this.form)"><span><span><span>&Auml;NDERN</span></span></span></button>
+		</p>
+	</fieldset>
+	<h4>Ordner l&ouml;schen</h4>
+	<fieldset>
+		<p>
+			<label for="loeschwahl">Diesen Ordner l&ouml;schen:</label>
+			<select name="loeschwahl" id="loeschwahl" onchange="changeSubbereich(this.form.loeschwahl.options[this.form.loeschwahl.options.selectedIndex].value,4)">
+				<option value="">---</option>
+<?
+for ($i = 1; $i <= count($bereichvars); $i++) {
+	echo '				<optgroup label="'.$bereichvars[$i].'">'."\n";
+	if (isset($nutzerordner[$i]) && count($nutzerordner[$i]) > 0) {
+		for ($j = 1; $j <= count($nutzerordner[$i]); $j++) {
+			echo '					<option value="'.$i.'-'.($nutzerordnerid[$i][($j-1)]).'"';
+			
+			if ($nutzerordnerid[$i][($j-1)] == $_GET['subbereich']) {
+				echo ' selected="selected"';
+				$bereich = $i;
+			}
+			
+			echo '>- '.($nutzerordner[$i][($j-1)]).'</option>'."\n";
+		}
+	}
+	echo '				</optgroup>'."\n";
+}
+?>
+			</select>
+		</p>
+		<p class="checkboxes">
+			<input type="radio" id="radioloeschen1" name="radioloeschen" value="1" checked="checked" />
+			<label for="radioloeschen1">Ordner mit allen Eintr&auml;gen l&ouml;schen.</label>
+		</p>
+		<p class="checkboxes">
+			<input type="radio" id="radioloeschen2" name="radioloeschen" value="2" />
+			<label for="radioloeschen2">Ordner l&ouml;schen und Inhalte in folgenden Ordner verschieben:</label>
+		</p>
+		<p>
+			<select name="ordnerloeschliste" id="ordnerloeschliste" size="4">
+<?
+if (isset($bereich)) {
+	$vOrdner = $bereich;
+} elseif (isset($_SESSION['s_bereich'])) {
+	$vOrdner = $_SESSION['s_bereich'];
+} else {
+	$vOrdner = 0;
+}
+
+echo '				<option style="font-weight: bold;" value="0">'.$bereichvars[$vOrdner].'</option>'."\n";
+if (isset($nutzerordner[$vOrdner]) && count($nutzerordner[$vOrdner]) > 0) {
+	for ($j = 1; $j <= count($nutzerordner[$vOrdner]); $j++) {
+		if ($nutzerordnerid[$vOrdner][($j-1)] != $_GET['subbereich']) {
+			echo '				<option value="'.($nutzerordnerid[$vOrdner][($j-1)]).'">- '.($nutzerordner[$vOrdner][($j-1)]).'</option>'."\n";
+		}
+	}
+}
+?>
+			</select>
+		</p>
+		<p class="submit">
+			<button type="submit" name="auswahl4" value="4"><span><span><span>L&Ouml;SCHEN</span></span></span></button>
+		</p>
+	</fieldset>
+	<h4>Ordnerinhalte l&ouml;schen</h4>
+	<fieldset>
+		<p>
+			<label for="loeschwahl2">Diesen Ordnerinhalt l&ouml;schen:</label>
+			<select name="loeschwahl2" id="loeschwahl2">
+<?
+$i=1;
+foreach($bereichvars as $bereichskey=>$bereichsval) {
+	echo '				<option value="'.$bereichskey.'">'.$bereichsval.'</option>'."\n";
+	if (isset($nutzerordner[$i]) && count($nutzerordner[$i]) > 0) {
+		for ($j = 1; $j <= count($nutzerordner[$i]); $j++) {
+			echo '				<option value="'.($nutzerordnerid[$i][($j-1)]).'">- '.($nutzerordner[$i][($j-1)]).'</option>'."\n";
+		}
+		$i++;
+	}
+}	
+?>
+			</select>		
+		</p>
+		<p class="submit">
+			<button type="submit" name="auswahl5" value="5"><span><span><span>L&Ouml;SCHEN</span></span></span></button>
+		</p>
+	</fieldset>
+	<input type="hidden" name="action" value="1" />
+</form>

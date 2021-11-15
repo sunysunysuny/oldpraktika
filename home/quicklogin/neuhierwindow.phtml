@@ -1,0 +1,28 @@
+<?
+$sprachbasisdatei="/home/quicklogin/passwdwindow.phtml";
+
+// Durchgangsseite
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+header ("HTTP/1.0 301 Moved Permanently");
+
+if($_SESSION['current_user_group'] == 2) {
+	header ("Location: /neuanmeldung/candidate/");
+} else {
+	header ("Location: /neuanmeldung/check_company/");
+}
+# echo $_SESSION['current_user_group'];
+#
+
+exit();
+
+pageheader(array('page_title' => 'Neuregistrierung auf praktika.de'));
+
+echo '<p>'.$language['strWaehlen'].'</p>'."\n";
+echo '<ul id="newreg">'."\n";
+echo '	<li><a href="/neuanmeldung/check_candidate/"><img src="/styles/images/candidates/newreg.jpg" alt=""><br>'.$language["strBewerber"].'</a></li>'."\n";
+echo '	<li><a href="/neuanmeldung/check_company/"><img src="/styles/images/companies/newreg.jpg" alt=""><br>'.$language["strUnternehmen"].'</a></li>'."\n";
+echo '</ul>'."\n";
+
+bodyoff();
+?>

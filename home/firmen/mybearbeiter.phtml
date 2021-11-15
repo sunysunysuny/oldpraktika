@@ -1,0 +1,135 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Bearbeiter&uuml;bersicht'));
+
+if (isset($_GET['delete'])) {
+	$deletestring = 'DELETE FROM bearbeiter WHERE id='.intval($_GET['id']).' and firmenid='.intval($_SESSION['s_firmenid']);
+	$deletestring2 = 'DELETE FROM newsletter WHERE email='.mysql_real_escape_string($_GET['email']);
+	$test = mysql_db_query($database_db,'SELECT email FROM newsletter WHERE email='.mysql_real_escape_string($_GET['email']),$praktdbslave);
+	
+	$numrow = 0;
+	if ($test == true) {
+		$numrow = mysql_num_rows($test);
+	}
+	
+	mysql_db_query($database_db,$deletestring,$praktdbmaster);
+
+	$upd1 = mysql_db_query($database_db,'UPDATE bewerberkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd2 = mysql_db_query($database_db,'UPDATE bewerbung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd3 = mysql_db_query($database_db,'UPDATE fausbildungsangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd4 = mysql_db_query($database_db,'UPDATE fdiplomausschreibung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd5 = mysql_db_query($database_db,'UPDATE firmenfragebogen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd6 = mysql_db_query($database_db,'UPDATE firmenkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd7 = mysql_db_query($database_db,'UPDATE fjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd8 = mysql_db_query($database_db,'UPDATE fnebenjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd9 = mysql_db_query($database_db,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd10 = mysql_db_query($database_db,'UPDATE praktikumsstellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd11 = mysql_db_query($database_comm,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd12 = mysql_db_query($database_comm,'UPDATE buchungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd13 = mysql_db_query($database_comm,'UPDATE zahlungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd14 = mysql_db_query($database_db,'UPDATE stellenlaufzeit SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd15 = mysql_db_query($database_db,'UPDATE stellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	
+	if ($numrow > 0) {
+		mysql_db_query($database_db,$deletestring2,$praktdbmaster);
+	}
+}
+
+$ds_count = isset($_GET['ds_count']) ? intval($_GET['ds_count']) : 0;
+$ds_pro_seite = isset($_GET['ds_pro_seite']) ? intval($_GET['ds_pro_seite']) : 0;
+
+// abfrage ausfuehren  //
+$results = mysql_db_query($database_db,'SELECT * FROM bearbeiter WHERE firmenid = '.intval($_SESSION['s_firmenid']).' AND inactive=\'false\' ORDER BY id',$praktdbslave);
+$readmin = mysql_db_query($database_db,'SELECT admin FROM bearbeiter WHERE id = '.intval($_SESSION['s_loginid']),$praktdbslave);
+	
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows($results);
+
+if ($num_rows  > 0) {
+	// erste seite? //
+	if (!isset($ds_count)) {
+		$ds_count = 0;
+	}
+
+	// datensaetze pro seite ueberpruefen und setzen //
+	if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20) )) {
+		$ds_pro_seite = 10;
+	}
+
+	echo '<p>'.$language['strBearbeiterAusgabe'].' ';
+	echo $ds_count + 1; echo ' - '.min(($ds_count + $ds_pro_seite ), $num_rows).' ';
+	echo $language['strVon'].' '.mysql_num_rows($results).'</p>'."\n";
+
+	/* Datensaetze anzeigen */
+	mysql_data_seek($results, $ds_count);
+
+	$end_ds = $ds_count + $ds_pro_seite;
+	
+	if (mysql_result($readmin,0,'admin') == 'true') {
+		echo '<p><a href="/firmen/bearbeiter_neu/">Neuen Bearbeiter f&uuml;r die Firma anlegen</a></p>'."\n";
+	}
+
+	while (($ds_count < $end_ds) &&  ($result_row = mysql_fetch_array($results))) {
+ 
+
+		echo '<h4>'.($ds_count + 1).'. '.((isset($result_row['titel']) && !empty($result_row['titel'])) ? $result_row['titel'].' ' : '').$result_row['vname'].' '.$result_row['name'].((isset($result_row['admin']) && $result_row['admin'] == "true") ? ' (Administrator)' : '').'</h4>'."\n";
+		echo '<p>LoginID: '.$result_row['id'].'</p>'."\n";
+		echo 'Abteilung: '.$result_row['abteilung'].'<br>'."\n";
+		echo 'Durchwahl: '.$result_row['tel'].'<br>'."\n";
+		echo 'eMail: <a href="mailto:'.$result_row['email'].'">'.$result_row['email'].'</a><br><br>'."\n";
+	
+		if (mysql_result($readmin,0,'admin') == 'true' || $result_row['id'] == $_SESSION['s_loginid']) {
+			echo '<img src="/styles/images/icons/bearbeiten.gif" alt="" style="margin-bottom:-5px;">&nbsp;<a href="/firmen/bearbeiter_update/'.$result_row['id'].'/">'.$language['strAendern2'].'</a>'."\n";
+			
+			if ($result_row['admin'] == 'false') {#
+				echo '&nbsp;&nbsp;&nbsp;<img src="/styles/images/icons/papierkorb.png" alt="" style="margin-bottom:-5px;">&nbsp;<a href="/firmen/bearbeiter_delete/1/'.$result_row['id'].'/'.$result_row['email'].'/" onclick="return confirm(\'Wollen Sie diesen Bearbeiter wirklich l&ouml;schen?\');">'.$language['strBLoeschen'].'</a>'."\n";
+			}
+	
+			echo '&nbsp;&nbsp;&nbsp;<img src="/styles/images/icons/mail.gif" alt="" style="margin-bottom:-5px;">&nbsp;<a href="/firmen/newsletter/'.$result_row['id'].'/">'.$language['strNewsletter'].'</a>'."\n";
+		}
+		
+		if ($_SESSION['s_loginid'] == $result_row['id']) {
+			echo '&nbsp;&nbsp;&nbsp;<img src="/styles/images/icons/schloss.gif" alt="" style="margin-bottom:-5px;">&nbsp;<a href="/firmen/newpassword/">Passwort &auml;ndern</a>'."\n";
+		}
+		echo '<p>&nbsp;</p>'."\n";
+		
+		$ds_count += 1;
+	}
+
+	mysql_free_result($results);
+		
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '			<button type="button" name="back" value="zur&uuml;ck zur Account&uuml;bersicht" onclick="location.href=\'/firmen/account/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+
+	if ($ds_count < $num_rows) {
+		echo '<form action="/firmen/bearbeiter/" method="get">'."\n";
+		echo '	<input type="hidden" name="ds_count" value="'.$ds_count.' />'."\n";
+		echo '	<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.' />'."\n";
+		echo '	<input type="submit" value="'.$language['strNext'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAngebote2'].'" />'."\n";
+		echo '</form>'."\n";
+	}
+} else {
+	echo '<p>'.$language['strKeineAngebote'].'</p>'."\n";
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/firmen/account/">'.$language['strZum'].'</a>'."\n";
+	echo '	</p>'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/firmen/account/"><img alt="zur&uuml;ck zur Account&uuml;bersicht" src="/styles/images/Buttons/zurueck_comp.gif" title="zur&uuml;ck zur Account&uuml;bersicht" /></a>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+}
+
+bodyoff();
+?>

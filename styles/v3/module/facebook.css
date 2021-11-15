@@ -1,0 +1,85 @@
+@charset "utf-8";
+/* CSS Document */
+
+body {
+	margin: 0;
+	padding: 0;
+	height: 900px;
+}
+div#wrapper {
+	width: 851px;
+}
+div#language-switch {
+	position: absolute;
+	top: 100px;
+	right: 0;
+}
+div#english {
+	display: none;
+}
+p, ol {
+	font-family: Verdana, arial, sans-serif;
+	font-size: 13px;
+	width: 70%;
+	line-height: 18px;
+	margin-left: 60px;
+}
+ol li {
+	margin: 20px 0 20px 0;
+}
+p.back {
+	padding-bottom: 30px;
+}
+a.button {
+	margin-top: 25px;
+
+	border: 1px solid #c95d00;
+	padding: 5px 10px 6px 10px;
+	margin-right: 10px;
+	cursor: pointer;
+	float: left;
+	color: #fff;
+	font-size: 13px;
+	font-weight: bold;
+	text-decoration: none;
+	vertical-align: middle;
+	text-align: center;
+	width: auto;
+
+	background: #f27000;
+	
+	/* IE10 */ 
+	background-image: -ms-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Mozilla Firefox */ 
+	background-image: -moz-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Opera */ 
+	background-image: -o-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Webkit (Safari/Chrome 10) */ 
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #fdac64), color-stop(1, #f27000));
+
+	/* Webkit (Chrome 11+) */ 
+	background-image: -webkit-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Proposed W3C Markup */ 
+	background-image: linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* For Internet Explorer 5.5 - 7 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#fffdac64, endColorstr=#fff27000);
+
+	/* For Internet Explorer 8 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#fffdac64, endColorstr=#fff27000)";
+
+	border-radius: 4px;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	
+	box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+	-webkit-box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+	-moz-box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+	
+	text-shadow: rgba(204,95,0,1) -1px -1px 0px;
+}
+

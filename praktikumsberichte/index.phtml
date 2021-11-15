@@ -1,0 +1,353 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php");
+
+$_SESSION['current_page'] = PAGE_INTERNSHIP_REPORTS;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = "default";
+
+pageheader(array('page_title' => 'Praktikumsberichte zu Unternehmen', 'page_image' => true, 'grid_system' => '4-2'));
+
+$fertig = 1;
+if (	(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['firmen2'])) ||
+		(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['strasse'])) ||
+		(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['plz'])) ||
+		(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['ort'])) ||
+		(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['tel'])) ||
+		(isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new' && empty($_POST['email'])) ||
+		(isset($_POST['pbeauftragter']) && empty($_POST['pbeauftragter'])) ||
+		(isset($_POST['bewertung']) && $_POST['bewertung'] < 1)) {
+			$fertig = 0;
+		}
+
+// Zwischenschritte bei der Bewertung
+if (!isset($_REQUEST['schritt'])) {
+	$schritt = 1;
+} else {
+	$schritt = intval($_REQUEST['schritt']);
+}
+
+if (isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'back') {
+	$schritt = 1;
+	unset($_POST['firmensuche']);
+}
+
+if (isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'keep') {
+	$schritt = 1;
+}
+if (isset($_REQUEST['firmensel']) && $_REQUEST['firmensel'] == 'new') {
+	$schritt = 2;
+}
+
+if (isset($_GET['firmen'])) {
+	$_POST['firmenid'] = $_GET['firmen'];
+	$_POST["schritt"] = 1;
+}
+
+if (isset($_POST['sendmail']) && $fertig > 0 && $_REQUEST['firmensel'] != 'new') {
+	$firmnselect = mysql_db_query($database_db,'SELECT * FROM firmen WHERE id = '.$_REQUEST['firmenid'],$praktdbslave);
+	
+	
+	$_POST['firmen2'] = mysql_result($firmnselect,0,'firma');
+	$_POST['branche'] = mysql_result($firmnselect,0,'branche');
+	$_POST['strasse'] = mysql_result($firmnselect,0,'strasse');
+	$_POST['plz'] = mysql_result($firmnselect,0,'plz');
+	$_POST['ort'] = mysql_result($firmnselect,0,'ort');
+	$_POST['tel'] = mysql_result($firmnselect,0,'tel');
+	$_POST['email'] = mysql_result($firmnselect,0,'email');
+	$_POST['land'] = mysql_result($firmnselect,0,'land');
+}
+
+if (isset($_POST['sendmail']) && $fertig > 0) {
+	$datum_eintrag = date('Y-m-d');
+	$modify = date('YmdHis');
+
+	// Bericht eintragen
+	$insert = '	INSERT INTO prakt2.praktberichte (
+					nutzerid,
+					inactive,
+					firmenid,
+					firma,
+					branche,
+					strasse,
+					plz,
+					ort,
+					land,
+					pbeauftragter,
+					tel,
+					email,
+					homepage,
+					dauer,
+					bezahlung,
+					aufmerksam,
+					auswahlverfahren,
+					aufgaben,
+					betreuer,
+					bewerten,
+					zukuenftig,
+					bewertung,
+					public,
+					host,
+					ip,
+					datum_eintrag,
+					modify
+				) VALUES (
+					'.$_SESSION['s_nutzerid'].',
+					\'true\',
+					'.intval($_REQUEST['firmenid']).',
+					\''.mysql_real_escape_string($_POST['firmen2']).'\',
+					\''.mysql_real_escape_string($_POST['branche']).'\',
+					\''.mysql_real_escape_string($_POST['strasse']).'\',
+					\''.mysql_real_escape_string($_POST['plz']).'\',
+					\''.mysql_real_escape_string($_POST['ort']).'\',
+					'.intval($_POST['land']).',
+					\''.mysql_real_escape_string($_POST['pbeauftragter']).'\',
+					\''.mysql_real_escape_string($_POST['tel']).'\',
+					\''.mysql_real_escape_string($_POST['email']).'\',
+					\''.mysql_real_escape_string($_POST['homepage']).'\',
+					\''.mysql_real_escape_string($_POST['dauer']).'\',
+					\''.mysql_real_escape_string($_POST['bezahlung']).'\',
+					\''.mysql_real_escape_string($_POST['aufmerksam']).'\',
+					\''.mysql_real_escape_string($_POST['auswahlverfahren']).'\',
+					\''.mysql_real_escape_string($_POST['aufgaben']).'\',
+					\''.mysql_real_escape_string($_POST['betreuer']).'\',
+					\''.mysql_real_escape_string($_POST['bewerten']).'\',
+					\''.mysql_real_escape_string($_POST['zukuenftig']).'\',
+					'.intval($_POST['bewertung']).',
+					\''.mysql_real_escape_string($_POST['public']).'\',
+					\''.mysql_real_escape_string($host).'\',
+					\''.mysql_real_escape_string($ip).'\',
+					NOW(),
+					NOW())';
+	$hDB->query($insert,$praktdbmaster);
+
+	// Logfile eintragen
+	$fp = fopen($logfile,'a');
+	fputs($fp,$insert);
+	fputs($fp,"\n");
+	fclose($fp);
+
+	// Bestaetigungsmail an uns
+	$land = mysql_db_query($database_db,'SELECT * FROM land WHERE id = '.$_POST['land'],$praktdbslave);
+	
+	$mailstring = 'Strasse: '.$_POST['strasse']."\n";
+	$mailstring = $mailstring.'Plz, Ort: '.$_POST['plz'].' '.$_POST['ort']."\n";
+	$mailstring = $mailstring.'Land: '.mysql_result($land,0,'german')."\n";
+	$mailstring = $mailstring.'Telefon: '.$_POST['tel']."\n";
+	$mailstring = $mailstring.'eMail Adresse lautet: '.$_POST['email']."\n";
+	$mailstring = $mailstring.'Homepage: '.$_POST['homepage']."\n\n";
+?>
+
+<p><strong>Herzlichen Dank f&uuml;r Ihre Teilnahme!</strong><br /><br />Ihr Bericht wird in K&uuml;rze ver&ouml;ffentlicht. Sie werden von uns informiert, wenn der Bericht auf der Webseite zur Verf&uuml;gung stehen wird.</p>
+<p class="control"><a hre="/karriere" class="button small">Zur&uuml;ck</a></p>
+
+<?
+} else {
+?>
+
+<p><strong>Sie haben ein Praktikum absolviert? - Dann lassen Sie es andere wissen.<br />Haben Sie vor, ein Praktikum zu machen? Dann profitieren Sie von den Erfahrungen anderer praktika.de-Mitglieder.</strong></p>
+<p><a href="/praktikumsberichte/ergebnisse.phtml">Praktikumsberichte zu Unternehmen</a> (z.B. Bayer, L'Or&eacute;al, Deutsche Bank, Deutsche Bahn, Volkswagen AG, Daimler, Lufthansa, IBM und viele weitere Unternehmen)</p>
+<p>Machen Sie Ihr ehemaliges Unternehmen stolz und pr&auml;sentieren Sie es als chancenreiches und anspruchsvolles Ausbildungsunternehmen. Helfen Sie dem Unternehmen, auch in Zukunft viele interessante Bewerbungen zu erhalten, denn das hat es ja schlie&szlig;lich verdient.</p>
+<p>
+	<a href="/praktikumsberichte/ergebnisse.phtml" class="button">Praktikumsberichte lesen</a>
+	<strong>Sie m&ouml;chten ins Ausland?</strong><br /><a href="/cms/Erfahrungsberichte_Auslandspraktikum.973.0.html">Erfahrungsberichte zum Praktikum im Ausland</a></p>
+</p>
+<p>Leider gibt es immer wieder auch Unternehmen die keine fachlich geeigneten Stellen anbieten. Hier haben Sie die M&ouml;glichkeit, andere potentielle Bewerber  Ihre Erfahrungen mitzuteilen. Und vielleicht bewirken Sie ja, dass sich im Unternehmen zuk&uuml;nftig etwas &auml;ndert.</p>
+<p>Jeder kann Praktikumsberichte zu allen Unternehmen auf praktika.de einstellen. Ver&ouml;ffentlicht werden auch Berichte von Unternehmen die noch nicht bei praktika.de sind.</p>
+<p>Profitieren Sie von den Berichten nach Ihrem Praktikum und vor dem n&auml;chsten Praktikum bzw. bei Ihrem Berufseinstieg.</p>
+
+<h2>Praktikumsbericht schreiben</h2>
+
+<script src="/scripts/microajax.js" type="text/javascript"></script>
+<script src="/scripts/smallbox.js" type="text/javascript"></script>
+<script src="/scripts/jQuery.min.js" type="text/javascript"></script>
+
+<form name="Infoform" method="post" action="/praktikumsberichte/">
+<?
+	if ($_SESSION['s_loggedin'] == false) { 
+?>
+	<div>
+		<p>Um einen Praktikumsbericht ver&ouml;ffentlichen zu k&ouml;nnen, m&uuml;ssen Sie angemeldet sein.</p>
+		<p>
+			<a href="/neuanmeldung/candidate/" class="button small">Registrieren</a>
+			<a href="/minilogin/Bewerber/" onclick='smallbox.loadLogin(function() { location.reload();}); return false;' class="button small alternative">login</a>
+		</p>
+	</div>
+
+<?		
+		bodyoff();
+		exit();
+	} elseif (empty($_POST['schritt'])) {
+?>
+
+	<input type="hidden" name="schritt" value="1" />
+	<h4>I. Unternehmensdaten</h4>
+	<fieldset>
+		<p>
+			<label for="firmensuche">&Uuml;ber welches Unternehmen m&ouml;chten Sie berichten:</label>
+			<input autocomplete="off" type="text" onkeyup="autoCompleter.get(this.value);" id="firmensuche" name="firmensuche" value="" size="35"'.$gehtnicht.' />
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="submit" name="send" class="button small" value="Firma ausw&auml;hlen" />
+		</p>
+	</fieldset>
+	<script type="text/javascript">
+		jQuery.noConflict( )
+		jQuery(function () {
+			autoCompleter.initAutoComplete($('firmensuche'), "/admin/ajax/firmen.php");      	
+		});
+	</script>	
+<?
+	}
+	
+	if ($_POST['schritt'] == '1') { 
+		// Absenden wurde gedrückt
+		if(!empty($_POST["sendmail"])) {
+			
+		}
+
+		if(empty($_POST["firmenid"])) {
+			$query = 'SELECT id, firma, ort FROM '.$database_db.'.firmen WHERE inactive = "false" AND firma LIKE "'.$_POST['firmensuche'].'%"';
+		} else {
+			$query = 'SELECT id, firma, ort FROM '.$database_db.'.firmen WHERE inactive = "false" AND id = '.(int)$_POST["firmenid"];
+		}
+
+		$result = $hDB->query($query, $praktdbslave);
+		$num_rows = mysql_num_rows($result);
+	
+		if ($num_rows > 2) {
+?>
+	<input type="hidden" name="schritt" value="1" />
+	<h4>I. Unternehmensdaten</h4>
+	<fieldset>
+		<p>
+	        <label for="firmensuche">&Uuml;ber welches Unternehmen m&ouml;chten Sie berichten:</label>
+			<select id="firmensuche" name="firmensuche" onchange="submit();">
+<?
+			while ($line = mysql_fetch_object($result)) {
+				$html = htmlspecialchars($line->firma);
+				echo '				<option value="'.addslashes(strip_tags($line->firma)).'">'.$html.' - '.$line->ort.'</option>'."\n";
+			}
+?>				
+			</select>
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="submit" name="send" class="button small" value="Firma ausw&auml;hlen" />
+		</p>
+	</fieldset>
+	<script type="text/javascript">
+		jQuery.noConflict( )
+		jQuery(function () {
+			autoCompleter.initAutoComplete($('firmensuche'), "/admin/ajax/firmen.php");      	
+		});
+	</script>
+<?		
+		} elseif ($num_rows == 0) {
+?>
+	<input type="hidden" name="schritt" value="1" />
+	<h4>I. Unternehmensdaten</h4>
+	<p class="error">Es konnte kein Unternehmen mit ihrem Suchbegriff gefunden!</p>
+	<fieldset>
+		<p>
+			<label for="firmensuche">&Uuml;ber welches Unternehmen m&ouml;chten Sie berichten:</label>
+			<input autocomplete="off" type="text" onkeyup="autoCompleter.get(this.value);" id="firmensuche" name="firmensuche" value="" size="35" />
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="submit" name="send" class="button small" value="Firma ausw&auml;hlen" />
+		</p>
+	</fieldset>
+	<script type="text/javascript">
+		jQuery.noConflict( )
+		jQuery(function () {
+			autoCompleter.initAutoComplete($('firmensuche'), "/admin/ajax/firmen.php");      	
+		});
+	</script>
+<?		
+		} else {
+			$row = mysql_fetch_assoc($result);
+			$firmenid = intval($row['id']);
+			
+			$query = 'SELECT id, firma, ort FROM prakt2.firmen WHERE id = '.$firmenid;
+			$result = $hDB->query($query,$praktdbslave);
+			$id = mysql_result($result, 0, 'id');
+			$name = mysql_result($result, 0, 'firma');
+			$_POST['ort'] = mysql_result($result, 0, 'ort');
+?>
+	<h4>II. Ihre Bewertung des Praktikums:</h4>
+	<p class="hint info">Hinweis: Die mit * gekennzeichneten Felder m&uuml;ssen ausgef&uuml;llt werden. Die Bewertungen werden erst nach einer &Uuml;berpr&uuml;fung durch uns freigeschalten, um Missbrauch zu vermeiden.</p>			
+	<fieldset>
+		<p>
+			<label for="pbeauftragter" <?=((isset($_POST['sendmail']) && empty($_POST['pbeauftragter'])) ? " class='error'" : "") ?>>Name des Praktikumsbeauftragten:<sup>*</sup></label>
+			<input type="text" id="pbeauftragter" name="pbeauftragter" value="<?=$_POST['pbeauftragter'] ?>" size="35" maxlength="150" />
+		</p>
+		<p>
+			<label for="dauer">Zeitraum bzw. Dauer:</label>
+			<input type="text" id="dauer" name="dauer" value="<?=$_POST['dauer'] ?>" size="35" maxlength="150" />
+		</p>
+		<p>
+			<label for="bezahlung">Bezahlung:</label>
+			<input type="text" id="bezahlung" name="bezahlung" value="<?=$_POST['bezahlung'] ?>" size="35" maxlength="150" />
+		</p>
+		<p class="big_textarea">
+			<label for="aufmerksam">Wie sind Sie auf die Praktikumsstelle aufmerksam geworden?</label>
+			<textarea id="aufmerksam" name="aufmerksam" cols="37" rows="5"><?=$_POST['aufmerksam'] ?></textarea>
+		</p>
+		<p class="big_textarea">
+			<label for="auswahlverfahren">Wie lief das Bewerbungs- und Auswahlverfahren ab?</label>
+			<textarea id="auswahlverfahren" name="auswahlverfahren" cols="37" rows="5"><?=$_POST['auswahlverfahren'] ?></textarea>
+		</p>
+		<p class="big_textarea">
+			<label for="aufgaben">Was waren Ihre Verantwortungsbereiche und Aufgaben w&auml;hrend des Praktikums?</label>
+			<textarea id="aufgaben" name="aufgaben" cols="37" rows="5"><?=$_POST['aufgaben'] ?></textarea>
+		</p>
+		<p class="big_textarea">
+			<label for="betreuer">In welcher Art und Weise standen Ihnen Ressourcen, Betreuer, Informationsquellen etc. zur Verf&uuml;gung?</label>
+			<textarea id="betreuer" name="betreuer" cols="37" rows="5"><?=$_POST['betreuer'] ?></textarea>
+		</p>
+		<p class="big_textarea">
+			<label for="bewerten">Wie w&uuml;rden Sie das Praktikum bewerten? Welche Erwartungen wurden erf&uuml;llt bzw. nicht erf&uuml;llt?</label><br />
+			<textarea id="bewertenText" name="bewertenText" cols="37" rows="5"><?=$_POST['bewerten'] ?></textarea>
+		</p>
+		<p class="big_textarea">
+			<label for="zukuenftig">Stellt das Unternehmen auch zuk&uuml;nftig Praktikumspl&auml;tze zur Verf&uuml;gung? Welche Tipps geben Sie zuk&uuml;nftigen Bewerbern?</label>
+			<textarea id="zukuenftig" name="zukuenftig" cols="37" rows="5"><?=$_POST['zukuenftig'] ?></textarea>
+		</p>
+		<p>
+			<label for="bewertung"<?=((isset($_POST['sendmail']) && $_POST['bewertung'] < 1) ? ' class="error"' : '') ?>>Gesamtbewertung:<sup>*</sup><br /><span class="hint">(1 = schlecht; 10 = hervorragend)</span></label>
+			<select id="bewertung" name="bewertung" class="day">
+				<option value="">-</option>
+				
+			<? for ($i = 1; $i <= 10; $i++) { ?>
+				<option value="<?=$i ?>" <?=($_POST['bewertung'] == $i ? ' selected="selected"' : '') ?>><?=$i ?></option>
+			<? } ?>
+
+			</select>
+		</p>
+		<p class="checkboxes">
+			<label for="public" class="komplette_breite"><input type="checkbox" id="public" name="public" value="true"<?=($_POST['public'] == 'true' ? ' checked="checked"' : '') ?> /> Bitte klicken Sie hier, wenn Ihr Name und Ihre eMail-Adresse nicht ver&ouml;ffentlicht werden sollen!</label>
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="hidden" name="schritt" value="1" />
+			<input type="hidden" name="firmenid" value="<?=$id ?>" />
+			<input type="submit" name="sendmail" class="button small" value="Bewertung abgeben" />
+		</p>
+	</fieldset>	
+<?		
+		}
+	}
+?>
+</form>
+
+<?
+}
+
+bodyoff();
+?>

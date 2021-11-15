@@ -1,0 +1,80 @@
+/* 
+    Document   : abcsuche.css
+    Created on : 26.01.2010, 09:59:40
+    Author     : swarnat
+    Description:
+        Stylesheet - Modul für ABC Suche nach Unternehmen
+*/
+
+div#main div#content .box_gray form fieldset {
+	float: left;
+}
+div#main div#content .box_gray form fieldset input#suchstring {
+	margin-left: 120px;
+}
+div#main div#content .box_gray form fieldset.control_panel input {
+	margin-left: 10px;
+}
+
+.katalogBuchstabe {
+    display:block;
+    float:left;
+    margin:0px 0px 5px 5px;
+}
+.katalogBuchstabe:hover {
+}
+.katalogBuchstabe.selected {
+}
+.katalogButton_Container {
+	margin:15px 0 0 0;
+}
+div.katalog_paging {
+	text-align: right;
+	margin: 20px 0 5px 0;
+}
+.unternehmenssuche {
+	text-align:center;
+}
+.unternehmenssuche fieldset {
+	text-align:center;
+	margin-bottom:15px;
+}
+.unternehmenssuche fieldset p label {
+	text-align:center;
+	margin-top:5px;
+	font-weight: bold;
+}
+.company_titel, .company_titel a {
+    margin-bottom:5px !important;
+	margin-top:12px !important;
+	font-weight: bold;
+}
+.company_titel span.highlight {
+    color:black !important;
+    background-color:#F3D5BA;
+}
+.company_sub p {
+    margin-bottom:10px !important;
+    margin-top:0px !important;
+	padding-bottom: 15px;
+	padding-top:0px;
+	border-bottom: 1px solid #ddd;
+}
+
+.company_logo {
+    display:block;
+    width:95px;
+    text-align:center;
+    padding-top:5px;
+    padding-bottom:10px;
+    height:33px;
+    float:left;
+}
+.abc_firma_stelle {
+    border:1px solid #fff;
+    padding:2px;
+}
+.abc_firma_stelle:hover {
+    border:1px solid #ccc;
+    padding:2px;
+}

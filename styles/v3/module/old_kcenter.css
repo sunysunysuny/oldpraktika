@@ -1,0 +1,777 @@
+/* 
+    Document   : kcenter.css
+    Created on : 25.01.2010, 17:09:39
+    Author     : swarnat
+    Description:
+        Stylesheet-Modul f�r das KarriereCenter
+*/
+/* Recruiting Center [div#recruitingCenter] */
+div#recruitingCenter {
+	width:665px;
+	margin-top:-7px;
+}
+div#recruitingCenter div#mailbox_container div {
+	margin: 0px;
+}
+span#kcenter_hinweis .hinweis {
+	background-color:#faf0bd;
+	border:1px solid red;
+	font-size:0.9em;
+	padding:10px 10px 10px 10px;
+	color:#ee0000;
+
+}
+span#kcenter_hinweis .hinweis .hinweis_text_achtung {
+	font-weight:bold;
+	color:#ee0000;
+
+}
+span#kcenter_hinweis .hinweis {
+	height:45px;
+}
+span#kcenter_hinweis .hinweis .hinweis_text_achtung.text {
+	font-weight:normal !important;
+	float:left;
+}
+span#kcenter_hinweis .hinweis .hinweis_text_achtung.link {
+	padding-top:5px;
+	font-weight:normal !important;
+	float:right;
+}
+span#kcenter_hinweis .notiz_arrow {
+	margin-top:3px;
+	margin-bottom:-1px;
+}
+div#recruitingCenter .directories {
+
+}
+
+div#recr_container .logoInfo th {
+	padding-left:10px;
+	padding-top:10px;
+}
+div#recr_container .logoInfo td {
+	background-color:#fff;
+	padding-top:10px;
+	border-top:1px dashed #ddd;
+}
+div#recr_container .logoInfo {
+	border:1px solid #ddd;
+}
+div#recr_container div#firmenlogo_upload{
+	border:1px dashed #ddd;
+	width:150px;
+	text-align:center;
+	margin: -1px auto;
+	padding: 25px;
+}
+
+div#recr_container {
+	margin-top:10px;
+}
+div#recr_container div.bearbeiter {
+	margin:auto;
+}
+div#recr_container #mailbox_container {
+
+}
+div#recr_container .activeNode {
+	font-weight:bold;
+}
+
+div#recr_container #bearbeiterfilter {
+	width:328px;
+}
+div#recr_container .div_bearbeiterfilter {
+	text-align:left;
+	margin-bottom:8px;
+}
+
+div#recr_container div#mailbox_container h2.folder_title {
+	color:#fff;
+	margin: 0 0 15px 0;
+	font-size:1em;
+	background: #f27000;
+	padding: 3px 3px 4px 3px;
+	font-weight:bold;
+}
+
+div#recr_container .sortingContainer {
+	float:right;
+	width:240px;
+}
+div#recr_container .sortingContainer .sortIcon {
+	cursor:pointer;
+}
+
+/* BewerbungHeader */
+div#recr_container .bewerbungHeader {
+	font-weight:bold;
+	font-size:1.1em;
+	height:23px;
+	width:500px;
+	padding:15px 0px 0px 0px;
+	margin-top:15px;
+	clear:right;
+	border-top:1px dashed #999;
+}
+div.bewerbungHeader .bewerberStatus{
+	float:right;
+	text-align:right;
+	font-weight:normal;
+}
+div.bewerbungHeader .bewerberBetreff {
+	width:400px;
+}
+
+/* BewerbungBody */
+div#recr_container .bewerbungBody {
+	width:476px;
+	padding:12px;
+	margin-bottom:0px;
+}
+
+div.bewerbungBody .bewerberInformation {
+	width:250px;
+}
+div.bewerbungBody div.bewerberFoto  {
+	float:right;
+	width:80px;
+	border:1px solid #555;
+}
+
+/* Action Buttons */
+div.bewerbungBody .actionButtons {
+	margin:0px !important;
+	padding:0px !important;
+	list-style-type: none !important;
+
+	float:right;
+	width:10
+	0px;
+	font-size:10px;
+	line-height:20px;
+}
+div.bewerbungBody .actionButtons .actionButton {
+	margin:0px !important;
+	padding:0px !important;
+
+	line-height:25px !important;
+	vertical-align:middle;
+
+}
+div.bewerbungBody .actionButtons .actionButton a {
+	line-height:25px !important;
+	vertical-align:middle;
+}
+div.bewerbungBody .actionButtons .actionButton img {
+	margin-bottom:-6px;
+}
+div.bewerbungBody .label {
+	float:left;
+	display:block;
+	width:130px;
+}
+
+/* BewerbungControl */
+div#recr_container .bewerbungControl {
+	padding: 0px 10px 0px 10px;
+	margin:0px !important;
+	width:480px;
+
+}
+div.bewerbungControl .statusButton {
+	background-image:url(/gifs/bcenter/empty.gif);
+	background-repeat:no-repeat;
+	font-size:10px;
+	float:left;
+	width:95px;
+	cursor:pointer;
+	display:block;
+	padding:2px 5px 2px 20px;
+	margin-top:5px !important;
+	padding-top:-7px !important;
+}
+
+div.bewerbungControl .statusButton.activeButton {
+	background-image:url(/gifs/bcenter/ok.gif);
+		cursor:default !important;
+}
+
+input.stdFont,
+textarea.stdFont {
+	font: 80% Verdana, Helvetica, Arial, sans-serif;
+}
+input.stdStyle,
+textarea.stdStyle {
+	padding:2px;
+	font: 90% Verdana, Helvetica, Arial, sans-serif;
+}
+#mailbox_container .head {
+	margin-left:0px !important;
+}
+.directory_container {
+	float:left;
+	width:160px;
+	height:30px;
+	margin-right:5px !important;
+	margin-bottom:10px !important;
+	background-color:#cccccc;
+	text-align:center;
+	display:block;
+	padding:4px;
+	padding-top:10px;
+	cursor:pointer;
+}
+.directory_container.ordnerVerwalten {
+	width:100px;
+}
+div#main div#content .sub_directories a {
+	margin-right:10px;
+	font-size:11px;
+}
+div#main div#content .sub_directories {
+	background-color:#eee;
+	padding:8px 8px 10px 5px;
+	font-size:11px;
+	border-left:1px solid #ddd;
+
+}
+div#main div#content .sub_directories img {
+	margin-right:5px;
+	margin-bottom:-3px;
+}
+.directory_container a {
+	color:#000000 !important;
+	font-weight:normal;
+}
+.directory_container a.newEntry {
+	font-weight:bold !important;
+}
+.directory_container a.activeEntry {
+	color:#9a0203 !important;
+}
+.directory_container ul {
+	margin-top:0px !important;
+}
+li.sub_directory {
+	padding:0px !important;
+	margin:0px !important;
+}
+.sub_directory a {
+	color:#000 !important;
+	font-weight:bold !important;
+	background-image:none !important;
+	font-weight:normal !important;
+}
+#usermenu_left {
+
+}
+
+/* Posteingang */
+.kcenter_table {
+	border-top:none !important;
+    margin-top:0px;
+}
+.kcenter_table th img {
+	padding-bottom:2px !important;
+}
+.kcenter_table th {
+	background: #eee  url('/gifs/kcenter/table_bg.gif') top repeat-x;
+	cursor:pointer;
+    font-size:13px;
+    color:#555;
+    padding:5px;
+	border-right: 1px solid #ddd;
+}
+.kcenter_table th:hover {
+	background: #eee  url('/gifs/kcenter/table_bg_hover.gif') top repeat-x;
+	cursor:pointer;
+}
+.kcenter_table th.active {
+	background: #eee  url('/gifs/kcenter/table_bg_active.gif') top repeat-x; !important;
+}
+
+.kcenter_table .kcenter_messageRow td {
+	padding:8px 0px;
+	border-bottom:1px dashed #ddd;
+}
+.kcenter_table .kcenter_messageRow .status {
+	text-align:center;
+	padding-top:19px !important;
+}
+.kcenter_table .kcenter_messageRow .status span {
+	border:3px solid #f27000;
+	background-color:#f27000;
+	border-bottom:0px;
+
+	width:11px;
+	height:11px;
+}
+.kcenter_table .kcenter_messageRow .status input[type="checkbox"] {
+	width:11px !important;
+	height:11px !important;
+}
+.kcenter_table .kcenter_messageRow .status img:first-child {
+	margin-top:30px;
+}
+.kcenter_table .kcenter_messageRow .status img {
+	margin-top:10px;
+}
+
+.kcenter_table .datum {
+	text-align:center;
+}
+
+
+.kcenter_messageAction {
+	background-image:url(/gifs/kcenter/kommandoZeile.png);
+	background-repeat:no-repeat;
+	background-position:top center;
+}
+.kcenter_messageAction img {
+	margin-bottom:-6px !important;
+}
+.kcenter_messageAction td {
+	padding:4px 0px;
+	color:#444444;
+	text-align:center;
+	vertical-align:middle;
+	height:30px;
+	font-size:11px;
+}
+.kcenter_messageRow.activate td {
+	background-color:#faf0bd;
+}
+.kc_pageNumber {
+	 text-align:right;
+	 padding:5px 0px;
+}
+
+.kc_mz_flag {
+	margin-bottom:-1px !important;
+	cursor:pointer;
+	padding-right:5px;
+}
+.kc_mz_taetigkeit {
+	float:left;
+	width:430px;
+}
+.kc_mz_taetigkeit a {
+	font-weight:bold;
+    font-size:14px;
+}
+.kc_mz_firma {
+	float:left;
+	padding-left:10px;
+	width:500px;
+
+}
+.kc_mz_firma a {
+	color:black !important;
+    text-decoration:none;
+    font-size:13px;
+    line-height:17px;
+    font-style:italic;
+}
+.kc_mz_spalte {
+	width:80px;
+	float:left;
+	margin-left:265px;
+}
+.kc_mz_datum_stelle {
+	float:right;
+	width:130px;
+	text-align:right;
+	margin-left:440px;
+}
+
+.kc_mz_datum_stelle select {
+	margin-top:5px;
+	width:100% !important;
+}
+.kc_mz_controll img {
+	margin-bottom:-6px !important;
+}
+.kc_mz_controll a.miniIcon img {
+	margin-bottom:-1px !important;
+	margin-left:5px;
+}
+.kc_mz_controll {
+	clear:both !important;
+	color:#444444;
+	font-size:11px;
+	float:right;
+	margin-top:5px !important;
+	width:90px;
+	text-align:right;
+}
+.kc_mz_leftControll {
+	text-align:left;
+	float:left;
+	width:530px;
+	height:22px;
+	padding-bottom:5px !important;
+	margin-top:9px !important;
+}
+.kc_mz_leftControll img {
+	margin-bottom:-5px;
+}
+
+.kc_mz_datum_stelle img {
+	padding-left:5px;
+	margin-bottom:-3px;
+}
+
+.kc_mz_leftControll img {
+
+}
+.cursor_waiting {
+	cursor:wait !important;
+}
+.merkzettel_table td {
+	padding:5px 10px 5px 10px !important;
+}
+#mailbox_container .firmen_filter {
+	padding-top:4px;
+	font-size:11px;
+	line-height:150%;
+}
+#mailbox_container .firmen_filter a.activeFirmaFilter {
+	font-weight:bold;
+}
+#mailbox_container .firmenFilter_more {
+	border:1px dashed #999;
+	padding:5px;
+}
+#mailbox_container .firmenFilter_more .numEntries {
+	color:#aaa;
+}
+.kc_numRows {
+	 font-weight:bold;
+	 text-align:left;
+	 padding:5px 0px;
+	 float:left;
+}
+.fixedBewerbenButton {
+	position:fixed;
+	bottom:0px;
+	left:0px;
+
+	z-index:15;
+	border-top:1px dashed #aaa;
+	background-color:white;
+	width:100%;
+	height:30px;
+}
+
+.symbolErklaerung {
+	padding-top:10px;
+	color:#999;
+	text-align:center;
+}
+.newExtern {
+	text-align:center;
+	font-size:11px;
+	color:#aaa;
+}
+.wasIstDas a{
+	font-size:11px;
+	color:#aaa !important;
+}
+
+div.wizard_anschreiben p {
+	clear:both;
+	margin-bottom:10px;
+	line-height:130%;
+}
+div.wizard_anschreiben {
+	/* border:1px solid #ccc; */
+	background-color:#faf0bd;
+	padding:10px;
+	font-size:12px;
+}
+.wizard_anschreiben .buttonLeiste button {
+	display:inline;
+	margin-bottom:-10px;
+}
+.wizard_anschreiben .buttonLeiste {
+	padding:5px;
+	text-align:right;
+	width:100%;
+}
+.wizard_anschreiben .wizardRadio {
+	width:auto;
+	height:20px;
+	float:left;
+	margin-bottom:10px;
+	margin-right:10px;
+}
+.wizard_anschreiben #wizard_option {
+	padding:5px 10px;
+}
+.wizard_anschreiben #wizard_option .option{
+	text-align:left;
+	width:80%;
+	padding-bottom:10px;
+	line-iehght:130%;
+}
+.toggle_wizard {
+	padding:5px 0px;
+	text-align:center;
+}
+
+
+
+.sub_directories .activeDirectory {
+	font-weight:bold;
+}
+.sub_directories .inactiveDirectory {
+	margin:0px 1px;
+}
+
+div#lebenslauf .leftBar {
+	float:left;
+	width:200px;
+}
+div#lebenslauf .leftBar img {
+	margin-bottom:-8px;
+	margin-top:15px;
+}
+div#lebenslauf .mainBar {
+	margin-left:185px;
+
+	border-left: 1px solid #ccc;
+	border-top: 1px solid #ccc;
+	z-index: 10;
+	background:top left repeat-y;
+	padding-top:15px;
+
+	margin-top:-20px;
+
+	text-align:left;
+}
+div#lebenslauf .arrow {
+	margin-left:-28px;
+	margin-top:80px;
+	float:left;
+}
+div#lebenslauf .mainBar .languageSwitch {
+	float:right;
+	background-color:#fff !important;
+	border-left:1px solid #ccc;
+	border-bottom:1px solid #ccc;
+	padding-left:3px;
+	padding-bottom:3px;
+	width:auto;
+	margin-top:-16px;
+}
+div#lebenslauf .mainBar ol {
+	list-style:none;
+	margin: 0.5em 0 0 35px;
+	width: 400px;
+}
+div#lebenslauf .mainBar li .counter {
+	margin-left:-30px;
+	padding-right:25px;
+	margin-right:10px;
+	line-height:16px;
+	background-repeat:no-repeat;
+	background-position:top right;
+}
+div#lebenslauf .mainBar li.empty .counter {
+	float:left;
+	background-image: url("/styles/images/lebenslauf/empty.gif");
+}
+div#lebenslauf .mainBar li.filled .counter {
+	float:left;
+	background-image: url("/styles/images/lebenslauf/ok.gif");
+
+}
+
+div#lebenslauf .mainBar ol.zukunft {
+	float: right;
+	counter-reset: item 1;
+}
+
+div#lebenslauf .mainBar ol li {
+	font-weight: bold;
+	font-size: .85em;
+	width: 100%;
+	margin: 0;
+	padding: 0 1%;
+	display: block;
+}
+
+
+
+div#content #cv_intro h4 {
+	float: none;
+	margin: 0 0 1em 0;
+}
+
+
+#content #cvdata h4,
+#content #profile h4 {
+	float: left;
+	margin: 0;
+	padding: 0;
+	color: #333;
+	font-size: 22px;
+	font-weight: normal;
+	background: transparent;
+	position: relative;
+	z-index: -10;
+	border: none;
+}
+#content #cvdata h4 {
+	top: 0.9em;
+}
+#content #profile h4 {
+	top: -0.25em;
+}
+
+#content #cvdata ul {
+	background-color: #ffffff;
+	font-size:10px;
+	list-style: none;
+	height:20px;
+}
+#content #cvdata ul li a {
+	color:#000 !important;
+}
+#content #cvdata ul li {
+	background-color:#f6f6f6;
+	float:left;
+	border:1px solid #ddd;
+	line-height:14px;
+	margin-left:0px;
+	padding:2px 4px;
+}
+
+
+#content #cvdata ul li img {
+	vertical-align: middle;
+}
+
+
+
+#content #cvdata ol li.em {
+	color:#9a0203;
+}
+#content #cvdata ol li.em a{
+	color:#9a0203;
+}
+
+
+#content #cvdata ol li a,
+#content #profile ol li a {
+	padding-left:2px;
+}
+
+#content #cvdata ol li h5,
+#content #profile ol li h5 {
+	display: inline;
+	font-size: 1em;
+}
+
+#content #cvdata ol li p,
+#content #profile ol li p {
+	background-repeat: no-repeat;
+	font-weight: normal;
+	line-height: 1.6em;
+	padding: .4em 0.5em .5em 35px;
+	margin-left: -7px;
+}
+
+div#lebenslauf .col_1 {
+	float:none !important;
+	clear:none !important;
+}
+
+
+div#main div#content div#prakt_navi a span {
+	text-decoration:none;
+}
+div#main div#content div#prakt_navi {
+	cursor:pointer;
+	width: auto;
+	height:37px;
+	background: url('/gifs/kcenter/kcenter_topnavi.jpg') no-repeat !important;
+	font-weight: bold;
+	padding: 3px 0 0 0;
+	line-height: 18px;
+	font-size: 0.85em;
+	display: block;
+/*	color: #000000; */
+	margin:20px 0 0 0 !important;
+
+}
+div#prakt_navi .naviButton {
+	color:#0f5ba3;
+	height:28px;
+}
+/*
+div#prakt_navi .naviButton.leftBorder {}
+div#prakt_navi .naviButton.rightBorder {}
+*/
+
+div#prakt_navi .naviButton.active {
+	text-decoration:underline;
+}
+
+div#prakt_navi .naviButton {
+	float:left;
+	text-align:left;
+	padding:5px 0px;
+	vertical-align:middle;
+
+}
+div#prakt_navi .naviButton img {
+	float:left;
+	margin:0 8px -10px 8px;
+
+}
+
+div#prakt_navi .naviButton:hover {
+	text-decoration:underline;
+}
+
+div#prakt_navi .naviLabel {
+	text-align:left;
+	padding-top:5px;
+	margin-bottom:0 !important;
+	margin-right:10px;
+
+	float:right;
+}
+div#prakt_navi.communityNavi .naviButton img {
+	margin-left:0px;
+}
+div#prakt_navi.communityNavi .naviLabel {
+	margin-right:5px !important;
+	margin-left:30px;
+}
+img.bewerberFoto {
+	margin-bottom:40px;
+}
+input.fileUploader {
+	font-size:14px;
+}
+
+div#lebenslauf li {
+	margin:0px !important;
+}
+
+/* Zentrierte Buttons */
+a.button.center {
+	margin-left:auto !important;
+	margin-right:auto !important;
+	float:none !important;
+}
+
+div#main #usermenu_left p.links_right span, div#main #usermenu_left span.ordner_link {
+	display: block;
+	float:right;
+	width:150px;
+}

@@ -1,0 +1,66 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php");
+
+# $praktdbmaster = @mysql_pconnect($dbarray[0][host],$dbarray[0][mysqluser],$dbarray[0][mysqlpassword]);
+#mysql_set_charset('lastin1', $praktdbmaster); 
+#mysql_set_charset('lastin1', $praktdbslave); 
+
+$part = substr($_POST['part'], (strpos($_POST['part'], '_')+1));
+$val = $_POST['value'];
+
+$stellenid = intval($_SESSION['jobAd']['stellenid']);
+$firmenid = intval($_SESSION['s_firmenid']);
+$firmenlevel = intval($_SESSION['s_firmenlevel']);
+
+// Laesst nur die Eintraege aus dieser Liste durch!
+$platzhalter = array(
+					'taetigkeit',
+					'firmeninfosHead',
+					'firmentaetigkeitHead',
+					'firmenqualiHead',
+					'firmenperspHead',
+					'firmenkontaktHead',
+					'firmeninfos',
+					'firmentaetigkeit',
+					'firmenquali',
+					'firmenpersp',
+					'firmenkontakt',
+					'jobcode',
+					'subtitle',
+					'entgelt',
+					'beschreibung'
+				);
+				
+if (!in_array($part, $platzhalter)) {
+	echo 'Der Wert &quot;'.$part.'&quot; wurde nicht akzeptiert!';
+}
+
+if (isset($_SESSION['neue_stelle']) && $_SESSION['neue_stelle'] == true) {
+	if (isset($part) && !empty($part)) {
+		if (strpos($val, '*** Geben') !== false) {
+			$_SESSION['jobAd'][$part] = '';
+		} else {
+			if ($part == 'kontakt2webseite' && strpos($val, 'http://', 0) === false) {
+				$val = 'http://'.$val;
+			}
+			
+			$val =  str_replace(array("\r","\n")," ",trim($val));
+			$val = Praktika_String::removeHtmlForJobAd($val, $firmenlevel);
+			$_SESSION['jobAd'][$part] = Praktika_String::removeWordChars($val);
+		}
+	}
+} else {
+	if (isset($part) && !empty($part)) {
+		$objStelle = new Praktika_Stelle($stellenid);
+		$objStelle->checkAccess(array('firmenid' => intval($_SESSION['s_firmenid'])));
+
+		if ($part == 'kontakt2webseite' && strpos($val, 'http://', 0) === false) {
+			$val = 'http://'.$val;
+		}
+		
+		$val = $objStelle->setContent($part, $val, array('save' => true));
+	}
+}
+
+echo utf8_decode($val);
+?>

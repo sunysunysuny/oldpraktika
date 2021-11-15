@@ -1,0 +1,348 @@
+<?
+ $gruppe = "praktikanten";
+ $sprachbasisdatei = "/home/firmen/studiengang.phtml";
+ $sprachbasisdatei2 = "/home/firmen/katalog.phtml";
+ require("/home/praktika/etc/config.inc.php");
+ require("/home/praktika/etc/kandidatensuche.inc.php"); 
+
+if (!$s_kandidatentable)  require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+$s_ergebnisarry["kategoriehistory"][$rubrick][]=$pfad2;
+
+pageheader(session_id(), session_name()); ?>
+      <table width="90%">
+        <tr>
+          <td><h1 class="layout1">Suchergebnis: Kandidaten Katalogsuche</h1>
+<?
+
+$modify = date("YmdHis");
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=19";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+if ($katalogausgabe == "yes") {
+
+if ($wkvalue) inbasket($wknutzerid,$wkvalue);
+
+// Suchewerte dem Array hinzuf&uuml;gen
+$s_ergebnisarry[sucheingabe][$rubrick]=array($auswahl);
+
+if ($finesearch) {
+	if ($berufsfeld != "") {
+		$s_ergebnisarry[sucheingabe][einsatzgebiet]=array($berufsfeld);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE berufsfeld <> $berufsfeld",$praktdbmaster);
+	}
+	if ($spalte != "") {
+		$s_ergebnisarry[bereiche]=array($spalte);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE spalte <> $spalte",$praktdbmaster);
+	}
+	if ($bundesland != "") {
+		$s_ergebnisarry[sucheingabe][bundesland]=array($bundesland);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE bundesland <> $bundesland",$praktdbmaster);
+	}
+	if ($sprache != "") {
+		$s_ergebnisarry[sucheingabe][praktikumssprache]=array($sprache);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE (sprachkenntnisse1 <> $sprache AND sprachkenntnisse2 <> $sprache AND sprachkenntnisse3 <> $sprache )",$praktdbmaster);
+	}
+	if ($grossraum != "") {
+		$s_ergebnisarry[sucheingabe][grossraum]=array($grossraum);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE grossraum <> $grossraum",$praktdbmaster);
+	}
+	if ($geschlecht != "") {
+		$s_ergebnisarry[sucheingabe][geschlecht]=array($geschlecht);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE geschlecht <> '$geschlecht'",$praktdbmaster);
+	}
+	if ($suchlastlogin != "") {
+		switch ($suchlastlogin) {
+		case "7d":
+		   $timeoutlogin = time()-604800;
+		   break;
+		case "14d":
+		   $timeoutlogin = time()-1209600;
+		   break;
+		case "1m":
+		   $timeoutlogin = time()-2592000;
+		   break;
+		case "2m":
+		   $timeoutlogin = time()-5184000;
+		   break;
+		case "3m":
+		   $timeoutlogin = time()-7776000;
+		   break;
+		case "6m":
+		   $timeoutlogin = time()-15552000;
+		   break;
+		}
+
+		$s_ergebnisarry[sucheingabe][suchlastlogin]=array($suchlastlogin);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE lastlogin < '$timeoutlogin'",$praktdbmaster);
+	}
+}
+
+else 
+
+{
+	if ($zaehlfeld == "sprachkenntnisse1") $sqlzusatz = " AND sprachkenntnisse2 <> $auswahl AND sprachkenntnisse3 <> $auswahl";
+	mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE $zaehlfeld <> $auswahl".$sqlzusatz,$praktdbmaster);
+}
+
+echo "<span class=normal><A href=\"/home/firmen/einblick.phtml?suchwahl=katalog&".session_name()."=".session_id()."\">".strtoupper($language ["strKatalogsuche"])."</A></span> / <span class=normal><A href=\"katalog.phtml?rubrick=".$rubrick."&".session_name()."=".session_id()."\">".strtoupper($pfad1)."</A></span> / ".$pfad2."<br><br>";
+
+mysql_select_db ($database_temp,$praktdbmaster);
+
+// uebergabevariablen konvertieren //
+$ds_count = intval( $ds_count);
+$ds_pro_seite = intval( $ds_pro_seite);
+
+if ($rubrick == "studienrichtung") $extquery = " GROUP BY nutzerid";
+
+$query="SELECT * FROM $s_kandidatentable".$extquery;
+//echo $query."<br>";
+
+$results=mysql_db_query($database_temp,$query,$praktdbmaster);
+
+//echo $results;
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows( $results );
+
+
+if ( $num_rows  > 0) {
+
+$rueckgabe = suchergebnis($ds_count,$ds_pro_seite,$num_rows);
+
+$ds_value=($ds_count);
+$ds_count = $rueckgabe[0];
+$ds_pro_seite = $rueckgabe[1];
+
+?> 
+              <hr>
+              <table width="100%" border=0>
+                <tr> 
+                  <td align="left"> 
+                  <? if ($ds_count > $ds_pro_seite) { ?> 
+			<form action="katalog.phtml" method="POST">
+                      	<input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+                      	<input type="HIDDEN" name="ds_count" value="<? echo ($ds_value-$ds_pro_seite); ?>">
+                      	<input type="HIDDEN" name="zaehlfeld" value="<? echo $zaehlfeld ?>">
+                      	<input type="HIDDEN" name="ds_value" value="<? echo $ds_value ?>">
+                      	<input type="HIDDEN" name="rubrick" value="<? echo $rubrick ?>">
+                      	<input type="HIDDEN" name="auswahl" value="<? echo $auswahl ?>">
+                      	<input type="HIDDEN" name="pfad1" value="<? echo $pfad1 ?>">
+                      	<input type="HIDDEN" name="pfad2" value="<? echo $pfad2 ?>">
+                      	<input type="HIDDEN" name="ds_pro_seite" value="<? echo $ds_pro_seite ?>">
+                      	<input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      	<input type="HIDDEN" name="katalogausgabe" value="<? echo "yes"; ?>">
+                      	<input type="SUBMIT" value="<? echo $language ["strZurueck"]; ?>">
+                    </form><? } else { ?>
+
+                    <form>
+                      <input type="BUTTON" name="y" value="zum Katalog" onClick=location.replace('katalog.phtml?rubrick=<?=$rubrick."&".session_name()."=".session_id()?>')>
+                    </form><? } ?>
+                  </td>
+                  <? if ($ds_count < $num_rows) { ?> 
+                  <td align="right"> 
+                    <form action="katalog.phtml" method="POST">
+                      <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+                      <input type="HIDDEN" name="ds_count" value=<? echo $ds_count ?>>
+                      <input type="HIDDEN" name="zaehlfeld" value=<? echo $zaehlfeld ?>>
+                      <input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      <input type="HIDDEN" name="rubrick" value=<? echo $rubrick ?>>
+                      <input type="HIDDEN" name="auswahl" value=<? echo $auswahl ?>>
+                      <input type="HIDDEN" name="pfad1" value="<? echo $pfad1 ?>">
+                      <input type="HIDDEN" name="pfad2" value="<? echo $pfad2 ?>">
+                      <input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      <input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      <input type="HIDDEN" name="katalogausgabe" value=<? echo "yes"; ?>>
+                      <input type="SUBMIT" value="die n&auml;chsten <? echo min( $ds_pro_seite, ($num_rows - $ds_count) ) ?> Ergebnisse " style=width:185px>
+                    </form>
+                  </td>
+                  <? }
+                  if ($ds_count == $num_rows && $ds_count > $ds_pro_seite) { ?>
+                  <td align="right"> 
+                  <form>
+                      <input type="BUTTON" name="y" value="<? echo $language ["strZKatalog"]; ?>" onClick=location.replace("katalog.phtml?rubrick=<?=$rubrick."&".session_name()."=".session_id()?>")>
+                  </form>
+                  </td> <? } ?> </tr>
+<? unterelinks() ?>              
+              
+              </table>
+              <hr>
+              <? } else { ?> 
+              <table width="100%">
+              <tr> 
+                <td> <? echo $language ["strKDS"]; ?> 
+                  <p>&nbsp;</p>
+                  <form>
+                    <hr>
+                    <input type="BUTTON" value="zur Suchmaske" onClick=location.replace("katalog.phtml?rubrick=<?=$rubrick."&".session_name()."=".session_id()?>")>
+                    <hr>
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? }} else { ?>
+
+              <table width="100%">
+              <tr> 
+                <td>
+                  <table>
+<? 
+
+ require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+
+// &Uuml;bergabe-Array der Bereich aufsplitten
+
+if (count($bereiche)==0 || count($s_ergebnisarry[bereiche])==0) {
+	$bereiche[0]=1;
+	$bereiche[1]=2;
+	$bereiche[2]=3;
+	$bereiche[3]=4;
+	$bereiche[4]=5;
+}	
+if (!$bereiche) $bereiche=$s_ergebnisarry[bereiche];
+
+/*
+$j=0;
+while ($result_row = mysql_fetch_array ( $sqlabfrage, MYSQL_ASSOC )) {
+$berufsfeldarray[$praktikantenarray[$j][berufsfeld]]++;
+$studiengangarray[$praktikantenarray[$j][studiengang]]++;
+$grossraumarray[$praktikantenarray[$j][grossraum]]++;
+$bundeslandarray[$praktikantenarray[$j][bundesland]]++;
+$landarray[$praktikantenarray[$j][land]]++;
+$spracharray[$praktikantenarray[$j][sprachkenntnisse1]]++;
+$spracharray[$praktikantenarray[$j][sprachkenntnisse2]]++;
+$spracharray[$praktikantenarray[$j][sprachkenntnisse3]]++;
+}
+*/
+
+$sucheingabe[suchrubrick]=$rubrick;
+$sucheingabe[suchart]=3;
+
+// Gesamtarray bauen
+$s_ergebnisarry[sucheingabe]=$sucheingabe;
+$s_ergebnisarry[bereiche]=$bereiche;
+
+//echo "<pre>";
+//print_r($bereiche);
+
+$modifydate = date("YmdHis", mktime(0, 0, 0, date("m"), date("d"), (date("Y")-1)));
+
+if (in_array ("1",$bereiche)) {
+$bereich1query = "INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,studiengang,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,geschlecht,lastlogin) select praktikanten.id as stellenid,praktikanten.nutzerid,nutzer.geburtsdatum,nutzer.karierrestatus,praktikanten.taetigkeit,praktikanten.berufsfeld,praktikanten.studiengang,praktikanten.sprachkenntnisse1,praktikanten.sprachkenntnisse2,praktikanten.sprachkenntnisse3,nutzer.land,nutzer.bundesland,nutzer.grossraum,nutzer.geschlecht,nutzer.lastloginunix from $database_db.praktikanten,$database_db.nutzer where praktikanten.inactive='false' AND nutzer.inactive='false' AND nutzer.id = praktikanten.nutzerid AND praktikanten.modify > '$modifydate' ORDER BY praktikanten.modify DESC";
+$sqlabfrage=mysql_db_query($database_temp,$bereich1query,$praktdbmaster);
+$bereich1query = "UPDATE $database_temp.$s_kandidatentable set spalte=1,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0";
+$sqlabfrage=mysql_db_query($database_temp,$bereich1query,$praktdbmaster);
+}
+
+if (in_array ("2",$bereiche)) {
+$bereich2query = "INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,studiengang,land,bundesland,grossraum,geschlecht,lastlogin) select diplomgesuch.id as stellenid,diplomgesuch.nutzerid,nutzer.geburtsdatum,nutzer.karierrestatus,diplomgesuch.titel as taetigkeit,diplomgesuch.studiengang,nutzer.land,nutzer.bundesland,nutzer.grossraum,nutzer.geschlecht,nutzer.lastloginunix from $database_db.diplomgesuch,$database_db.nutzer where diplomgesuch.inactive='false' AND nutzer.inactive='false' AND nutzer.id = diplomgesuch.nutzerid AND diplomgesuch.modify > '$modifydate' ORDER BY diplomgesuch.modify DESC";
+$sqlabfrage=mysql_db_query($database_temp,$bereich2query,$praktdbmaster);
+$bereich2query = "UPDATE $database_temp.$s_kandidatentable set spalte=2,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0";
+$sqlabfrage=mysql_db_query($database_temp,$bereich2query,$praktdbmaster);
+}
+
+if (in_array ("3",$bereiche)) {
+$bereich3query = "INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,geschlecht,lastlogin) select nebenjobgesuch.id as stellenid,nebenjobgesuch.nutzerid,nutzer.geburtsdatum,nutzer.karierrestatus,nebenjobgesuch.taetigkeit,nebenjobgesuch.berufsfeld,nebenjobgesuch.sprachkenntnisse1,nebenjobgesuch.sprachkenntnisse2,nebenjobgesuch.sprachkenntnisse3,nutzer.land,nutzer.bundesland,nutzer.grossraum,nutzer.geschlecht,nutzer.lastloginunix from $database_db.nebenjobgesuch,$database_db.nutzer where nebenjobgesuch.inactive='false' AND nutzer.inactive='false' AND nutzer.id = nebenjobgesuch.nutzerid AND nebenjobgesuch.modify > '$modifydate' ORDER BY nebenjobgesuch.modify DESC";
+$sqlabfrage=mysql_db_query($database_temp,$bereich3query,$praktdbmaster);
+$bereich3query = "UPDATE $database_temp.$s_kandidatentable set spalte=3,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0";
+$sqlabfrage=mysql_db_query($database_temp,$bereich3query,$praktdbmaster);
+}
+
+if (in_array ("4",$bereiche)) {
+$bereich4query = "INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,geschlecht,lastlogin) select ausbildungsgesuch.id as stellenid,ausbildungsgesuch.nutzerid,nutzer.geburtsdatum,nutzer.karierrestatus,ausbildungsgesuch.taetigkeit,ausbildungsgesuch.berufsfeld,ausbildungsgesuch.sprachkenntnisse1,ausbildungsgesuch.sprachkenntnisse2,ausbildungsgesuch.sprachkenntnisse3,nutzer.land,nutzer.bundesland,nutzer.grossraum,nutzer.geschlecht,nutzer.lastloginunix from $database_db.ausbildungsgesuch,$database_db.nutzer where ausbildungsgesuch.inactive='false' AND nutzer.inactive='false' AND nutzer.id = ausbildungsgesuch.nutzerid AND ausbildungsgesuch.modify > '$modifydate' ORDER BY ausbildungsgesuch.modify DESC";
+$sqlabfrage=mysql_db_query($database_temp,$bereich4query,$praktdbmaster);
+$bereich4query = "UPDATE $database_temp.$s_kandidatentable set spalte=4,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0";
+$sqlabfrage=mysql_db_query($database_temp,$bereich4query,$praktdbmaster);
+}
+
+if (in_array ("5",$bereiche)) {
+$bereich5query = "INSERT INTO $database_temp.$s_kandidatentable (stellenid,nutzerid,geburtsdatum,karierrestatus,taetigkeit,berufsfeld,studiengang,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum,geschlecht,lastlogin) select berufseinstieggesuch.id as stellenid,berufseinstieggesuch.nutzerid,nutzer.geburtsdatum,nutzer.karierrestatus,berufseinstieggesuch.bezeichnung as taetigkeit,berufseinstieggesuch.berufsfeld,berufseinstieggesuch.studiengang,berufseinstieggesuch.sprachkenntnisse1,berufseinstieggesuch.sprachkenntnisse2,berufseinstieggesuch.sprachkenntnisse3,nutzer.land,nutzer.bundesland,nutzer.grossraum,nutzer.geschlecht,nutzer.lastloginunix from $database_db.berufseinstieggesuch,$database_db.nutzer where berufseinstieggesuch.inactive='false' AND nutzer.inactive='false' AND nutzer.id = berufseinstieggesuch.nutzerid AND berufseinstieggesuch.modify > '$modifydate' ORDER BY berufseinstieggesuch.modify DESC";
+$sqlabfrage=mysql_db_query($database_temp,$bereich5query,$praktdbmaster);
+$bereich5query = "UPDATE $database_temp.$s_kandidatentable set spalte=5,suchart=".$s_ergebnisarry[sucheingabe][suchart]." WHERE spalte=0";
+$sqlabfrage=mysql_db_query($database_temp,$bereich5query,$praktdbmaster);
+}
+
+switch($rubrick) {
+
+case "einsatzgebiet":
+	$rs=mysql_db_query($database_db,"select berufsfelder.id,berufsfelder.$s_sprache,count($s_kandidatentable.id) as anzahl from prakt2.berufsfelder,prakt2temp.$s_kandidatentable where berufsfelder.id=$s_kandidatentable.berufsfeld group by berufsfeld order by berufsfelder.$s_sprache",$praktdbmaster);
+	$ausgabefeld = $s_sprache;
+	$pfad1 = $language ["strEinsatzgebiet"];
+	$zaehlfeld = "berufsfeld";
+	break;
+case "studienrichtung":
+	$rs=mysql_db_query($database_db,"select studiengaenge.id,studiengaenge.studiengang,count($s_kandidatentable.id) as anzahl from prakt2.studiengaenge,prakt2temp.$s_kandidatentable where studiengaenge.id=$s_kandidatentable.studiengang group by studiengang order by studiengang",$praktdbmaster);
+	$ausgabefeld = "studiengang";
+	$pfad1 = $language ["strStudienrichtung"];
+	$zaehlfeld = "studiengang";
+	break;
+case "grossraum":
+	$rs=mysql_db_query($database_db,"select grossraum.id,grossraum.grossraum,count($s_kandidatentable.id) as anzahl from prakt2.grossraum,prakt2temp.$s_kandidatentable where grossraum.id=$s_kandidatentable.grossraum group by grossraum order by grossraum",$praktdbmaster);
+	$ausgabefeld = "grossraum";
+	$pfad1 = $language ["strGrossraum"];
+	$zaehlfeld = "grossraum";
+	break;
+case "praktikumssprache":
+	$rs=mysql_db_query($database_db,"select sprachen.id,sprachen.$s_sprache,count($s_kandidatentable.id) as anzahl from prakt2.sprachen,prakt2temp.$s_kandidatentable where (sprachen.id=$s_kandidatentable.sprachkenntnisse1 OR sprachen.id=$s_kandidatentable.sprachkenntnisse2 OR sprachen.id=$s_kandidatentable.sprachkenntnisse3) group by $s_sprache order by $s_sprache",$praktdbmaster);
+	$ausgabefeld = $s_sprache;
+	$zaehlfeld = "sprachkenntnisse1";
+	$pfad1 = $language ["strPraktikumssprache"];
+	break;
+case "bundesland":
+	$rs=mysql_db_query($database_db,"select bundesland.id,bundesland.$s_sprache,count($s_kandidatentable.id) as anzahl,landid from prakt2.bundesland,prakt2temp.$s_kandidatentable where bundesland.id=$s_kandidatentable.bundesland group by $s_sprache order by landid,$s_sprache",$praktdbmaster);
+	$ausgabefeld = $s_sprache;
+	$zaehlfeld = "bundesland";
+	$pfad1 = $language ["strBundesland"];
+	break;
+default;
+	$rs=mysql_db_query($database_db,"select land.id,land.$s_sprache,count($s_kandidatentable.id) as anzahl from prakt2.land,prakt2temp.$s_kandidatentable where land.id=$s_kandidatentable.land group by $s_sprache order by $s_sprache",$praktdbmaster);
+	$ausgabefeld = $s_sprache;
+	$zaehlfeld = "land";
+	$pfad1 = $language ["strLand"];
+	break;
+}
+
+echo "<tr><td><A href=\"/home/firmen/einblick.phtml?suchwahl=katalog&".session_name()."=".session_id()."\">".strtoupper($language ["strKatalogsuche"])."</A> / ".$pfad1."<br><br></td></tr>\n";
+
+if ($rubrick == "bundesland") {
+while ($result_row = mysql_fetch_array ( $rs, MYSQL_ASSOC )) {
+	$blandarray[$result_row["landid"]][] = $result_row;
+	if ($blandval) { $landquery .= " OR "; } else { $blandval = "yes"; }
+	$landquery .= "id=".$result_row["landid"];
+}
+	$landresult=mysql_db_query($database_db,"select id,$s_sprache from land where $landquery order by $s_sprache",$praktdbmaster);
+while ($result_land = mysql_fetch_array ( $landresult, MYSQL_ASSOC )) {
+echo "<tr><td>";
+echo $result_land[$s_sprache]."  (".count($blandarray[$result_land["id"]]).")</td></tr>\n";
+foreach ($blandarray[$result_land["id"]] as $result_row) {
+echo "<tr><td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class=normal><A href=\"katalog.phtml?katalogausgabe=yes&zaehlfeld=".$zaehlfeld."&rubrick=".$rubrick."&auswahl=".$result_row["id"]."&pfad1=".$pfad1."&pfad2=".$result_row[$ausgabefeld]."&" . session_name() . "=" . session_id() . "\">" . $result_row[$ausgabefeld]."</A></span> (".$result_row["anzahl"].")</td></tr>\n";
+}}
+} else {	
+while ($result_row = mysql_fetch_array ( $rs, MYSQL_ASSOC )) {
+echo "<tr><td><span class=normal>";
+$styletag = "";
+if (in_array($result_row[$ausgabefeld],$s_ergebnisarry["kategoriehistory"][$rubrick])) { $styletag=' style="color:gray"'; }
+echo "<A href=\"katalog.phtml?katalogausgabe=yes&zaehlfeld=".$zaehlfeld."&rubrick=".$rubrick."&auswahl=".$result_row["id"]."&pfad1=".$pfad1."&pfad2=".$result_row[$ausgabefeld]."&" . session_name() . "=" . session_id() . "\"".$styletag.">" . $result_row[$ausgabefeld]."</A> (".$result_row["anzahl"].")</span></td></tr>\n";
+}}
+
+?></table>
+                 <form>
+                    <hr>
+                    <input type="BUTTON" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=katalog&<?=session_name()."=".session_id()?>')>
+                  </form>
+                </td>
+              </tr>
+            </table>
+<?
+}  
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+?>            
+          </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

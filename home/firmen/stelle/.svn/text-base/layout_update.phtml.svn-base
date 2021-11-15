@@ -1,0 +1,74 @@
+<?php
+
+require("/home/praktika/etc/dbzugang.inc.php"); 
+
+$praktdbmaster = @mysql_pconnect($dbarray[0][host],$dbarray[0][mysqluser],$dbarray[0][mysqlpassword]);
+srand ((double)microtime()*1000000);
+$num = rand(0,(count($dbarray)-1));
+$praktdbslave = @mysql_pconnect ($dbarray[$num][host], $dbarray[$num][mysqluser], $dbarray[$num][mysqlpassword]);
+
+//var_dump($_POST["template"]);
+#var_dump($_POST);
+if ( isset($_POST["id"]) ) {
+	$sql = sprintf("SELECT
+						templateid
+					FROM
+						stellen
+					WHERE
+						id = %d",
+					intval($_POST["id"]) );
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+	$last = $row['templateid'];
+}
+if ( isset($_POST["template"]) && $_POST["template"] != $last ) {
+	$extern = intval($_POST["template"]) == 0 ? 'true' : 'false';
+	//var_dump($extern);
+	//echo 'test';
+	$sql = sprintf("UPDATE
+						stellen
+					SET
+						bearbeiterid = %1\$d,
+						link_anzeige_abfr = '%2\$s', 
+						templateid = %3\$d
+					WHERE
+						id = %4\$d",
+					intval($_SESSION['s_loginid']),
+					$extern,
+					intval($_POST["template"]),
+					intval($_POST["id"]) );
+	//echo $sql;
+	
+	$dateiname = '/home/praktika/cache/stellen/stelle_'.intval($_POST["id"]).'.html';
+	@unlink($dateiname);
+	
+	$updatestring = mysql_db_query($database_db, $sql, $praktdbmaster);
+	if ($extern == 'true') {
+		$type = 3;
+	} else {
+		// Art des Templates bestimmen
+		$sql = sprintf("SELECT
+							isStandard,
+							isVideo,
+							isEigenes
+						FROM
+							stellentemplates
+						WHERE
+							id = %d",
+						intval($_POST["template"]) );
+		$result = mysql_db_query($database_db, $sql, $praktdbslave);
+		$row = mysql_fetch_assoc($result);
+		if ($row["isStandard"] == 'true') {
+			$type = 1;
+		} elseif ($row["isVideo"] == 'true') {
+			$type = 2;
+		} elseif ($row["isEigenes"] == 'true') {
+			$type = 4;
+		}
+	}
+	//echo "typ:".$type."\n";
+}
+
+//echo $_POST['template'].'+++#+++'.$_POST['id'];
+echo $last.'+++#+++'.$_POST['template'].'+++#+++'.$type;
+?>

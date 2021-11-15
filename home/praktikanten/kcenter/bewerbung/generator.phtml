@@ -1,0 +1,154 @@
+<?php
+
+if ($stellenid != 0) $ext_query = " AND stellenid = ".$stellenid;
+if(!isset($hDB)) {
+	praktikaInclude(array("db.php"));
+	$hDB = new Praktika_Db();
+}
+
+$anschreiben = $hDB->query('SELECT * FROM '.$database_bprofil.'.anschreiben WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND firmenid = '.$firmenid.' AND sprachid = '.$bewerbsprache.' AND spalte = '.intval($spaltenid).$ext_query, $praktdbmaster);
+
+$anschreibenarray = mysql_fetch_array($anschreiben);
+
+if (!empty($anschreibenarray['sprachid'])) {
+	$bewerbsprachid = $anschreibenarray['sprachid'];
+} else {
+	$bewerbsprachid = $_SESSION['s_sprachid'];
+}
+
+/*
+ * 
+ if (empty($_REQUEST['stellenid'])) {
+	$stellenid = 0;
+} else {
+	$stellenid = intval($_REQUEST['stellenid']);
+}
+*/
+
+$bewerbungen = $hDB->query('SELECT id 
+		FROM 
+			'.$database_db.'.bewerbung 
+		WHERE 
+			firmenid = '.$firmenid.' AND 
+			spalte = '.$spaltenid.' AND 
+			preview = \'true\' AND 
+			inactive = \'false\' AND 
+			b_art = \'neu\' AND 
+			prakstellenid = '.$stellenid.' AND 
+			nutzerid = '.$_SESSION['s_nutzerid'], $praktdbmaster);
+
+$anzahlbewerbungen = ($bewerbungen != false) ? mysql_num_rows($bewerbungen) : 0;
+
+if ($anzahlbewerbungen < 1) {
+	$firma = $hDB->query('SELECT firmen.firma,firmen.strasse,firmen.plz,firmen.ort,firmen.email,stellen.ansprechpartnerid,stellen.bearbeiterid FROM '.$database_db.'.firmen, '.$database_db.'.stellen WHERE stellen.id = '.$stellenid.' AND stellen.firmenid = firmen.id',$praktdbmaster);
+	$firmenfetch = mysql_fetch_array($firma);
+	
+	if (!empty($firmenfetch['ansprechpartnerid'])) {
+		$bearbeiterid = $firmenfetch['ansprechpartnerid'];
+	} else {
+		$bearbeiter = $hDB->query('SELECT id FROM '.$database_db.'.bearbeiter WHERE firmenid = '.$firmenid,$praktdbslave);
+		$bearbeiterid = mysql_result($bearbeiter,0,'id');
+	}
+	
+	/* datensatz als nur Vorschau setzen */
+	$inactive = 'false';
+	
+	/* datensatz als nur Vorschau setzen */
+	$preview = 'true';
+	
+	$erinnerung = time() + 604800; // = + 1 Woche 
+	$modify = date('YmdHis');
+	$insertstring = '	INSERT INTO '.$database_db.'.bewerbung (
+							inactive,
+							sprachid,
+							firmenid,
+							nutzerid,
+							bearbeiterid,
+							prakstellenid,
+							preview,
+							spalte,
+							b_art,
+							d_eintrag,
+							erinnert,
+							modify
+						) VALUES (
+							\''.$inactive.'\',
+							'.$bewerbsprache.',
+							'.$firmenid.',
+							'.$_SESSION['s_nutzerid'].',
+							'.$bearbeiterid.',
+							'.$stellenid.',
+							\''.$preview.'\',
+							'.$spaltenid.',
+							\'neu\',
+							NOW(),
+							'.$erinnerung.',
+							\''.$modify.'\')';
+	$hDB->query($insertstring, $praktdbmaster);
+	$berwerbid = mysql_insert_id($praktdbmaster);
+} else {
+	$berwerbid = mysql_result($bewerbungen,0,'id');
+}
+
+$nutzer = $hDB->query('SELECT * FROM '.$database_db.'.nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+$nutzerfetch = mysql_fetch_array($nutzer);
+
+$lebenslauflayout = $anschreibenarray['lebenslauflayout'];
+$objective = $anschreibenarray['objective'];
+$b_schreiben = $anschreibenarray['anschreiben'];
+$b_betreff = $anschreibenarray['betreff'];
+$b_schreiben = ereg_replace ("'", "", $b_schreiben);
+$updatestring = '	UPDATE '.$database_db.'.bewerbung SET
+						'.(isset($erinnerung) ? 'erinnert = '.$erinnerung.',' : '').'
+						lebenslauflayout = \''.$lebenslauflayout.'\',
+						objective = \''.$objective.'\',
+						betreff = \''.mysql_real_escape_string($b_betreff).'\',
+						b_schreiben = \''.mysql_real_escape_string($b_schreiben).'\',
+						anrede = \''.mysql_real_escape_string($nutzerfetch['anrede']).'\',
+						titel = \''.mysql_real_escape_string($nutzerfetch['titel']).'\',
+						vname = \''.mysql_real_escape_string($nutzerfetch['vname']).'\',
+						name = \''.mysql_real_escape_string($nutzerfetch['name']).'\',
+						strasse = \''.mysql_real_escape_string($nutzerfetch['strasse']).'\',
+						plz = \''.mysql_real_escape_string($nutzerfetch['plz']).'\',
+						ort = \''.mysql_real_escape_string($nutzerfetch['ort']).'\',
+						tel = \''.mysql_real_escape_string($nutzerfetch['tel']).'\',
+						email = \''.mysql_real_escape_string($nutzerfetch['email']).'\',
+						gebdatum = \''.mysql_real_escape_string($nutzerfetch['geburtsdatum']).'\',
+						gebort = \''.mysql_real_escape_string($nutzerfetch['gebort']).'\',
+						land = \''.mysql_real_escape_string($nutzerfetch['land']).'\',
+						famstand = \''.mysql_real_escape_string($nutzerfetch['famstand']).'\',
+						modify = \''.mysql_real_escape_string($modify).'\'
+					WHERE
+						firmenid = '.$firmenid.'
+						AND spalte = '.$spaltenid.'
+						AND preview = \'true\'
+						AND inactive = \'false\'
+						AND prakstellenid = '.$stellenid.'
+						AND nutzerid = '.$_SESSION['s_nutzerid'];
+var_dump($updatestring);
+$hDB->query($updatestring, $praktdbmaster);
+
+/*
+$lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($_SESSION['s_nutzerid']).' AND sprachid=2',$praktdbslave);
+if (mysql_num_rows($lebenslauf) > 0) {
+	$row = mysql_fetch_array($lebenslauf);
+	$lebenslauftemplate = $row['lebenslauftemplate'];
+} else {
+	$lebenslauftemplate = '01';
+}
+
+//header ('Location: /home/praktikanten/preview_be.phtml?id='.$berwerbid);
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+echo '<html>'."\n";
+echo '<head>'."\n";
+echo '	<title>Generator</title>'."\n";
+echo '	<script type="text/javascript">'."\n";
+echo '	document.location.href = \'/bewerbungsmappe_ansehen/'.$berwerbid.'/\''."\n";
+echo '	</script>'."\n";
+echo '</head>'."\n";
+echo '<body>'."\n";
+echo '</body>'."\n";
+echo '</html>'."\n";
+//header ('Location: /greybox.phtml?url=bewerbungsmappe_ansehen/'.$berwerbid.'/');
+
+*/

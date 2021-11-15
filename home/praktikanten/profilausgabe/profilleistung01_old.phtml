@@ -1,0 +1,235 @@
+<?
+ $miniwindow = true;
+ $noadvertise = "yes";
+ $sprachbasisdatei="/home/praktikanten/profilausgabe/profilleistung.phtml";
+ $sprachbasisdatei2="/home/praktikanten/profil/profil_leistung.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+ if ($nid>0) $id=$nid;
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE>Leistungsprofil</TITLE>
+<LINK REL="SHORTCUT ICON" HREF="/favicon.ico">
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+</HEAD>
+ 
+ 
+<BODY BGCOLOR="#fffff5" leftmargin="5" topmargin="0">
+<IMG SRC="/cgi-bin/vdz/CP/home/praktikanten/profilausgabe/profilleistung03.phtml" width="1" height="1">
+<DIV ID="overDiv" STYLE="position:absolute; visibility:hide;"></DIV>
+<script language="JavaScript" type="text/javascript" src="/scripts/fulldescribe.js"></script>
+<script language="JavaScript" type="text/javascript" src="/scripts/main_script.js"></script>
+
+<TABLE WIDTH="650" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+<tr><TD width="20" VALIGN="TOP" bgcolor="#fffff5"><img src="/gifs/zentralelemente/spacer.gif" width=20></td><tD>
+
+<? 
+/* Check, ob berechtigt */
+if ($s_loggedin != "yes" && $s_loggedinnutzer == false) {
+
+?>
+<script language="JavaScript">
+<!--
+window.close();
+
+//-->
+</script>
+<?
+}	
+/* Check, ob berechtigt ENDE */
+
+
+echo "<BR>";
+
+if ($id != "") {
+$result = mysql_db_query($database_db,"select *,date_format(geburtsdatum, '%d') as tag, date_format(geburtsdatum, '%m') as monat, date_format(geburtsdatum, '%Y') as jahr, date_format(modify, '%d.%m.%Y') as datum from nutzer where id=$id",$praktdbslave);
+$fetch = mysql_fetch_array($result);
+if (!$sprachid) $sprachid=$bewerbsprache;
+if ($sprachid==0) $sprachid=$s_sprachid;
+echo '<script language="JavaScript">
+<!--
+	window.focus();
+//-->
+</script>
+';
+} 
+
+if ($s_loggedin!="yes" && $s_loggedinnutzer == false) {
+    echo "<CENTER><b>Ihre Abfrage ist ung&uuml;ltig !</b></CENTER>";
+
+} else {
+
+// Check ob Nutzer auf Merkzettel der Firma
+$firmenbookmark=mysql_db_query($database_db,"SELECT nutzerid from firmenbookmark where nutzerid=$nid",$praktdbslave);
+$gesuchedb=mysql_numrows($firmenbookmark);
+
+if ($s_firmenlevel >0 || $s_loggedinnutzer == true || $gesuchedb >0 || $gesuche=="no" ) {
+$landid=$fetch["land"];
+$land=mysql_db_query($database_db,"select german from land where id=$landid",$praktdbslave);
+
+
+if ($sprachid==2) $sprachsel="german";
+if ($sprachid==1) $sprachsel="english";
+if ($sprachbasisdatei !="") $stringabfrage.="uri='$sprachbasisdatei' OR ";
+// spracharray erzeugen //
+$sprachenselect=mysql_db_query($database_db,"select DISTINCT stringname,$sprachsel from menulanguage WHERE $stringabfrage uri='$PHP_SELF'",$praktdbslave);
+while (list($stringname, $wert) = mysql_fetch_row($sprachenselect)) {
+$language[$stringname] = $wert;
+}
+
+// Sprachvariable
+if ($sprachid==1) {
+$sprachvar1="EXPERT KNOWLEDGE";
+$sprachvar2="Professional experience";
+$sprachvar3="Project experience";
+$sprachvar4="Leadership experience";
+$sprachvar5="Intercultural experience";
+$sprachvar6="Social skills";
+$sprachvar7="Methodic ability";
+$sprachvar8="Entrepreneurial ability";
+$sprachvar9="Work habbits";
+}
+
+if ($sprachid==2) {
+$sprachvar1="LEISTUNGSBESCHREIBUNG";
+$sprachvar2="BERUFSERFAHRUNG";
+$sprachvar3="PROJEKTERFAHRUNG";
+$sprachvar4="F&uuml;hrungserfahrung";
+$sprachvar5="INTERKULTURELLE ERFAHRUNG";
+$sprachvar6="SOZIALE F&Auml;HIGKEITEN";
+$sprachvar7="METHODISCHE F&Auml;HIGKEITEN";
+$sprachvar8="UNTERNEHMERISCHE F&Auml;HIGKEITEN";
+$sprachvar9="ARBEITSVERHALTEN";
+}
+
+
+echo "<TABLE WIDTH=\"620\" BORDER=\"0\" cellspacing=\"0\" cellpadding=\"0\">";
+
+// Ab hier werden die Profile ausgelesen
+$result = mysql_db_query($database_bprofil,"select * from profil_leistung where nutzerid=$id AND sprachid=$sprachid",$praktdbslave);
+if (mysql_num_rows($result)>0) { 
+
+echo "<TR><TD width=200 ALIGN=\"LEFT\"><B>".strtoupper($sprachvar1)."</B></TD><td align=\"right\"><b>";
+      if ($einstellungen=="false") {
+      echo "Chiffre Nummer: #".$id;
+      } else {
+      if (!$fetch["titel"] == "") echo $fetch["titel"] . " "; echo $fetch["vname"] . " " . $fetch["name"];
+      }
+      echo "</b></td></TR>";
+      echo "<tr><td colspan=\"2\" ><hr size=\"1\"><br></td></tr>";
+
+
+$fetchleistung = mysql_fetch_array($result);
+
+
+if ($fetchleistung["berufserfahrung"] == "1") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar2)."</b><br><br></TD></TR>";
+echo "<TR><td></td><TD valign=\"top\">". $fetchleistung["berufserfahrungtext"] ."</TD></TR>";
+echo "<TR><TD colspan=\"3\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["projekterfahrung"] == "1") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar3)."</b><br><br></TD></TR>";
+echo "<TR><td></td><TD valign=\"top\">". $fetchleistung["projekterfahrungtext"] ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["fuehrungserfahrung"] == "1") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar4)."</b><br><br></TD></TR>";
+echo "<TR><td></td><TD valign=\"top\">". $fetchleistung["fuehrungserfahrungtext"] ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["interkerfahrung"] == "1") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar5)."</b><br><br></TD></TR>";
+echo "<TR><td></td><TD valign=\"top\">". $fetchleistung["interkerfahrungtext"] ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["sozial1"] == "true" || $fetchleistung["sozial2"] == "true" || $fetchleistung["sozial3"] == "true" || $fetchleistung["sozial4"] == "true" || $fetchleistung["sozial5"] == "true" || $fetchleistung["sozial6"] == "true" || $fetchleistung["sozial7"] == "true") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar6)."</b><br><br></TD></TR>";
+if ($fetchleistung["sozial1"]=="true") $sozial1=$language ["strAnpassungsf"].",";
+if ($fetchleistung["sozial2"]=="true") $sozial2=$language ["strInitiative"].",";
+if ($fetchleistung["sozial3"]=="true") $sozial3=$language ["strKonfliktfaehigkeit"].",";
+if ($fetchleistung["sozial4"]=="true") $sozial4=$language ["strKommunikationsfaehigkeit"].",";
+if ($fetchleistung["sozial5"]=="true") $sozial5=$language ["strSelbstaendigkeit"].",";
+if ($fetchleistung["sozial6"]=="true") $sozial6=$language ["strTeamfaehigkeit"].",";
+if ($fetchleistung["sozial7"]=="true") $sozial7=$language ["strVeraenderungsfaehigkeit"].",";
+$sozial=$sozial1 ." ". $sozial2 ." ". $sozial3 ." ". $sozial4 ." ". $sozial5 ." ". $sozial6 ." ". $sozial7." ";
+$sozial= substr ($sozial,0 , (strlen(chop($sozial))-1)); 
+echo "<TR><td></td><TD valign=\"top\">". $sozial ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["methode1"] == "true" || $fetchleistung["methode2"] == "true" || $fetchleistung["methode3"] == "true" || $fetchleistung["methode4"] == "true" || $fetchleistung["methode5"] == "true" || $fetchleistung["methode6"] == "true") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar7)."</b><br><br></TD></TR>";
+if ($fetchleistung["methode1"] == "true") $methode1=$language["strAnalysefaehigkeit"].",";
+if ($fetchleistung["methode2"] == "true") $methode2=$language["strEntscheidungsfaehigkeit"].",";
+if ($fetchleistung["methode3"] == "true") $methode3=$language["strGestaltungsfaehigkeit"].",";
+if ($fetchleistung["methode4"] == "true") $methode4=$language["strLernfaehigkeit"].",";
+if ($fetchleistung["methode5"] == "true") $methode5=$language["strPlanung"].",";
+if ($fetchleistung["methode6"] == "true") $methode6=$language["strVD"].",";
+$methode=$methode1 ." ". $methode2 ." ". $methode3 ." ". $methode4 ." ". $methode5 ." ". $methode6 ." ";
+$methode= substr ($methode,0 , (strlen(chop($methode))-1)); 
+echo "<TR><td></td><TD valign=\"top\">". $methode ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["faehigkeit1"] == "true" || $fetchleistung["faehigkeit2"] == "true" || $fetchleistung["faehigkeit3"] == "true" || $fetchleistung["faehigkeit4"] == "true" || $fetchleistung["faehigkeit5"] == "true" || $fetchleistung["faehigkeit6"] == "true"|| $fetchleistung["faehigkeit7"] == "true"|| $fetchleistung["faehigkeit8"] == "true") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar8)."</b><br><br></TD></TR>";
+if ($fetchleistung["faehigkeit1"] == "true") $faehigkeit1=$language ["strCoaching"].",";
+if ($fetchleistung["faehigkeit2"] == "true") $faehigkeit2=$language ["strDurchsetzungsvermoegen"].",";
+if ($fetchleistung["faehigkeit3"] == "true") $faehigkeit3=$language ["strEntscheidungsfaehigkeit"].",";
+if ($fetchleistung["faehigkeit4"] == "true") $faehigkeit4=$language ["strErgebnisorientierung"].",";
+if ($fetchleistung["faehigkeit5"] == "true") $faehigkeit5=$language ["strKundenorientierung"].",";
+if ($fetchleistung["faehigkeit6"] == "true") $faehigkeit6=$language ["strMotivationsfaehigkeit"].",";
+if ($fetchleistung["faehigkeit7"] == "true") $faehigkeit7=$language ["strSD"].",";
+if ($fetchleistung["faehigkeit8"] == "true") $faehigkeit8=$language ["strVerhandlungsfaehigkeit"].",";
+$faehigkeit=$faehigkeit1 ." ". $faehigkeit2 ." ". $faehigkeit3 ." ". $faehigkeit4 ." ". $faehigkeit5 ." ". $faehigkeit6 ." ". $faehigkeit7 ." ". $faehigkeit8 ." ";
+$faehigkeit= substr ($faehigkeit,0 , (strlen(chop($faehigkeit))-1)); 
+echo "<TR><td></td><TD valign=\"top\">". $faehigkeit ."</TD></TR>";
+echo "<TR><TD colspan=\"2\"><br><br></TD></TR>";
+}
+
+if ($fetchleistung["arbeitsverhalten1"] == "true" || $fetchleistung["arbeitsverhalten2"] == "true" || $fetchleistung["arbeitsverhalten3"] == "true" || $fetchleistung["arbeitsverhalten4"] == "true" || $fetchleistung["arbeitsverhalten5"] == "true" || $fetchleistung["arbeitsverhalten6"] == "true" || $fetchleistung["arbeitsverhalten7"] == "true") {
+echo "<TR><TD colspan=\"2\"><b>".strtoupper($sprachvar9)."</b><br><br></TD></TR>";
+if ($fetchleistung["arbeitsverhalten1"] == "true") $arbeitsverhalten1=$language ["strAusdauer"].",";
+if ($fetchleistung["arbeitsverhalten2"] == "true") $arbeitsverhalten2=$language ["strBelastbarkeit"].",";
+if ($fetchleistung["arbeitsverhalten3"] == "true") $arbeitsverhalten3=$language ["strDurchsetzungsfaehigkeit"].",";
+if ($fetchleistung["arbeitsverhalten4"] == "true") $arbeitsverhalten4=$language ["strFlexibilitaet"].",";
+if ($fetchleistung["arbeitsverhalten5"] == "true") $arbeitsverhalten5=$language ["strQualitaetsdenken"].",";
+if ($fetchleistung["arbeitsverhalten6"] == "true") $arbeitsverhalten6=$language ["strZielorientierung"].",";
+if ($fetchleistung["arbeitsverhalten7"] == "true") $arbeitsverhalten7=$language ["strZuverlaessigkeit"].",";
+$arbeitsverhalten=$arbeitsverhalten1 ." ". $arbeitsverhalten2 ." ". $arbeitsverhalten3 ." ". $arbeitsverhalten4 ." ". $arbeitsverhalten5 ." ". $arbeitsverhalten6 ." ". $arbeitsverhalten7 ." ";
+$arbeitsverhalten= substr ($arbeitsverhalten,0 , (strlen(chop($arbeitsverhalten))-1)); 
+echo "<TR><td></td><TD valign=\"top\">". $arbeitsverhalten ."</TD></TR>";
+}
+if ($s_loggedin=="yes") {
+	echo "<tr><td colspan=\"2\" align=\"right\" class=\"toppraktika\"><br><br>powered by <img src=\"/home/gifs/powered_by_praktika.gif\" border=\"0\"></td></tr>";
+}
+
+
+} else {
+  echo "<TR><TD colspan=\"2\">Der Bewerber hat kein Profil in diesem Bereich hinterlegt!</TD></TR>";
+	
+}
+}
+
+if ($s_firmenlevel == 0 && $s_loggedinnutzer == false &&  $gesuchedb ==0 && !$gesuche) {
+echo "Die Anzeige des Bewerber-Profils erfordert die Buchung des Produktes Servicelizenz \"KOMFORT\"! ";
+echo "<bR><bR>Hier erhalten Sie mehr <span class=normal><A ONMOUSEOVER=\"window.status='". $language ["strAnsichtsseite"] ."';return true\" href=\"/cms/Produkte_Mediadaten.524.0.html?" . session_name() . "=" . session_id() . "\"  target=_blank>Informationen</a></span> &uuml;ber unsere <span class=normal><A ONMOUSEOVER=\"window.status='". $language ["strAnsichtsseite"] ."';return true\" href=\"/cms/Produkte_Mediadaten.524.0.html?" . session_name() . "=" . session_id() . "\"  target=_blank>Produkte</a></span> oder buchen Sie die <span class=normal><A ONMOUSEOVER=\"window.status='". $language ["strAnsichtsseite"] ."';return true\" href=\"/cms/Produkte_Mediadaten.527.0.html?" . session_name() . "=" . session_id() . "\"  target=_blank>Servicelizenz \"KOMFORT\"</a></span> direkt. Sie erhalten sofort Zugriff auf die Profile Ihrer Bewerbungen.</b>";
+}
+}?>
+
+
+<tr><td colspan="2" ><br><br></td></tr>
+</table>
+
+</TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>
+ 

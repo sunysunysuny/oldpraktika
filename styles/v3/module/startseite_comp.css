@@ -1,0 +1,42 @@
+div#main div#content ul.comp_start_linklist {
+	clear: both;	
+}
+div#main div#content ul.comp_start_linklist li {
+	width: 33%;
+	float: left;
+}
+div#main div#content ul.comp_start_linklist li.first {
+	margin-right: 3px;
+}
+div#main div#content ul.comp_start_linklist li.last {
+	float: right;
+}
+div#main div#content ul.comp_start_linklist li h3 a {
+	font-size: 16px;
+	line-height: 24px;
+	font-weight: bold;
+	text-decoration:none;
+}
+
+div#main div#content div#header_image {
+	background: transparent url(/styles/images/companies/unternehmen_praktika.jpg) no-repeat;
+	height: 225px;
+	padding-left: 20px;
+	margin-bottom: 15px;
+}
+div#main div#content div#header_image h1 {
+	margin-top: 26px;
+	line-height: 28px;
+	margin-bottom: 0px;
+	color: #fff;
+}
+div#main div#content div#header_image p.white, div#main div#content div#header_image p.white a  {
+	font-size: 13px;
+	line-height: 17px;
+	margin-top: 10px;
+	margin-bottom: 25px;
+	font-weight: bold;
+}
+div#main div#content div#header_image p.buttons {
+	margin-top: -5px;
+}

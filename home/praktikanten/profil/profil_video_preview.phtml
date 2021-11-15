@@ -1,0 +1,75 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_MY_PRAKTIKA;
+
+pageheader(array('page_title' => 'Bewerbungsvideo ansehen'));
+
+$video= mysql_db_query($database_bprofil,"SELECT * FROM profil_video WHERE nutzerid = ".$_SESSION["s_nutzerid"]." AND id = ".$_GET["id"],$praktdbslave);
+if (mysql_num_rows($video) == 0) 
+{ 
+	$fehler = "Leider ist diese Datei nicht auf dem Server vorhanden."; 
+} else {
+	$video_prop = mysql_fetch_assoc($video);
+}
+?>
+<table width="100%" border="0">
+  <tr>
+  <tr>
+    <td align="center">Bewerbungsvideo: <? echo $video_prop["name"]; ?></td>
+  </tr>
+  <tr>
+    <td align="center">
+<?   
+if ($video_prop["format"] == "flv") {
+//<param name="Flashvars" value="url=flv.phtml?id=<? echo $video_prop["id"]."&".session_name()."=".session_id();
+
+?>    
+<object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" width="240" height="250" id="240x180">
+<PARAM NAME="allowFlashAutoInstall" VALUE="true">
+<param name="Flashvars" value="url=/home/praktikanten/profil/show.<? echo $video_prop["id"];?>.flv">
+<param name="allowScriptAccess" value="sameDomain" />
+<param name="movie" value="/cms/fileadmin/Bilder/Bewerber/FlashFiles/240x180.swf" />
+<param name="quality" value="high" />
+<param name="bgcolor" value="#ffffff" />
+<embed src="/cms/fileadmin/Bilder/Bewerber/FlashFiles/240x180.swf" swLiveConnect="true" Flashvars="url=/home/praktikanten/profil/show.<? echo $video_prop["id"];?>.flv" quality="high" bgcolor="#ffffff" width="240" height="250" name="240x180" allowScriptAccess="sameDomain" type="application/x-shockwave-flash" pluginspage="https://www.macromedia.com/go/getflashplayer" />
+</object>    
+<? } else {?>
+<OBJECT align="center" WIDTH="240" HEIGHT="248" CLASSID="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95" ID="MediaPlayer"
+codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=6,4,7,1112"
+standby="Microsoft Windows Media Player wird geladen..."
+type="application/x-oleobject">
+    <PARAM NAME="Src" VALUE="asx.phtml?id=<? echo $video_prop["id"]."&".session_name()."=".session_id(); ?>">
+    <param name="animationatStart" value="1">
+    <PARAM NAME="ShowControls" VALUE="1">
+    <PARAM NAME="ShowDisplay" VALUE="0">
+    <PARAM NAME="Autostart" VALUE="1">
+    <PARAM NAME="ShowStatusBar" VALUE="1">
+    <PARAM NAME="AutoSize" VALUE="1">
+    <PARAM NAME="pluginspage" VALUE="https://www.microsoft.com/windows/mediaplayer/de/download/allplayers.htm">
+    <Embed type="application/x-mplayer2"
+        pluginspage="https://www.microsoft.com/windows/windowsmedia/download/"
+        filename="asx.phtml?id=<? echo $video_prop["id"]."&".session_name()."=".session_id(); ?>"
+        src="asx.phtml?id=<? echo $video_prop["id"]."&".session_name()."=".session_id(); ?>"
+        Name="MediaPlayer"
+        autosize="1"
+        displaysize="4"
+        ShowControls="1"
+        showtracker="1"
+        ShowDisplay="0"
+        Autostart="1"
+        ShowStatusBar="1"
+        videoborder3d="0"
+        width="240"
+       height="248"
+    ></embed>
+</OBJECT><? } ?></td>
+  </tr>
+</table>
+<? bodyoff(); ?>

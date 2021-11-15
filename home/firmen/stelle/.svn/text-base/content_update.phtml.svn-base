@@ -1,0 +1,75 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+$praktdbmaster = @mysql_pconnect($dbarray[0][host],$dbarray[0][mysqluser],$dbarray[0][mysqlpassword]);
+
+$part = substr($_POST['part'],strpos($_POST['part'],"_")+1);
+$val = $_POST['value'];
+$stellenid = (int)$_SESSION["aktuelle_stelle"];
+$firmenid = (int)$_SESSION['s_firmenid'];
+$firmenlevel = (int)$_SESSION["s_firmenlevel"];
+
+// Lässt nur die Einträge aus dieser Liste durch !
+$platzhalter = array("taetigkeit", "firmeninfosHead","firmentaetigkeitHead","firmenqualiHead","firmenperspHead","firmenkontaktHead","firmeninfos","firmentaetigkeit","firmenquali","firmenpersp","firmenkontakt","jobcode","subtitle","entgelt","beschreibung","flash");
+if(!in_array($part, $platzhalter)) echo "Wert '".$part."' wurde nicht akzeptiert";
+
+
+if(strpos($val, "PLATZHALTER") !== false) $val = "";
+
+if (isset($part) && !empty($part)) {
+	
+
+	$rawModus = array("jobcode","flash","taetigkeit");
+	
+	// Soll Feld im RAW-Modus genutzt werden (Keine Formatierungen)
+	if(in_array($part, $rawModus)) {
+		
+		$val = strip_tags($val);
+		
+	} else {
+		$val = strip_tags($val, "<p><br><br /><br/><div><span><b><strong><i><u><ul><li><ol><em>");
+		$val = str_replace("font-style:","dummy",$val);
+	}
+	
+	// Wenn kein Komfort-Kunde, dann radikal alle HTML-Tags löschen, bis auf <br> (<br> An alle Block-Tags hängen)
+	
+	if($firmenlevel < 2) {
+		$val = str_replace("</div>","<br />",$val);
+		$val = str_replace("</DIV>","<br />",$val);
+		$val = str_replace("</p>","<br />",$val);
+		$val = str_replace("</P>","<br />",$val);
+		$val = str_replace("</li>","<br />",$val);
+		$val = str_replace("</LI>","<br />",$val);
+		$val = strip_tags($val, "<br><br /><br/>");
+	}
+	
+	
+	if ($part == 'flash') {
+		$val = strip_tags(htmlspecialchars_decode($val),"<object><param><embed>");
+		// 'http://' vergessen?
+		if(strpos($val,"(URL oder embedded Object von Youtube z.B.)") !== false) $val = "";
+		if (preg_match('/^http:\/\//', $val) == 1) {
+			$val = strip_tags($val);
+		}
+
+	}
+	if($part == "jobcode") {
+		$val = str_replace("Jobcode: ","",$val);
+	}
+
+	if($val == "null") $val = "";
+	if($val == "undefined") $val = "";
+	
+	$replace = array();
+	$val =  str_replace(array("\r","\n")," ",trim($val));
+	
+	$val = mysql_real_escape_string($val);
+	echo utf8_decode($val);
+	if($_SESSION["stelle_dont_modify"] == false) { $modifySQL = ",modify=NOW()"; } else { $modifySQL = ""; }
+	$updatestring = mysql_db_query($database_db, 'UPDATE stellen SET '.$part.' = \''.utf8_decode($val).'\', bearbeiterid = '.$_SESSION['s_loginid'].$modifySQL.' WHERE id = '.$stellenid.' AND firmenid = '.$firmenid,$praktdbmaster);
+
+	$dateiname = '/home/praktika/cache/stellen/stelle_'.$stellenid.'.html';
+	@unlink($dateiname);
+
+}
+?>

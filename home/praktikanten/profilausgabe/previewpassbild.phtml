@@ -1,0 +1,64 @@
+<?
+ $gruppe = "praktikanten";
+ $miniwindow = "yes";
+ $noadvertise = "yes";
+ $sprachbasisdatei="/home/praktikanten/previewpassbild.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+<LINK REL="SHORTCUT ICON" HREF="/favicon.ico">
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+</HEAD>
+ 
+<? bodyon(session_id(), $s_sprache); ?>
+
+<H1><i><? echo $language ["strBewerbungsfoto"]; ?></i></H1>
+<BR>
+  <BR>
+
+<? $nutzerid=$id;  ?>
+
+    <TABLE width="650">
+      <TR> 
+        <TD ALIGN="center">&nbsp; </TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="center"><?
+$fotoschonda = mysql($database_db,"select url,height,width from bewerbungsfoto where nutzerid=$nutzerid",$praktdbslave);
+$eintraege = mysql_NumRows($fotoschonda);
+	if ($eintraege > 0) {
+	$url = mysql_result($fotoschonda,0,"url");
+	$width = mysql_result($fotoschonda,0,"width");
+	$height = mysql_result($fotoschonda,0,"height");
+	echo "<img src=\"".$url."\" width=\"".$width."\" height=\"".$height."\"><br><br>"; }
+	else {
+	echo "(".$language ["strKeinFoto"] .")<BR><BR><BR>";} ?></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="center"><? if (!$fetch["titel"] == "") echo $fetch["titel"] . " "; echo $fetch["vname"] . " " . $fetch["name"] ?></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="TOP"><? echo $fetch["strasse"] ?></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="TOP"><? echo $fetch["plz"] . " " . $fetch["ort"] ?></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="TOP"><? echo $fetch["tel"] ?></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="TOP"><A href="mailto:<? echo $fetch["email"] ?>"><? echo $fetch["email"] ?></A></TD>
+      </TR>
+      <TR align="center"> 
+        <TD VALIGN="TOP">&nbsp;</TD>
+      </TR>
+    </TABLE>
+</TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>

@@ -1,0 +1,297 @@
+<?
+ $spalte = 1;
+ $gruppe = "praktikanten";
+ require("/home/praktika/etc/config.inc.php");
+Praktika_Log::logOld();
+$geoland = array();
+$geoland[1]="AF";
+$geoland[2]="AL";
+$geoland[3]="AG";
+$geoland[5]="AN";
+$geoland[6]="AO";
+$geoland[7]="AV";
+$geoland[9]="AC";
+$geoland[10]="AR";
+$geoland[11]="AM";
+$geoland[12]="AA";
+$geoland[13]="AS";
+$geoland[14]="AU";
+$geoland[16]="AJ";
+$geoland[16]="BF";
+$geoland[17]="BA";
+$geoland[18]="BG";
+$geoland[19]="BB";
+$geoland[20]="BO";
+$geoland[21]="BE";
+$geoland[22]="BH";
+$geoland[23]="BN";
+$geoland[24]="BD";
+$geoland[25]="BT";
+$geoland[26]="BL";
+$geoland[27]="BK";
+$geoland[28]="BC";
+$geoland[29]="BV";
+$geoland[30]="BR";
+$geoland[31]="IO";
+$geoland[32]="BX";
+$geoland[33]="BU";
+$geoland[34]="UV";
+$geoland[190]="BM";
+$geoland[39]="BY";
+$geoland[191]="CB";
+$geoland[36]="CM";
+$geoland[37]="CA";
+$geoland[38]="CV";
+$geoland[39]="CJ";
+$geoland[40]="CT";
+$geoland[41]="CD";
+$geoland[42]="CI";
+$geoland[43]="CH";
+$geoland[44]="KT";
+$geoland[45]="CK";
+$geoland[46]="CO";
+$geoland[192]="CN";
+$geoland[47]="CF";
+$geoland[48]="CS";
+$geoland[49]="HR";
+$geoland[50]="CU";
+$geoland[51]="CY";
+$geoland[52]="EZ";
+$geoland[53]="DA";
+$geoland[193]="DJ";
+$geoland[186]="DR";
+$geoland[54]="TT";
+$geoland[55]="EC";
+$geoland[56]="EG";
+$geoland[57]="ES";
+$geoland[62]="EK";
+$geoland[194]="ER";
+$geoland[58]="EN";
+$geoland[195]="ET";
+$geoland[59]="FJ";
+$geoland[60]="FI";
+$geoland[61]="FR";
+$geoland[63]="F";
+$geoland[64]="FP";
+$geoland[65]="FS";
+$geoland[196]="GB";
+$geoland[66]="GA";
+$geoland[197]="GZ";
+$geoland[67]="GG";
+$geoland[68]="GM";
+$geoland[69]="GH";
+$geoland[70]="GI";
+$geoland[71]="GR";
+$geoland[184]="GL";
+$geoland[72]="GJ";
+$geoland[73]="F";
+$geoland[74]="GT";
+$geoland[75]="GV";
+$geoland[76]="PU";
+$geoland[77]="GY";
+$geoland[78]="HA";
+$geoland[79]="HM";
+$geoland[80]="HO";
+$geoland[81]="HK";
+$geoland[82]="HU";
+$geoland[88]="IC";
+$geoland[83]="IN";
+$geoland[84]="ID";
+$geoland[85]="IR";
+$geoland[86]="IZ";
+$geoland[87]="EI";
+$geoland[89]="IS";
+$geoland[90]="IT";
+$geoland[91]="JM";
+$geoland[92]="JA";
+$geoland[93]="JO";
+$geoland[94]="KZ";
+$geoland[95]="KE";
+$geoland[96]="KR";
+$geoland[99]="KU";
+$geoland[100]="KG";
+$geoland[198]="LA";
+$geoland[187]="LG";
+$geoland[101]="LE";
+$geoland[102]="LI";
+$geoland[199]="LY";
+$geoland[103]="LS";
+$geoland[104]="LH";
+$geoland[105]="LU";
+$geoland[106]="MC";
+$geoland[107]="MK";
+$geoland[108]="MA";
+$geoland[109]="MI";
+$geoland[110]="MY";
+$geoland[111]="MV";
+$geoland[200]="ML";
+$geoland[112]="MT";
+$geoland[113]="MB";
+$geoland[114]="MR";
+$geoland[115]="MP";
+$geoland[116]="MX";
+$geoland[201]="FM";
+$geoland[117]="MD";
+$geoland[118]="MN";
+$geoland[202]="MG";
+$geoland[203]="MO";
+$geoland[204]="MZ";
+$geoland[119]="WA";
+$geoland[120]="NP";
+$geoland[121]="NL";
+$geoland[122]="NT";
+$geoland[123]="NZ";
+$geoland[124]="NU";
+$geoland[125]="NG";
+$geoland[126]="NI";
+$geoland[97]="KN";
+$geoland[127]="NO";
+$geoland[128]="MU";
+$geoland[129]="PK";
+$geoland[130]="PM";
+$geoland[205]="PP";
+$geoland[131]="PA";
+$geoland[132]="PE";
+$geoland[133]="RP";
+$geoland[134]="PL";
+$geoland[135]="PO";
+$geoland[137]="QA";
+$geoland[138]="RO";
+$geoland[139]="RS";
+$geoland[206]="RW";
+$geoland[140]="WS";
+$geoland[141]="SM";
+$geoland[142]="SA";
+$geoland[143]="SG";
+$geoland[185]="YI";
+$geoland[144]="SE";
+$geoland[145]="SL";
+$geoland[146]="SN";
+$geoland[147]="LO";
+$geoland[148]="SI";
+$geoland[149]="SO";
+$geoland[150]="SF";
+$geoland[98]="KS";
+$geoland[151]="SP";
+$geoland[152]="CE";
+$geoland[153]="SU";
+$geoland[189]="NS";
+$geoland[154]="WZ";
+$geoland[155]="SW";
+$geoland[156]="SZ";
+$geoland[157]="SY";
+$geoland[158]="TW";
+$geoland[159]="TI";
+$geoland[160]="TZ";
+$geoland[161]="TH";
+$geoland[207]="TO";
+$geoland[162]="TN";
+$geoland[163]="TD";
+$geoland[164]="TS";
+$geoland[165]="TU";
+$geoland[166]="TX";
+$geoland[167]="UG";
+$geoland[168]="UP";
+$geoland[169]="AE";
+$geoland[170]="UK";
+$geoland[171]="US";
+$geoland[172]="UY";
+$geoland[173]="UZ";
+$geoland[174]="NH";
+$geoland[175]="VT";
+$geoland[176]="VE";
+$geoland[177]="VM";
+$geoland[178]="WI";
+$geoland[179]="YM";
+$geoland[181]="ZA";
+$geoland[182]="ZI";
+
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+  <head>
+  <title>praktika.de geographische Suche</title>
+    <script src="http://maps.google.com/maps?file=api&amp;v=1&amp;key=ABQIAAAAzdzyL_wQe6L5Zzajnr1pZxQvmA2GV4nkX98NEKUZ1asWWzOVEhQAPbb0DphiU63SznBD9ODSjsLKJw" type="text/javascript"></script>
+  </head>
+  <body onload="GeoPointDisplay();">
+    <div id="map" style="width: 450px; height: 380px"></div>
+    <script type="text/javascript">
+    //<![CDATA[
+
+<?
+
+
+
+echo '
+// plot the jobs to map
+function GeoPointDisplay() {
+';
+//print_r($s_lastresult);
+$lastresult_array = array();
+$zoomout = false;
+/* foreach ($_SESSION["s_lastresult"]["orte"] as $lastresultkey => $lastresultvalue) {
+$querystring = "SELECT geodata.LAT,geodata.LONG,geodata.FULL_NAME FROM geodata WHERE geodata.CC1 = '".$geoland[$lastresultkey]."' AND geodata.FULL_NAME IN ('".utf8_encode(implode("','",$lastresultvalue))."') LIMIT 120";
+//echo $querystring."<br>";
+$results = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+while ($lastresult_row = mysql_fetch_array ( $results ) ) {
+	$lastresult_array[utf8_decode($lastresult_row["FULL_NAME"])]["LAT"] = $lastresult_row["LAT"];
+	$lastresult_array[utf8_decode($lastresult_row["FULL_NAME"])]["LONG"] = $lastresult_row["LONG"];
+	if ($lastresult_row["LAT"] < 45 || $lastresult_row["LAT"] > 55 ) $zoomout = true;
+	if ($lastresult_row["LONG"]> 20 || $lastresult_row["LONG"]< 1 ) $zoomout = true;
+}} */
+$merker["LONG"] = array();
+$merker["LAT"] = array();
+$i=0;
+foreach ($s_lastresult["werte"] as $lastresult) {
+if ($lastresult_array[$lastresult["ort"]]) {
+$verschiebung=(rand(-40,40)*0.001);
+if (in_array($lastresult_array[$lastresult["ort"]]["LONG"], $merker["LONG"])) $lastresult_array[$lastresult["ort"]]["LONG"] += $verschiebung;
+$verschiebung=(rand(-40,40)*0.001);
+if (in_array($lastresult_array[$lastresult["ort"]]["LAT"],  $merker["LAT"] )) $lastresult_array[$lastresult["ort"]]["LAT"]  += $verschiebung;
+$bildwerte = mysql_db_query($database_db,"SELECT * FROM bilddateien WHERE firmenid='".$lastresult["firmenid"]."' AND dateiname='resultlogo.gif'",$praktdbslave);
+if (mysql_NumRows($bildwerte) > 0) {
+	$bilddatei = "<img src=".mysql_result($bildwerte,0,"uri")." width=".mysql_result($bildwerte,0,"width")." height=".mysql_result($bildwerte,0,"height")." vspace=5>";
+} else {
+	$bilddatei = "";
+}
+echo '
+var point = new GPoint('.$lastresult_array[$lastresult["ort"]]["LONG"].','.$lastresult_array[$lastresult["ort"]]["LAT"].');
+var marker = createGeoMark(point, '.$i.', \'<font face=verdana size=-1><b>'.str_replace("'","\'",$lastresult["ort"]).'<\/b><br><a href=/home/clickin/?id='.$lastresult["firmenid"].' target=_parent>'.str_replace("'","\'",$lastresult["firma"]).'<\/a><br>'.str_replace("'","\'",$lastresult["taetigkeit"]).'<\/font><br>'.$bilddatei.'\');
+map.addOverlay(marker);
+';
+$merker["LONG"][] = $lastresult_array[$lastresult["ort"]]["LONG"];
+$merker["LAT"][]  = $lastresult_array[$lastresult["ort"]]["LAT"];
+$i++;
+}
+}
+
+echo '
+}
+';
+
+echo '
+var map = new GMap(document.getElementById("map"));
+map.addControl(new GLargeMapControl());
+map.addControl(new GMapTypeControl());
+';
+if ($zoomout == true) {
+	echo 'map.centerAndZoom(new GPoint(0.0, 40.0), 16);';
+} else {
+	echo 'map.centerAndZoom(new GPoint(11.0, 51.0), 12);';
+}
+echo '
+function createGeoMark(point, number, text) {
+var marker = new GMarker(point);
+var html = text;
+GEvent.addListener(marker, "click", function() {
+	marker.openInfoWindowHtml(html);
+});
+return marker;
+}
+';
+
+?>
+    //]]>
+    </script>
+  </body>
+</html>

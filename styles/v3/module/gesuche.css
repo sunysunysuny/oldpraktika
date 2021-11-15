@@ -1,0 +1,164 @@
+div#main div#content table#jobAdList {
+	margin-top: 15px;
+	border-top: 0;
+	margin-bottom: 15px;
+}
+div#main div#content table#jobAdList thead {
+	background: transparent;
+}
+div#main div#content table#jobAdList th {
+	font-size: 11px;
+	text-align: left;
+	background: transparent;
+	font-weight: bold;
+	padding: 0;
+	margin: 0;
+	line-height:25px;
+	vertical-align: middle;
+	border-bottom: 5px solid #ddd;
+}
+div#main div#content table#jobAdList th span {
+	font: inherit;
+	color: #555;
+}
+div#main div#content table#jobAdList th span.left_corner {
+	background: url('/styles/images/boxen.png?10') no-repeat -532px -77px transparent;
+	padding: 6px 0 6px 6px;
+}
+div#main div#content table#jobAdList th span.middle_text {
+	background: url('/styles/images/boxen.png?10') no-repeat -532px 0 transparent;
+	padding: 6px 0 6px 0;
+}
+div#main div#content table#jobAdList th span.right_corner {
+	background: url('/styles/images/boxen.png?10') no-repeat -1057px 0 transparent;
+	padding: 6px 0 6px 6px;
+}
+div#main div#content table#jobAdList td {
+	padding: 7px 5px;
+}
+div#main div#content table#jobAdList td.first {
+	font-weight: bold;
+	text-align: right;
+}
+div#main div#content table#jobAdList td.first img {
+	float: left;
+	margin-top: 2px;
+}
+div#main div#content table#jobAdList td.active a {
+	color: #115ba2;
+}
+div#main div#content table#jobAdList td.inactive a {
+	color: #9a0203;
+}
+div#main div#content table#jobAdList td.spacer {
+	padding: 2px 5px;
+	height: 5px;
+	border-top: 1px solid #cccccc;
+}
+div#main div#content table#jobAdList td.date {
+	color: #777777;
+	letter-spacing: -1px;
+}
+div#main div#content table#jobAdList tr.inactive {
+	background: #fdf7df;
+}
+div#main div#content table#jobAdList tr.active form,
+div#main div#content table#jobAdList tr.inactive form,
+div#main div#content table#jobAdList tr.locked form {
+	float: left;
+	width: 17px;
+	height: 17px;
+	margin-right: 3px;
+	clear: none;
+}
+div#main div#content table#jobAdList tr.active form fieldset,
+div#main div#content table#jobAdList tr.inactive form fieldset,
+div#main div#content table#jobAdList tr.locked form fieldset {
+	width: 17px;
+	height: 17px;
+	margin: 0;
+	padding: 0;
+}
+div#main div#content table#jobAdList tr td form fieldset input {
+	background: transparent;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	border: 0;
+	font-weight: normal;
+	width: auto;
+	padding: 0;
+	
+	border-radius: 0;
+	-webkit-border-radius: 0;
+	-moz-border-radius: 0;
+	
+	box-shadow: none;
+	-moz-box-shadow: none;
+	-webkit-box-shadow: none;
+}
+div#main div#content table#jobAdList a.edit {
+	float: left;
+	margin-right: 15px;
+}
+div#main div#content table#jobAdList a.view {
+	float: left;
+	margin-right: 3px;
+}
+div#main div#content table#jobAdList a.stats {
+	float: left;
+	margin-right: 15px;
+}
+div#main div#content table#jobAdList input.online,
+dl.def_list img.online {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -36px -69px;
+	width: 73px;
+	height: 17px;
+	border: 0;
+}
+div#main div#content table#jobAdList input.offline,
+div#main div#content dl.def_list img.offline {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -113px -69px;
+	width: 73px;
+	height: 17px;
+	border: 0;
+}
+div#main div#content table#jobAdList input.online,
+div#main div#content table#jobAdList input.offline {
+	float: left;
+}
+div#main div#content table#jobAdList input.edit,
+div#main div#content table#jobAdList img.edit,
+div#main div#content dl.def_list img.edit {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -181px 0;
+	width: 17px;
+	height: 17px;
+}
+div#main div#content table#jobAdList img.view,
+div#main div#content dl.def_list img.view {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -357px 0px;
+	width: 17px;
+	height: 17px;
+}
+div#main div#content table#jobAdList input.duplicate,
+div#main div#content dl.def_list img.duplicate {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -687px 0px;
+	width: 17px;
+	height: 17px;
+	border: 0;
+}
+div#main div#content table#jobAdList img.stats,
+div#main div#content dl.def_list img.stats {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -797px 0px;
+	width: 17px;
+	height: 17px;
+}
+div#main div#content table#jobAdList input.delete,
+div#main div#content dl.def_list img.delete {
+	background: transparent url('/styles/images/icons/icon.png?10') no-repeat -225px -25px;
+	width: 17px;
+	height: 17px;
+	border: 0;
+}
+
+div#main div#content table#jobAdList a.previewButton {
+	margin-right:10px;
+}

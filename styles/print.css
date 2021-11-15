@@ -1,0 +1,8 @@
+
+div#advertisement_top,
+div#advertisement_right,
+div#navigation,
+div.subnavigation,
+div.teaser {
+	display: none;
+}

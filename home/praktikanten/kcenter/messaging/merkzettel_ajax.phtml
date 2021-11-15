@@ -1,0 +1,348 @@
+<?
+function filter2sql($filterString, $andString = false) {
+	if(empty($filterString)) return "";
+	
+	$parts = explode("/", $filterString);
+	
+	$sqlWhere = array();
+	
+	for($a = 0;$a < count($parts);$a++) {
+		if(!empty($parts[$a])) {
+			$split = explode("_", $parts[$a]);
+			
+			switch($split[0]) {
+				case "firmenid":
+					$split[0] = "nutzerbookmark.firmenid";
+					break;
+			}
+			
+			$sqlWhere[] = mysql_real_escape_string($split[0])." IN (".mysql_real_escape_string($split[1]).")";
+		}
+	}
+	
+	return ($andString==true?" AND ":"").implode("AND", $sqlWhere);
+}
+
+
+// Sortierung ändern
+if(!empty($_POST["sort"])) {
+
+	if($_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]["sort"] == $_POST["sort"]) {
+		if($_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]["sort_asc"] == "asc") {
+			$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]["sort_asc"] = "desc";
+		} else {
+			$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]["sort_asc"] = "asc";
+		}
+	} else {
+		$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]["sort"] = $_POST["sort"];
+	}
+	
+}
+
+if(!empty($_POST["ids"])) {
+	include(dirname(__FILE__)."/../bewerbung/senden.phtml");
+}
+
+if(!empty($_POST["page"])) {
+	$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]['pageNumber'] = $_POST["page"];
+}
+
+if(!empty($_POST["setLanguage"]) || !empty($_POST["anschreiben_id"])) {
+	$spracheRST = mysql_fetch_assoc($hDB->query("SELECT sprachid, lebenslauflayout FROM ".$database_bprofil.".anschreiben WHERE nutzerid = ".$_SESSION["s_nutzerid"].' AND id = '.(int)$_POST["anschreiben_id"], $praktdbslave));
+	$sprache = 3 - $spracheRST["sprachid"];
+	
+	if($sprache != 1 && $sprache != 2) $sprache = 2;
+	$layout = ($sprache==2?"0":"1").substr($spracheRST["lebenslauflayout"],1,1);
+	
+	if(!empty($_POST["anschreiben_id"])) {
+		
+		$hDB->query("UPDATE ".$database_bprofil.'.anschreiben SET lebenslauflayout="'.$layout.'",sprachid = '.$sprache.', anschreiben = "", betreff = "" WHERE nutzerid = '.$_SESSION["s_nutzerid"].' AND id = '.(int)$_POST["anschreiben_id"], $praktdbslave);
+	}
+	if(!empty($_POST["setLanguage"])) {
+		$hDB->query("UPDATE ".$database_db.'.bewerbung SET lebenslauflayout="'.$layout.'",sprachid = '.$sprache.', b_schreiben = "", betreff = "" WHERE nutzerid = '.$_SESSION["s_nutzerid"].' AND id = '.(int)$_POST["setLanguage"], $praktdbslave);
+	}
+	// echo (int)$_POST["setLanguage"];
+	// Sprach�nderungen sollen keinen Reload nach sich ziehen
+	// exit();
+}
+if(!empty($_POST["setLayout"])) {
+	$hDB->query("UPDATE ".$database_bprofil.'.anschreiben SET sprachid = 3 - sprachid, anschreiben = "", betreff = "" WHERE nutzerid = '.$_SESSION["s_nutzerid"].' AND id = '.(int)$_POST["setLanguage"], $praktdbslave);
+}
+
+$_SESSION['s_bereich'] = 2;
+$ds_pro_seite = 10;
+
+$spalteLabel = array("","Praktikum","Bachelor-/Masterarbeit","Nebenjob","Ausbildung","Berufseinstieg","Projekt","Trainee");
+
+
+if(empty($_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]['pageNumber'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]['pageNumber'] = 1;
+}
+if(empty($_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]['rowOnPage'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"]['rowOnPage'] = $ds_pro_seite;
+}
+
+// K�rzere Bezeichnung
+$s_kcenter = &$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"];
+
+if(empty($_SESSION['s_nutzerproparray']['kcenter']['ordnerid'])) $_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = 0;
+
+$ordnerquery = 'AND nutzerbookmark.ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];		
+$ordnerid = $_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];
+
+$result = array();
+
+$uMerkzettel = new Praktika_Kcenter_Merkzettel($_SESSION["s_nutzerid"]);
+/*
+// abfrage ausfuehren  //
+$sql = 'SELECT COUNT(*) `num_rows`
+	FROM prakt2.nutzerbookmark
+	LEFT JOIN prakt2.bewerbung ON(bewerbung.nutzerid = '.$_SESSION["s_nutzerid"].' AND bewerbung.prakstellenid = nutzerbookmark.stellenid AND bewerbung.b_art = "neu" AND bewerbung.inactive = "false" and bewerbung.ninactive = "false")
+	WHERE nutzerbookmark.nutzerid = '.$_SESSION["s_nutzerid"].' AND (bewerbung.preview != "false" OR bewerbung.preview IS NULL) '.$ordnerquery.'  '.filter2sql($_POST["filter"], true).'';
+
+#echo $sql;
+
+// Anzahl abfragen
+$anzahl = $hDB->query($sql, $praktdbslave);
+	*/
+	
+$anzahl = $uMerkzettel->count($ordnerid);
+// $result["rows"] = (int)mysql_result($anzahl,0,"num_rows");
+// $result["rowsOnPage"] = $s_kcenter["rowOnPage"];
+
+$result["data"]["pageNumber"] = "Seite: ".Praktika_Layout::paginator("#",  $anzahl, $s_kcenter['pageNumber'], $s_kcenter['rowOnPage'], "kc_page((page));");
+
+$result["data"]["num_rows"] = $anzahl;
+
+if($result["data"]["num_rows"] == 0) {
+	$result["data"]["pageNumber"] = "&nbsp;";
+}
+
+$result["data"]["ordnername"] = $ordnername;
+$result["data"]["ordnerid"] = $ordnerid;
+
+$sortedRow = "nutzerbookmark.datum_eintrag";
+$sortedDesc = "asc";
+
+
+$result["data"]["sorted_".$s_kcenter["sort"]] = "active";
+	
+if($s_kcenter["sort"] == "firma") {
+	$sortedRow = "firmen.firma";
+    $sortedDesc = "ASC";
+}
+if($s_kcenter["sort"] == "taetigkeit") {
+	$sortedRow = "stellen.taetigkeit";
+    $sortedDesc = "ASC";
+}
+if($s_kcenter["sort"] == "date") {
+	$sortedRow = "nutzerbookmark.datum_eintrag";
+    $sortedDesc = "DESC";
+}
+
+if($s_kcenter["sort"] == "datum_stelle") {
+	$sortedRow = "stellen.modify";
+    $sortedDesc = "DESC";
+}
+
+$stellen = $uMerkzettel->getStellen($s_kcenter["pageNumber"], $s_kcenter["rowOnPage"], $ordnerid, array("sortedRow"=>$sortedRow, "sortedDesc"=>$sortedDesc));
+
+/*
+// abfrage ausfuehren  //
+$sql = 'SELECT nutzerbookmark.id, 
+			nutzerbookmark.stellenid, 
+			nutzerbookmark.firmenid,
+			nutzerbookmark.spalte,
+			nutzerbookmark.obewerbung_active,
+			UNIX_TIMESTAMP(nutzerbookmark.datum_eintrag) `datum_bookmark`,
+			UNIX_TIMESTAMP(stellen.modify) `datum_stelle`,
+			stellen.taetigkeit, 	
+			stellen.land `einsatzland`,	
+			firmen.firma,
+			bewerbung.preview `bew_preview`,
+			bewerbung.id `bew_id`,
+			anschreiben.lebenslauflayout,
+			anschreiben.sprachid `sprachid`,
+			stellen.bearbeiterid,
+			anschreiben.firmenid `anschreiben_firmenid`,
+			anschreiben.id `anschreiben_id`
+	FROM prakt2.nutzerbookmark
+		INNER JOIN prakt2.stellen ON(stellen.id = nutzerbookmark.stellenid)
+		INNER JOIN prakt2.firmen ON(firmen.id = nutzerbookmark.firmenid)
+		LEFT JOIN '.$database_bprofil.'.anschreiben ON(anschreiben.nutzerid = '.$_SESSION["s_nutzerid"].' AND anschreiben.stellenid = nutzerbookmark.stellenid AND anschreiben.type = "int")
+		LEFT JOIN prakt2.bewerbung `bewerbung` ON(bewerbung.nutzerid = '.$_SESSION["s_nutzerid"].' AND bewerbung.prakstellenid = nutzerbookmark.stellenid AND bewerbung.b_art = "neu" AND bewerbung.inactive = "false" and bewerbung.ninactive = "false")
+	WHERE nutzerbookmark.nutzerid = '.$_SESSION["s_nutzerid"].' AND (bewerbung.preview != "false" OR bewerbung.preview IS NULL) '.$ordnerquery.' '.filter2sql($_POST["filter"], true).'
+	ORDER BY '.$sortedRow.' '.$sortedDesc.'
+	LIMIT '.(($s_kcenter["pageNumber"]-1)*$s_kcenter["rowOnPage"]).','.$s_kcenter["rowOnPage"];
+
+ #echo $sql;
+$results = $hDB->query($sql, $praktdbslave);
+*/
+if($anzahl == 0) {
+	$result["data"]["row"] = false;
+	
+} else {
+	$result["data"]["norow"] = false;
+
+	for($a = 0;$a < count($stellen); $a++) {
+		$result_row = $stellen[$a];
+	// while ($result_row = mysql_fetch_assoc($results)) {
+		$data = array();
+		if ($result_row['gelesen'] == 'false') {
+			$data["status"] = '<img src="/styles/images/icons/neu1.png" alt="neu" />';
+		} else {
+			$data["status"] = '';
+		}
+		if($result_row["bew_preview_done"] == "0") {
+			$data["bewerbungSendenAlert"] = "smallbox.alert('Sie m&uuml;ssen die Vorschau der Bewerbung mindestens einmal ansehen,<br />bevor Sie Diese versenden k&ouml;nnen.','ok'); return false;";
+		}
+		
+		$data["firma"] = $result_row["firma_inactive"]=="true"?"Firma gel&ouml;scht":stripslashes($result_row["firma"]);
+		
+		$data["taetigkeit"] = stripslashes($result_row["taetigkeit"]);
+		$data["einsatzort"] = $result_row["einsatzort"];
+
+		$data["datum_stelle"] = date("d.m.Y", $result_row["datum_stelle"]);
+		$data["datum_bookmark"] = date("d.m.Y", $result_row["datum_bookmark"]);
+		$data["spalte"] = $spalteLabel[$result_row["spalte"]>0?$result_row["spalte"]:1];
+		
+		$data["bookmarkID"] = $result_row["id"];
+		$data["firmenID"] = $result_row["firmenid"];
+		$data["spaltenID"] = $result_row["spalte"];
+		$data["stellenID"] = $result_row["stellenid"];
+		$data["anschreiben_id"] = (int)$result_row["anschreiben_id"];
+
+		$data["showIcon"] = false;
+		$data["show_flags"] = false;
+		$data["show_bew_checkbox"] = false;
+		$data["show_bew_preview"] = false;
+		$data["show_bew_send"] = false;
+		$data["show_stelle_offline"] = false;
+		$data["show_anschreibenLink"] = false;
+		$data["show_bewerbungsMappeLink"] = false;
+		$data["show_bewerbungSend"] = false;
+		$data["show_layout"] = false;
+		$data["bewerbung_per_eigen"] = false;
+
+		$data["firma_logo"] = Praktika_Firma::getLogoUrl($result_row["firmenid"], "small");
+
+		// Ist online-Bewerbung �ber Praktika m�glich
+		if(file_exists('/home/praktika/public_html/webtemp/'.$result_row["firmenid"].'.gif')) { 
+			unset($data["showIcon"]);
+		}
+				
+		if ($result_row['obewerbung_active'] == 'true' || $result_row["bewerbungperemail"] == "true") {
+			
+			$data["bewerbID"] = (int)$result_row["bew_id"];
+			$data["nutzerID"] = $_SESSION["s_nutzerid"];
+			$data["lebenslaufTemplate"] = empty($result_row["lebenslauflayout"])?"01":$result_row["lebenslauflayout"];
+			
+			// Wurde die Bewerbung noch nicht versendet?
+			if ($result_row['bew_preview'] != 'false') {
+			
+				if(empty($result_row["anschreiben_id"])) {
+					$result_row["sprachid"] = 2;
+				}
+				
+				
+				switch(substr($data["lebenslaufTemplate"],1,1)) {
+					case '1':
+						$data["llLayoutLabel"] = "Layoutvorlage 1";
+						break;
+					case '2':
+						$data["llLayoutLabel"] = "Layoutvorlage 2";
+						break;
+					case '3':
+						$data["llLayoutLabel"] = "Layoutvorlage 3";
+						break;
+					default:
+						$data["llLayoutLabel"] = "kein Layout";
+						break;
+				}
+						
+				$data["bewSprache"] = ($result_row["sprachid"]==2?"Deutsch":"Englisch");
+				
+				if(empty($result_row["anschreiben_id"])) {
+					$data["bewSprachKey"] = ($result_row["einsatzland"]==68||$result_row["einsatzland"]==""?"de":"uk");
+				} else {
+					$data["bewSprachKey"] = ($result_row["sprachid"]==2?"de":"uk");					
+				}
+				$data["einsatzland"] = $result_row["einsatzland"];
+				$data["sprachID"] = $result_row["sprachid"];
+				$data["bearbeiterID"] = $result_row["bearbeiterid"];
+				
+				if($result_row["bew_preview"] == "true") {
+					unset($data["show_bew_checkbox"]);
+				}
+				
+				unset($data["show_anschreibenLink"]);
+				
+				
+				if (!empty($result_row['anschreiben_id'])) {
+					
+					if($result_row['obewerbung_active'] == 'true') {
+						unset($data["show_layout"]);
+						$data["show_layout_empty"] = false;
+					}
+					
+					unset($data["show_bew_preview"]);
+					unset($data["show_bew_send"]);
+					unset($data["show_flags"]);
+					
+					
+					$data["bewerbicon"] = 'bewerbungsschreiben_aendern.png';
+					$data["bewerbalt"] = 'Anschreiben &auml;ndern';
+				} else {
+					$data["bewerbicon"] = 'bewerbungsschreiben_hinterlegen.png';
+					$data["bewerbalt"] = 'Bewerbungsschreiben erstellen';
+				}
+		
+				if ($result_row['anschreiben'] == 'true') {
+	#				echo '						<a href="/bewerbungsmappe_ansehen/'.$_SESSION['s_loginid'].'/'.$result_row['bewerbid'].'/'.$lebenslauftemplate.'/" onclick="return PB_showFullScreen(\'\', this.href)"><img src="/styles/images/icons/vorschau.gif" alt="Bewerbung - Vorschau" title="Bewerbung - Vorschau" /></a>'."\n";
+				}
+			} else {
+				unset($data["show_bewerbungSend"]);
+			}
+		} elseif ($result_row['bewerbungpereigen'] == 'true') {
+			unset($data["bewerbung_per_eigen"]);	
+		    
+			$url = strrpos($result_row["link_bewerbung"], '/');
+    
+		    if ($url != false) {
+		    	$urlSuffix = substr($result_row["link_bewerbung"], $url);
+		    } else {
+		    	$urlSuffix = '/index.html';
+		    }		
+
+			$data["show_layout"] = false;
+			$data["show_layout_empty"] = false;
+			$data['link_bewerbung'] = '/redirects/'.Praktika_Redirect::getUrlId($result_row["link_bewerbung"], $data["firmenID"], $data["stellenID"]).$urlSuffix;
+		
+			#$stellenadv = mysql_db_query($database_db,'SELECT id, bewerbungpereigen FROM stellen WHERE id = '.$stellenid.' AND firmenid = '.$firmenid.' AND spalte = '.$spalte,$praktdbslave);
+			//if (mysql_num_rows($stellenadv) > 0) {
+	#			echo '						<a href="/home/praktikanten/stellenadvanced/activebewerbung.phtml?status='.mysql_result($stellenadv,0,'bewerbungpereigen').'&amp;stellenid='.$stellenid.'&amp;spalte='.$result_row['spalte'].'" target="_blank"><img src="/styles/images/icons/webadresse.png" alt="Homepage aufrufen" title="Homepage aufrufen" alt="" /></a>'."\n";
+			//}
+		}
+								
+		if(empty($result_row["profilid"])) $data["show_profil"] = false;	
+		if($result_row["angebote_id"] == 0 || !empty($result_row["nutzerbookmark"])) $data["show_merkzettel"] = false;
+
+		if($result_row["inactive"] == "true") {
+			unset($data["show_stelle_offline"]);
+			$data["show_bew_checkbox"] = false;
+			$data["show_bew_preview"] = false;
+			$data["show_bew_send"] = false;
+			$data["show_anschreibenLink"] = false;
+			$data["show_bewerbungsMappeLink"] = false;
+			$data["show_bewerbungSend"] = false;
+			$data["show_layout"] = false;
+			$data["show_layout_empty"] = false;
+			$data["bewerbung_per_eigen"] = false;
+		}
+
+		$data["stellenLink"] = Praktika_Stelle::getURL($result_row);
+		$result["data"]["row"][] = $data;
+	}
+}
+
+echo json_encode($result["data"]);

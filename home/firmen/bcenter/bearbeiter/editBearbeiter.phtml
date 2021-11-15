@@ -1,0 +1,208 @@
+<?
+$sprachbasisdatei = "/home/firmen/anmeldung2.phtml";
+
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+$id = $_POST['id'];
+
+if(empty($id)) {
+	echo "<script type='text/javascript'>loadContent('bearbeiter/index');</script>";
+	exit();
+}
+$_SESSION["s_firmenproparray"]["lastPage"] = "bearbeiter/editBearbeiter";
+
+if (isset($_POST['save'])) {
+	/* email checken */
+	$firmen = mysql_db_query($database_db,'SELECT email FROM bearbeiter WHERE id = '.$_SESSION['s_loginid'],$praktdbmaster);
+	$oldemail = mysql_result($firmen, 0, 'email');
+
+	if (empty($_POST['email2'])) {
+		$_POST['email2'] = $oldemail;
+	} else {
+		$validtext = ValidateMail($_POST['email2']);
+
+		if (empty($validtext[0])) {
+			$_POST['email2'] = $oldemail;
+		}
+	}
+
+	/* datensatz als aktiv setzen */
+	$inactive = 'false';
+
+ 	$vname = addslashes($_POST['vname']);
+	$lname = addslashes($_POST['lname']);
+
+ 	/* einfuegestring ansprechpartner zusammensetzen */
+	$updatestring2 = '	UPDATE '.$database_db.'.bearbeiter SET
+							no_newsletter = \''.(isset($_POST["no_newsletter"])&&$_POST["no_newsletter"]=="false"?"false":"true").'\',
+							titel = \''.mysql_real_escape_string($_POST['titel']).'\',
+							anrede = \''.mysql_real_escape_string($_POST['anrede']).'\',
+							admin = \''.(isset($_POST["admin"])&&$_POST["admin"]=="true"?"true":"false").'\',
+							vname = \''.mysql_real_escape_string($vname).'\',
+							name = \''.mysql_real_escape_string($lname).'\',
+							abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+							funktion = \''.mysql_real_escape_string($_POST['funktion']).'\',
+							tel = \''.mysql_real_escape_string($_POST['tel1']).'\',
+							fax = \''.mysql_real_escape_string($_POST['fax1']).'\',
+							email = \''.mysql_real_escape_string($_POST['email2']).'\',
+							host = \''.mysql_real_escape_string($host).'\',
+							ip = \''.mysql_real_escape_string($ip).'\',
+							modify = NOW(),
+							anredeabt = \''.mysql_real_escape_string($_POST['anredeabt']).'\',
+							abtname = \''.mysql_real_escape_string($_POST['abtname']).'\',
+							abttelefon = \''.mysql_real_escape_string($_POST['abttelefon']).'\',
+							abtemail = \''.mysql_real_escape_string($_POST['abtemail']).'\',
+							callcenter = \'false\'
+						WHERE id = '.intval($_POST['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+
+	if (!empty($vname) && !empty($lname)) {
+		
+		$sqlBearbeiter = 'SELECT * FROM '.$database_db.'.bearbeiter WHERE id = '.intval($_POST['id']).'';
+		$resultBearbeiter = $hDB->query($sqlBearbeiter, $praktdbslave);
+		Praktika_Log::firmenlog((int)$_SESSION['s_firmenid'], 2, "Bearbeiter ".intval($_POST['id'])." bearbeitet", @mysql_fetch_assoc($resultBearbeiter));
+		
+		// datensatz einfuegen
+		$hDB->query($updatestring2,$praktdbmaster);
+
+		if ($_POST['id'] == $_SESSION['s_loginid']) {
+			$_SESSION['s_vname'] = $vname;
+			$_SESSION['s_name'] = $lname;
+		}
+
+		/* Logfile eintragen */
+		$fp = fopen( $logfile, "a" );
+		fputs( $fp, $updatestring2);
+		fputs( $fp, "\n");
+		fclose( $fp);
+
+		/* infomail zusammenbauen */
+		$subject = "praktika.de Bearbeiter-&Auml;nderung: ".$vname." ".$lname." - ID: ".$id;
+		$mailstring = "BEARBEITERDATENBANK - &Auml;NDERUNG\n\n";
+		$mailstring = $mailstring."ID: ".$id."\n\n";
+		$mailstring = $mailstring."Bearbeiter: ".$_POST['anrede']." ".$vname." ".$lname."\n";
+		$mailstring = $mailstring."Abteilung: ".$_POST['abteilung']."\n";
+		$mailstring = $mailstring."Funktion: ".$_POST['funktion']."\n";
+		$mailstring = $mailstring."Durchwahl: ".$_POST['tel1']."\n";
+		$mailstring = $mailstring."PersonalFax: ".$_POST['fax1']."\n";
+		$mailstring = $mailstring."PersonalMail: ".$_POST['email2']."\n";
+		$mailstring = $mailstring."Abteilungsleiter: ".$_POST['anredeabt']." ".$_POST['abtname']."\n";
+		$mailstring = $mailstring."Abteilungsleiter Telefon: ".$_POST['abttelefon']."\n";
+		$mailstring = $mailstring."Abteilungsleiter eMail: ".$_POST['abtemail']."\n";
+		$mailstring = $mailstring."Host: ".$host."\n";
+		$mailstring = $mailstring."IP: ".$ip."\n";
+		$mailstring = $mailstring."\n\nDATENBANKSTRING:\n";
+		$mailstring = $mailstring.$updatestring2."\n";
+
+		/* infomail verschicken */
+		mail($infomail, $subject, $mailstring, "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+	}
+	
+	echo '<p class="hint success">Die Bearbeiterdaten wurden erfolgreich gespeichert!</p>'."\n";	
+}
+
+// pageheader(array('page_title' => 'Bearbeiter &auml;ndern'));
+// var_dump($language);
+echo '<form action="/recruiting/?m=bearbeiter/editBearbeiter" method="post">'."\n";
+
+mysql_select_db ($database_db,$praktdbmaster);
+
+$bearbeitersel = mysql_query('SELECT * FROM bearbeiter WHERE id = '.$id, $praktdbmaster);
+$bearbeiterDaten = mysql_fetch_assoc($bearbeitersel);
+	
+$einruecken = '&nbsp;';
+
+/* pers&ouml;nliche Firmendaten des Bearbeiters*/
+echo '	<h4>Bearbeiterdaten</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="titel">Titel:</label>'."\n";
+echo '			<input id="titel" name="titel" maxlength="50" value="'.$bearbeiterDaten["titel"].'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="anrede">Anrede:</label>'."\n";
+echo '			<select id="anrede" name="anrede">'."\n";
+echo '				<option value="Herr"'.($bearbeiterDaten["anrede"] == 'Herr' ?  'selected="selected"' : '').'>Herr</option>'."\n";
+echo '				<option value="Frau"'.($bearbeiterDaten["anrede"] == 'Frau' ?  'selected="selected"' : '').'>Frau</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="vname"'.((isset($_POST['save']) && empty($bearbeiterDaten["vname"])) ? ' class="error"' : '').'>Vorname:</label>'."\n";
+echo '			<input id="vname" name="vname" maxlength="50" value="'.($bearbeiterDaten["vname"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="lname"'.((isset($_POST['save']) && empty($bearbeiterDaten["name"])) ? ' class="error"' : '').'>Nachname:</label>'."\n";
+echo '			<input id="lname" name="lname" maxlength="50" value="'.($bearbeiterDaten["name"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abteilung"'.((isset($_POST['save']) && empty($bearbeiterDaten["abteilung"])) ? ' class="error"' : '').'>Abteilung:</label>'."\n";
+echo '			<input id="abteilung" name="abteilung" maxlength="50" value="'.($bearbeiterDaten["abteilung"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="funktion"'.((isset($_POST['save']) && empty($bearbeiterDaten["funktion"])) ? ' class="error"' : '').'>Funktion:</label>'."\n";
+echo '			<input id="funktion" name="funktion" maxlength="50" value="'.($bearbeiterDaten["funktion"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel1"'.((isset($_POST['save']) && empty($bearbeiterDaten["tel"])) ? ' class="error"' : '').'>Telefon:</label>'."\n";
+echo '			<input id="tel1" name="tel1" maxlength="50" value="'.htmlspecialchars($bearbeiterDaten["tel"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="fax1"'.((isset($_POST['save']) && empty($bearbeiterDaten["fax"])) ? ' class="error"' : '').'>Fax:</label>'."\n";
+echo '			<input id="fax1" name="fax1" maxlength="50" value="'.htmlspecialchars($bearbeiterDaten["fax"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email2"'.((isset($_POST['save']) && (empty($bearbeiterDaten["email"]) || empty($validtext[0]))) ? ' class="error"' : '').'>pers&ouml;nliche eMail:</label>'."\n";
+echo '			<input id="email2" name="email2" maxlength="100" value="'.htmlspecialchars($bearbeiterDaten["email"]).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="admin">Ist Administrator?:</label>'."\n";
+echo '			<input id="admin" name="admin" value="true" '.($bearbeiterDaten["admin"]=="true"?"checked='checked'":"").' type="checkbox" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<h4>Newsletter</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="titel">Newsletter aktivieren:</label>'."\n";
+echo '			<input id="check" name="no_newsletter" value="false" '.($bearbeiterDaten["no_newsletter"]=="false"?"checked='checked'":"").' type="checkbox" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<h4>Abteilungsleitung, Vorgesetzte</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>Wir bitten Sie, auch die Kontaktdaten der Abteilungsleitung des zust&auml;ndigen Personalwesens einzutragen. Sollte einmal ein Ansprechpartner bzw. Personalmitarbeiter das Unternehmen verlassen, so k&ouml;nnen wir Bewerbungen und Anfragen ohne Zeitverluste an die richtige Abteilung weiterleiten. Bitte helfen Sie mit, dass Bewerbungen schnell bearbeitet werden k&ouml;nnen.</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="anredeabt">Anrede:</label>'."\n";
+echo '			<select id="anredeabt" name="anredeabt">'."\n";
+echo '				<option value="Herr"'.($bearbeiterDaten["anredeabt"] == 'Herr' ?  'selected="selected"' : '').'>Herr</option>'."\n";
+echo '				<option value="Frau"'.($bearbeiterDaten["anredeabt"] == 'Frau' ?  'selected="selected"' : '').'>Frau</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abtname">Name:</label>'."\n";
+echo '			<input id="abtname" name="abtname" value="'.($bearbeiterDaten["abtname"]).'" maxlength="100" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abttelefon">Telefon:</label>'."\n";
+echo '			<input id="abttelefon" name="abttelefon" value="'.$bearbeiterDaten["abttelefon"].'" maxlength="50" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abtemail">eMail:</label>'."\n";
+echo '			<input id="abtemail" name="abtemail" value="'.$bearbeiterDaten["abtemail"].'" maxlength="100" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p class="center">'."\n";
+echo '			<a href="#" class="button small alternative" onclick="loadContent(\'bearbeiter/index\'); return false;">ZUR&Uuml;CK</a>'."\n";
+echo '			<input type="submit" class="button red small" name="save" value="SPEICHERN" />'."\n";
+echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";

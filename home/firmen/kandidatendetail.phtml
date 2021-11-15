@@ -1,0 +1,364 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+$_SESSION['kdetail_refer'] = true;
+$_SESSION['kdetail_refer_id'] = intval($_GET['id']);
+
+pageheader(array('page_title' => '&Uuml;bersicht Kandidatengesuche'));
+
+if (isset($_GET['id'])) {
+	$id = intval($_GET['id']);
+}
+
+// datensatz abfragen //
+$querystring = mysql_db_query($database_db,'SELECT * FROM nutzer,firmenbookmark WHERE nutzer.id = '.$id.' AND nutzer.inactive = \'false\' AND firmenbookmark.nutzerid = nutzer.id AND firmenbookmark.firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+if (mysql_num_rows($querystring) > 0) {
+	// array erzeugen //
+	$eintrag = mysql_fetch_array($querystring);
+	
+	echo '<table>'."\n";
+	echo '	<colgroup>'."\n";
+	echo '		<col width="50%" />'."\n";
+	echo '		<col width="50%" />'."\n";
+	echo '	</colgroup>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">Pers&ouml;nliche Daten des Kandidaten</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Name:</td>'."\n";
+	echo '		<td>'.$eintrag['anrede'].' '.$eintrag['vname'].' '.$eintrag['name'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Anschrift:</td>'."\n";
+	echo '		<td>'.$eintrag['strasse'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>&nbsp;</td>'."\n";
+	echo '		<td>'.$eintrag['plz'].' '.$eintrag['ort'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	
+	$landid = $eintrag['land'];
+	$land = mysql_db_query($database_db,'SELECT german FROM land WHERE id = '.$landid,$praktdbslave);
+	
+	$bundeslandid = $eintrag['bundesland'];
+	if ($bundeslandid > 0) {
+		$bland = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+		$bundeslandText = mysql_result($bland,0,$_SESSION['s_sprache']);
+	}
+
+	if ($eintrag['grossraum'] > 0 && $eintrag['grossraum'] != 94) {
+		$grossraumid = $eintrag['grossraum'];
+		$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+		$grossraumText = mysql_result($grossraum,0,'grossraum'); 
+	}
+	
+	echo '	<tr>'."\n";
+	echo '		<td>Gebiet:</td>'."\n";
+	echo '		<td>'.mysql_result($land,0,'german').(isset($bundeslandText) ? ', '.$bundeslandText : '').(isset($grossraumText) ? ', '.$grossraumText : '').'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+	
+	// abfrage ausfuehren  //
+	$results1 = mysql_db_query($database_db,'SELECT * FROM praktikanten WHERE nutzerid = '.$id.' AND inactive = \'false\' ORDER BY modify DESC',$praktdbslave);
+	$results2 = mysql_db_query($database_db,'SELECT * FROM diplomgesuch WHERE nutzerid = '.$id.' AND inactive = \'false\' ORDER BY modify DESC',$praktdbslave);
+	$results3 = mysql_db_query($database_db,'SELECT * FROM nebenjobgesuch WHERE nutzerid = '.$id.' AND inactive = \'false\' ORDER BY modify DESC',$praktdbslave);
+	$results4 = mysql_db_query($database_db,'SELECT * FROM ausbildungsgesuch WHERE nutzerid = '.$id.' AND inactive = \'false\' ORDER BY modify DESC',$praktdbslave);
+	$results5 = mysql_db_query($database_db,'SELECT * FROM berufseinstieggesuch WHERE nutzerid = '.$id.' AND inactive = \'false\' ORDER BY modify DESC',$praktdbslave);
+
+	// Praktikum
+	if (mysql_num_rows($results1) > 0) {
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">Praktikumsgesuche des Kandidaten</th>'."\n";
+		echo '	</tr>'."\n";
+		
+		$i = 0;
+		while ($result_row = mysql_fetch_array($results1)) {
+			$result_row['zeitraum_von'] = strtotime($result_row['zeitraum_von']);
+			$result_row['zeitraum_bis'] = strtotime($result_row['zeitraum_bis']);
+			
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2">'.($i+1).'. '.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>T&auml;tigkeit:</td>'."\n";
+			echo '		<td>'.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+
+			$studiengangid = $result_row['studiengang'];
+			
+			if ($studiengangid > 0) {
+				$studiengangsel = mysql_db_query($database_db,'SELECT studiengang FROM studiengaenge WHERE id = '.$studiengangid,$praktdbslave);
+
+				echo '	<tr>'."\n";
+				echo '		<td>Studiengang:</td>'."\n";
+				echo '		<td>'.mysql_result($studiengangsel,0,'studiengang').'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			echo '	<tr>'."\n";
+			
+			if (empty($result_row['zeitraum'])) {
+				if ($result_row['zeitraum_von'] == 0 || $result_row['zeitraum_bis'] == 0) {
+					echo '		<td colspan="2">keine genauen Angaben hinterlegt</td>'."\n";
+				} else {
+					if ($result_row['zeitraum_bis'] > strtotime('now')) {
+						echo '		<td colspan="2">'.strftime('%x',$result_row['zeitraum_von']).' - '.strftime('%x',$result_row['zeitraum_bis']).'</td>'."\n";
+					} else {
+						echo '		<td colspan="2">keine genauen Angaben hinterlegt</td>'."\n";
+					}
+				}
+			} else {
+				if ($result_row['zeitraum_von'] == 0 || $result_row['zeitraum_bis'] == 0) {
+					echo '		<td colspan="2">'.$result_row['zeitraum'].'</td>'."\n";
+				} else {
+					if ($result_row['zeitraum_bis'] > strtotime('now')) {
+						echo '		<td colspan="2">'.strftime('%x',$result_row['zeitraum_von']).' - '.strftime('%x',$result_row['zeitraum_bis']).'<br />'."\n";
+					}
+					
+					echo $result_row['zeitraum'].'</td>'."\n";
+				}
+			}
+
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><a href="/recruiting/gesuch_details/'.$result_row['id'].'/'.$id.'/1/">Details zu diesem Kandidatengesuch</a></td>'."\n";
+			echo '	</tr>'."\n";
+
+			$i++;
+		}
+
+		echo '</table>'."\n";
+	}
+
+	// Diplom
+	if (mysql_num_rows($results2) > 0) {
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">Bachelor-/Mastergesuche des Kandidaten</th>'."\n";
+		echo '	</tr>'."\n";
+		
+		$i = 0;
+		while ($result_row = mysql_fetch_array($results2)) {
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2">'.($i+1).'. '.$result_row['titel'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>Diplomtitel:</td>'."\n";
+			echo '		<td>'.$result_row['titel'].'</td>'."\n";
+			echo '	</tr>'."\n";
+
+			$studiengangid = $result_row['studiengang'];
+			
+			if ($studiengangid > 0) {
+				$studiengangsel = mysql_db_query($database_db,'SELECT studiengang FROM studiengaenge WHERE id = '.$studiengangid,$praktdbslave);
+
+				echo '	<tr>'."\n";
+				echo '		<td>Studiengang:</td>'."\n";
+				echo '		<td>'.mysql_result($studiengangsel,0,'studiengang').'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			echo '	<tr>'."\n";
+			echo '		<td>Zeitraum:</td>'."\n";
+
+			if (!empty($result_row['zeitraum'])) {
+				echo '		<td>'.$result_row['zeitraum'].'</td>'."\n";
+			}
+			
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><a href="/recruiting/gesuch_details/'.$result_row['id'].'/'.$id.'/2/">Details zu diesem Kandidatengesuch</a></td>'."\n";
+			echo '	</tr>'."\n";
+
+			$i++;
+		}
+
+		echo '</table>'."\n";
+	}
+	
+	// Nebenjobs
+	if (mysql_num_rows($results3) > 0) {
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">Nebenjobgesuche des Kandidaten</th>'."\n";
+		echo '	</tr>'."\n";
+		
+		$i = 0;
+		while ($result_row = mysql_fetch_array($results3)) {
+			$result_row['zeitraum_von'] = strtotime($result_row['zeitraum_von']);
+			$result_row['zeitraum_bis'] = strtotime($result_row['zeitraum_bis']);
+			
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2">'.($i+1).'. '.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>T&auml;tigkeit:</td>'."\n";
+			echo '		<td>'.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>Arbeitsraum:</td>'."\n";
+			echo '		<td>'.$result_row['arbeitsort'].'</td>'."\n";
+			echo '	</tr>'."\n";
+
+			echo '	<tr>'."\n";
+			
+			if (empty($result_row['zeitraum'])) {
+				if ($result_row['zeitraum_von'] == 0 || $result_row['zeitraum_bis'] == 0) {
+					echo '		<td colspan="2">keine genauen Angaben hinterlegt</td>'."\n";
+				} else {
+					if ($result_row['zeitraum_bis'] > strtotime('now')) {
+						echo '		<td colspan="2">'.strftime('%x',$result_row['zeitraum_von']).' - '.strftime('%x',$result_row['zeitraum_bis']).'</td>'."\n";
+					} else {
+						echo '		<td colspan="2">keine genauen Angaben hinterlegt</td>'."\n";
+					}
+				}
+			} else {
+				if ($result_row['zeitraum_von'] == 0 || $result_row['zeitraum_bis'] == 0) {
+					echo '		<td colspan="2">'.$result_row['zeitraum'].'</td>'."\n";
+				} else {
+					if ($result_row['zeitraum_bis'] > strtotime('now')) {
+						echo '		<td colspan="2">'.strftime('%x',$result_row['zeitraum_von']).' - '.strftime('%x',$result_row['zeitraum_bis']).'<br />'."\n";
+					}
+					
+					echo $result_row['zeitraum'].'</td>'."\n";
+				}
+			}
+
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><a href="/recruiting/gesuch_details/'.$result_row['id'].'/'.$id.'/3/">Details zu diesem Kandidatengesuch</a></td>'."\n";
+			echo '	</tr>'."\n";
+
+			$i++;
+		}
+
+		echo '</table>'."\n";
+	}
+	
+	// Ausbildung
+	if (mysql_num_rows($results4) > 0) {
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">Ausbildungsgesuche des Kandidaten</th>'."\n";
+		echo '	</tr>'."\n";
+		
+		$i = 0;
+		while ($result_row = mysql_fetch_array($results4)) {
+			$result_row['zeitraum_von'] = strtotime($result_row['zeitraum_von']);
+			
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2">'.($i+1).'. '.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>T&auml;tigkeit:</td>'."\n";
+			echo '		<td>'.$result_row['taetigkeit'].'</td>'."\n";
+			echo '	</tr>'."\n";
+
+			if ($result_row['lehre'] > 0 ) {
+				$lehreid = $result_row['lehre'];
+				$lehreidsel = mysql_db_query($database_db,'SELECT berufswahl FROM berufswahl_mann WHERE id = '.$lehreid,$praktdbslave);
+
+				echo '	<tr>'."\n";
+				echo '		<td>Berufabschluss als:</td>'."\n";
+				echo '		<td>'.mysql_result($lehreidsel,0,'berufswahl').'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			echo '	<tr>'."\n";
+			echo '		<td>gesucht seit:</td>'."\n";
+
+			if ($result_row['zeitraum_von']  > 0) {
+				echo '		<td>'.strftime('%x',$result_row['zeitraum_von']).'</td>'."\n";
+			}
+			
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><a href="/recruiting/gesuch_details/'.$result_row['id'].'/'.$id.'/4/">Details zu diesem Kandidatengesuch</a></td>'."\n";
+			echo '	</tr>'."\n";
+
+			$i++;
+		}
+
+		echo '</table>'."\n";
+	}
+
+	// Berufseinstieg
+	if (mysql_num_rows($results5) > 0) {
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '		<col width="50%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">Arbeitsplatzgesuche des Kandidaten</th>'."\n";
+		echo '	</tr>'."\n";
+		
+		$i = 0;
+		while ($result_row = mysql_fetch_array($results5)) {
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2">'.($i+1).'. '.$result_row['bezeichnung'].'</td>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td>T&auml;tigkeit:</td>'."\n";
+			echo '		<td>'.$result_row['bezeichnung'].'</td>'."\n";
+			echo '	</tr>'."\n";
+
+			if ($result_row['lehre'] > 0 ) {
+				$lehreid = $result_row['lehre'];
+				$lehreidsel = mysql_db_query($database_db,'SELECT berufswahl FROM berufswahl_mann WHERE id = '.$lehreid,$praktdbslave);
+
+				echo '	<tr>'."\n";
+				echo '		<td>Berufabschluss als:</td>'."\n";
+				echo '		<td>'.mysql_result($lehreidsel,0,'berufswahl').'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			echo '	<tr>'."\n";
+			echo '		<td>gesucht seit:</td>'."\n";
+
+			if (!empty($result_row['monat'])) {
+				echo '		<td>'.$result_row['monat'].' / '.$result_row['jahr'].'</td>'."\n";
+			}
+			
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><a href="/recruiting/gesuch_details/'.$result_row['id'].'/'.$id.'/5/">Details zu diesem Kandidatengesuch</a></td>'."\n";
+			echo '	</tr>'."\n";
+
+			$i++;
+		}
+
+		echo '</table>'."\n";
+	}	
+} else { 
+	echo '<p class="error">Der Kandidat befindet sich nicht auf Ihrem Merkzettel! Nutzen Sie bitte unsere <a href="/home/firmen/einblick.phtml">Kandidatensuche</a> f&uuml;r interessante Bewerber!</p>'."\n";
+}
+
+bodyoff();
+?>

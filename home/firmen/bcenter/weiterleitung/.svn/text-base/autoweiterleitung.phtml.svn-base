@@ -1,0 +1,99 @@
+<?
+ $gruppe = "firmen";
+ $restricted="yes";
+ require("/home/praktika/etc/config.inc.php"); 
+
+pageheader(session_id(), session_name()); ?>
+<script language="JavaScript">
+<!--
+	window.focus();
+//-->
+</script>
+      <table width="90%">
+        <tr> 
+          <td>
+<? if ($SEND == "YES") { 
+
+
+
+} 
+
+// Ausgabe des Frontends
+?>
+<h1 class="layout1">Automatische Weiterleitung von Bewerbungen</h1>
+            <form action="autoweiterleitung.phtml" method="POST">
+	      <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+	      <input type="hidden" name="<? echo "id"; ?>" value="<? echo $id; ?>">
+              <table border="0" cellspacing="2" cellpadding="2">
+<?
+if (!$inactive) $inactive="true";
+echo "<tr valign=\"baseline\"><td><nobr>Status der Weiterleitung:</nobr></td> <td width=\"90%\"><select name=\"inactive\">\n";
+echo "<option value=\"false\"";
+if ($inactive == "false") echo " selected";
+echo " style=color:\"darkgreen\">AKTIVIERT</option>\n";
+echo "<option value=\"true\"";
+if ($inactive == "true") echo " selected";
+echo " style=color:\"red\">DEAKTIVIERT</option>\n";
+echo "</select></td></tr>\n";
+?>
+<tr><td><br></td></TR>
+
+<tr><td colspan="2">
+	<table cellspacing="0" cellpadding="0">
+	<tr><td valign="top"><input type="radio" name="auswahl" value="stelle" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>);"></nobor></td><td valign="top">&nbsp;I.&nbsp;</td><td class="toppraktika" colspan="2"> Der Empf&auml;nger, der in der Stellenauschreibung benannt wurde, nimmt die Bewerbung per eMail entgegen.</td></tr>
+	</table>
+</td></tr>
+<tr><td><br></td></TR>
+
+
+<tr><td colspan="2">
+	<table cellspacing="0" cellpadding="0">
+	<tr valign="top"><td><input type="radio" name="auswahl" value="bearbeiter" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>);"></td><td valign="middle">&nbsp;II.&nbsp;</td><td valign="middle" class="toppraktika" colspan="2">Den Empf&auml;nger aus der unten stehenden Liste ausw&auml;hlen:</td></tr>
+	</table>
+</td></tr>
+
+<? if ($s_firmenlevel==0) $deaktiviert="disabled"; ?>
+              <tr valign="top"><td class="toppraktika"><nobr>Empf&auml;nger der Bewerbung:</nobr></td>
+                <td class="toppraktika">
+                    <select name="emailselect[]" multiple <? echo $deaktiviert; ?> style="width: 220px; font-size:11px">
+<? 
+$rs= mysql_db_query($database_db,"SELECT id,anrede,vname,name FROM bearbeiter WHERE firmenid = $s_firmenid AND inactive='false' order by name",$praktdbslave);
+$num=mysql_NumRows($rs);
+$i=0; while ($i<$num): 
+echo "<option value=\"" . mysql_result($rs,$i,"id") . "\">" . mysql_result($rs,$i,"anrede") . " " . mysql_result($rs,$i,"vname") . " " . mysql_result($rs,$i,"name") . "</option>\n";
+$i++; endwhile;
+?> 
+                    </select>
+                    <br>(Hinweis: mit gehaltener STRG Taste ist eine Mehrfachauswahl m&ouml;glich)<br>
+                    <br><INPUT TYPE=BUTTON VALUE=" neuer Bearbeiter " onClick="document.location.href='/home/firmen/mynewbearbeiter.phtml?<? echo "id=".$id."&".session_name()."=".session_id()?>'" style="width: 100px; font-size:11px">
+                </td> 
+              </tr>
+
+
+<tr><td><br></td></TR>
+<tr><td colspan="2">
+	<table cellspacing="0" cellpadding="0">
+	<tr valign="top"><td><input type="radio" name="auswahl" value="emails" style="border-style: none; background-color: rgb(<? echo $praktikargb ?>);"></td><td valign="middle">&nbsp;III.&nbsp;</td><td valign="middle" class="toppraktika" colspan="2">einen anderen Empf&auml;nger angeben:</td></tr>
+	</table>
+</td></tr>
+              <tr valign="baseline"><td class="toppraktika"><nobr>Empf&auml;nger eMail:</nobr></td><td><input type="text" name="email" style="width: 220px; font-size:11px" value="<? echo $defaultmail; ?>" <? echo $deaktiviert; ?>></td></tr>
+
+
+              <tr valign="baseline">
+                <td align="middle"colspan="2"><br>
+<? if ($s_firmenlevel <1) { ?>
+		     <INPUT TYPE=BUTTON VALUE=" freischalten " onClick="document.location.href='/home/firmen/level.phtml?level=1&<? echo session_name()."=".session_id()?>'" style="width: 100px; font-size:12px">
+		     
+<? } else { ?>
+
+                    <input type="submit" name="Button" value="Speichern">
+<? } ?>
+		     <INPUT TYPE=BUTTON VALUE=" zur&uuml;ck " onClick="document.location.href='../?<? echo session_name()."=".session_id()?>'" style="width: 100px; font-size:12px">
+                    <input type="hidden" name="SEND" value="YES">
+                  </td>
+              </tr>
+            </table></form>
+            </td>
+              </tr>
+            </table>
+<? bodyoff(session_id(), session_name()); ?>

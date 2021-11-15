@@ -1,0 +1,28 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+//pageheader(array('page_image' => true));
+pageheader();
+
+?>
+
+<ul id="account" class="clearfix">
+	<li id="firmendaten"><a href="/firmen/daten/">Firmendaten</a></li>
+	<li id="profil_unternehmen"><a href="/firmen/profil/">Unternehmens-<br />profil</a></li>
+	<li id="bearbeiter"><a href="/firmen/bearbeiter/">Bearbeiter<br />verwalten</a></li>
+	<li id="stellen_verwalten"><a href="/firmen/angeboteliste/">Stellen<br />verwalten</a></li>
+	<li id="kandidaten_agent"><a href="/kandidatensuche/">Kandidaten<br />Agent</a></li>
+</ul>
+
+<?php
+
+bodyoff();
+?>

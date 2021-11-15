@@ -1,0 +1,185 @@
+<?php
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+pageheader( array('page_title' => 'Stelle freischalten') );
+
+$stellenid = intval($_GET['id']);
+$firmenid = (int)$_SESSION['s_firmenid'];
+$firmenlevel = intval($_SESSION['s_firmenlevel']);
+
+$stelle_rst = mysql_db_query($database_db, 'SELECT inactive,taetigkeit FROM stellen WHERE firmenid = '.$firmenid.' AND id = '.$stellenid, $praktdbslave);
+$stelle = mysql_fetch_array($stelle_rst);
+
+
+// Premium-Kunden werden immer durchgelassen
+if($firmenlevel < 3 && $stelle["inactive"] == "true") {
+	// Alle aktiven Stellen werden gezählt
+	$countStellen = mysql_db_query($database_db,'SELECT COUNT(*) as counter FROM stellen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND inactive = "false"', $praktdbmaster);
+
+	if (($countStellen != false) && (mysql_num_rows($countStellen) > 0)) {
+		$countStellen = mysql_fetch_array($countStellen);	
+		$countStellen = $countStellen["counter"];
+		
+		$hasto_firmenlevel = 0;
+		// Wenn mehr als oder 20 Stellen angelegt sind, wird Premium benötigt
+		if($countStellen >= 20) {
+			$hasto_firmenlevel = 3;				
+		// Wenn mehr als oder 3 Stellen angelegt sind, wird Komfort benötigt
+		} elseif($countStellen >= 3) {
+			$hasto_firmenlevel = 2;		
+		// Wenn mehr als oder 1 Stelle angelegt sind, wird Basis benötigt		
+		} else {
+			$hasto_firmenlevel = 1;					
+		// Es wurde noch keine
+		} 	
+		
+		// Wenn mein Firmenlevel nicht ausreicht um diese Stellen online zu schalten, dann -> Buchung
+		if($firmenlevel < $hasto_firmenlevel) {
+			$_SESSION["chosen_firmenlevel"] = $hasto_firmenlevel;
+			
+			header('Location: /firmen/stelle/buchung/');
+			exit();		
+		}
+	}
+	
+	if($_SESSION["chosen_firmenlevel"] > $firmenlevel) {
+		header('Location: /firmen/stelle/buchung/');
+		exit();
+	}	
+} 
+
+
+function ellipse($string, $length = 100) {
+	if (isset($string) && strlen($string) > $length) {
+		echo substr($string,0,$length-1).'...';
+	} elseif (isset($string)) {
+		echo $string;
+	}
+	
+}
+//header('Location: /firmen/angeboteliste/');
+//exit();
+?>
+<script type="text/javascript">
+var http_request = null;
+
+function changeInactive(value) {
+				
+	var poststr = 'newStatus=' + value + "&sID=" + <?=$stellenid ?>;
+	
+	var url = window.location.protocol+'//' + window.location.host + '/home/firmen/stelle/activate_change.php';
+	
+	makePOSTRequest(url, poststr);
+}
+
+// Ajax Funktion
+function makePOSTRequest(url, parameters) {
+	if(http_request != false && http_request != null) { alert("Der Vorgang läuft gerade!"); }
+	
+	http_request = false;
+	
+	if (window.XMLHttpRequest) { // Mozilla, Safari,...
+		http_request = new XMLHttpRequest();
+		if (http_request.overrideMimeType) {
+			// set type accordingly to anticipated content type
+			//http_request.overrideMimeType('text/xml');
+			http_request.overrideMimeType('text/html');
+		}
+	} else if (window.ActiveXObject) { // IE
+		try {
+			http_request = new ActiveXObject("Msxml2.XMLHTTP");
+		} catch (e) {
+			try {
+				http_request = new ActiveXObject("Microsoft.XMLHTTP");
+			} catch (e) { }
+		}
+	}
+	if (!http_request) {
+		alert('Cannot create XMLHTTP instance');
+		return false;
+	}
+	
+	// Ajax-Icon
+	document.getElementById("saveIcon").style.visibility='visible';
+	
+	http_request.open('POST', url, true);
+	http_request.onreadystatechange = ajaxResponse;
+	
+	
+	http_request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	http_request.setRequestHeader("Content-length", parameters.length);
+	http_request.setRequestHeader('Connection', 'close');
+	http_request.send(parameters);
+}
+
+// Wird als Antwort aufgerufen
+function ajaxResponse() {
+	
+	document.getElementById("saveIcon").style.visibility='hidden';
+	if (http_request.readyState == 4) {
+		if (http_request.status == 200) {
+			<? if($firmenlevel == 0) { ?>
+			if(http_request.responseText == "packet_upgrade") {
+				window.location.href = "/firmen/stelle/buchung/";
+			}
+			<? } else { ?>
+			if(http_request.responseText == "packet_upgrade") {
+				window.location.href = "/firmen/stelle/paket/";
+			}			
+			<? } ?>
+			if(http_request.responseText == "is_true") {
+				document.getElementById('desc_active').style.display='none';
+				document.getElementById('desc_inactive').style.display='';	
+			} else {
+				document.getElementById('desc_inactive').style.display='none';
+				document.getElementById('desc_active').style.display='';				
+			}
+			
+		} else {
+			alert('There was a problem with the request.');
+		}
+		http_request = false;
+	}
+}
+</script>
+<div id="stelleAktivieren">
+<h4><?=ellipse(htmlentities(strip_tags(stripslashes($stelle["taetigkeit"])))) ?></h4>
+
+	<div id="desc_inactive" style="<?=$stelle["inactive"]!="true"?"display:none;":"" ?>">
+		<div class="isInactive">
+		Die Stelle ist im Moment <b>NICHT</b> aktiv!
+		</div>		
+		<br />
+		Sie ist aktuell für Bewerber NICHT einsehbar.<br />
+		Bewerbungen auf diese Stelle können NICHT gesendet werden.
+		<br /><br />
+		<div style="text-align:center;">
+		<button type="submit" id="button_activate" name="B5" value="Stelle Aktivieren" onclick="changeInactive('false');" class="green"><span><span><span>STELLE AKTIVIEREN</span></span></span></button>
+		</div>
+	</div>
+	<div id="desc_active"style="<?=$stelle["inactive"]=="true"?"display:none;":"" ?>">
+		<div class="isActive">
+			Die Stelle ist im Moment aktiv!
+		</div>		
+		<br /><br />
+		Sie ist aktuell für Bewerber einsehbar.<br />
+		Es können Bewerbungen auf diese Stelle eingehen.
+		<br /><br />
+		<div style="text-align:center;">
+		<button type="submit" id="button_activate" name="" value="zur Stellen+bersicht" onclick="window.location.href='/firmen/angeboteliste/'" class="red"><span><span><span>Zur Stellenübersicht</span></span></span></button>
+		</div>		
+	</div>
+	<center><img id="saveIcon" style="visibility:hidden;" src="/styles/images/greybox/waitingflower.gif" alt="Arbeite" /></center>
+</div>
+
+<? bodyoff(); ?>

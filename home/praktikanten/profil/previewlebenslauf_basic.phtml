@@ -1,0 +1,56 @@
+<?php
+$sql = sprintf("SELECT
+                    nutzer.*,
+					nutzer.id AS nutzerid,
+                    CONCAT(nutzer.vname, ' ', nutzer.name) AS gesamtname,
+                    date_format(nutzer.geburtsdatum, '%%d') as tag, 
+                    date_format(nutzer.geburtsdatum, '%%m') as monat, 
+                    date_format(nutzer.geburtsdatum, '%%Y') as jahr, 
+                    DATE_FORMAT(nutzer.geburtsdatum, '%%d.%%m.%%Y') AS geburtsdatum,
+                    foto.url AS foto,
+                    foto.height,
+                    foto.width,
+                    land.%2\$s AS land,
+					video.pfad AS video_pfad
+                FROM
+                    ".$database_db.".nutzer AS nutzer
+                LEFT JOIN
+                    ".$database_db.".bewerbungsfoto AS foto
+                ON
+                    nutzer.id = foto.nutzerid
+                LEFT JOIN
+                    ".$database_db.".land AS land
+                ON 
+                    nutzer.land = land.id
+                LEFT JOIN
+                    ".$database_bprofil.".profil_video_new AS video
+                ON
+                    nutzer.id = video.nutzerid 
+                WHERE
+                    nutzer.id = %1\$d", $bewerberid, $sprachsel, (isset($_GET['sprache'])) ? intval($_GET['sprache'])
+ : $_SESSION['s_sprachcode']);
+
+$result = $hDB->query($sql, $praktdbslave);
+$record = mysql_fetch_assoc($result);
+
+if (!empty($record["foto"]) && empty($record["video_pfad"])) {
+		
+	if ($record["width"] > 0)
+	{
+		$photo = '<div id="photo_video" style="float: right;"><img src="'.Praktika_Passbild::getLink($record["nutzerid"], "150", $record["foto"]).'" alt="Bewerbungsfoto" /></div>'."\n";
+	}
+	
+} else {
+	
+	$photo = '';
+	
+}
+
+if(!empty($record["video_pfad"])) {
+	$photo = "<div style='text-align:right; float:right; height:250px;'>".stripslashes($record["video_pfad"])."</div>";
+}
+
+function convertText($value) {
+	return stripslashes(nl2br($value));
+}
+?>

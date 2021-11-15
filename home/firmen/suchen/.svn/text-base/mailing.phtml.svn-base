@@ -1,0 +1,120 @@
+<?
+ $gruppe = "unternehmen";
+ $restricted = "yes";
+ require("/home/praktika/etc/config.inc.php"); 
+
+//print_pr($s_ergebnisarry);
+
+if ($mailinsert && (count($s_ergebnisarry[mailing]) > 0 || count($s_ergebnisarry[warenkorb]) > 0)) {
+	$foreachstart = "yes";
+	if($s_ergebnisarry[warenkorb]) {$s_ergebnisarry[mailing]=$s_ergebnisarry[warenkorb]; unset($s_ergebnisarry[warenkorb]);} 
+		foreach ($s_ergebnisarry[mailing] as $key=>$value) {
+			if ($foreachstart == "yes") {$foreachstart = "no";} else {$mailnutzer.=",";}
+			$mailnutzer.=$key;
+		}
+	unset($s_ergebnisarry[mailing]);
+	$insertquery = "INSERT INTO ksmailing (firmenid,betreff,mailtext,mailnutzer,datum_eintrag) VALUES ($s_firmenid,'$betreff','$mailtext','$mailnutzer',NOW())";
+	mysql_db_query($database_comm,$insertquery,$praktdbmaster);
+	$mailingid = mysql_insert_id();
+}
+
+if ($SAVE) {
+	if ($mailingid)	{
+		if ($FINAL) { $finalvar=",final='true'";
+			/* infomail zusammenbauen */
+			$subject = "Firmen-Mailing-Final - FirmenID: " . $s_firmenid;
+			$mailstring .= "FIRMENMAILING - Kandidatensuche final\n\n";
+			$mailstring .= "Firmenid: " . $s_firmenid . "\n\n";
+			$mailstring .= "Mailings sind in der Commercedatenbank in Tabelle \"ksmailing\" gespeichert!\n\n";
+			$mailstring .= "Host: " . $host . "\n";
+			$mailstring .= "IP: " . $ip . "\n";
+
+			/* infomail verschicken */
+			mail($infomail, $subject, $mailstring,
+         			"From: $infomail\nX-Priority: 1\nX-MSMail-Priority: High\nX-Mailer: praktika.de Mailscript PHP");
+		}
+		$updatequery = "UPDATE ksmailing SET betreff='$betreff',mailtext='$mailtext' $finalvar WHERE firmenid=$s_firmenid AND id=$mailingid";
+		mysql_db_query($database_comm,$updatequery,$praktdbmaster);
+	}
+}
+
+pageheader(session_id(), session_name()); ?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Mailing vorbereiten</h1>
+<? 
+		$selectquery = "SELECT * FROM ksmailing WHERE firmenid=$s_firmenid";
+		$selectmailings = mysql_db_query($database_comm,$selectquery,$praktdbmaster);
+		$anzahl_mailing = mysql_num_rows($selectmailings);
+if ($anzahl_mailing > 0) {
+		$mailingcount = 1;
+		echo "Bitte w&auml;hlen Sie das zu bearbeitende Mailing aus: <select name=\"mailingid\" onChange=\"location.href='mailing.phtml?mailingid='+this.value+'&".session_name()."=".session_id()."';\">";
+		while ($result_mailing = mysql_fetch_array ( $selectmailings, MYSQL_ASSOC )) {
+			if (!$mailingid) $mailingid=$result_mailing["id"];
+			$mailingarray[$result_mailing["id"]] = $result_mailing;
+			echo "<option value=\"".$result_mailing["id"]."\"";
+			if ($result_mailing["final"] == "true") echo " style=\"color: rgb(255,0,0)\"";
+			if ($result_mailing["id"] == $mailingid) echo " selected";
+			echo ">Mailing ".$mailingcount." (".count(explode(",",$result_mailing["mailnutzer"]))." Kandidaten)</option>";
+			$mailingcount++;
+		}
+		echo "</select>";
+
+	
+} 
+
+if ($mailinsert && count($s_ergebnisarry[warenkorb]) > 0) {?>
+<p>Sie haben <b><? echo count($s_ergebnisarry[warenkorb]); ?> Kandidaten</b> f&uuml;r das Mailing ausgew&auml;hlt.</p>
+<? 
+}
+
+if ($anzahl_mailing == 0) {
+
+echo "Sie haben bisher noch kein Mailing vorbereitet. Um Kandidaten f&uuml;r ein Mailing zu suchen, <a href=\"../einblick.phtml?".session_name()."=".session_id()."\">klicken Sie bitte hier</a>.";
+} else {
+
+if ($FINAL) echo "<br><br><font color=\"red\">Vielen Dank, das Mailing wird kurzfristig versendet!</font><br><br>";
+?>
+
+<p>Nachfolgend haben Sie die M&ouml;glichkeit, den Betreff und den Text des Mailings 
+  zu hinterlegen. Diese Informationen k&ouml;nnen Sie weiter verbessern und auch 
+  nachtr&auml;glich &auml;ndern.</p>
+<form name="form1" method="post" action="mailing.phtml">
+  Betreff des Mailings:<br>
+  <input type="text" name="betreff" size="60" style="width: 450px;" value="<? if($mailingarray[$mailingid]["betreff"]) {echo $mailingarray[$mailingid]["betreff"];} else {echo "Bitte hier den Betreff des Mailings eintragen";} echo "\""; if($mailingarray[$mailingid]["final"] == "true") echo " disabled"; ?>>
+  <br>
+  <br>
+  Nachricht des Mailings:<br>
+  <textarea name="mailtext" rows="15" cols="60" style="width: 450px;"<? if($mailingarray[$mailingid]["final"] == "true") echo " disabled"; ?>><? if($mailingarray[$mailingid]["mailtext"]) {echo $mailingarray[$mailingid]["mailtext"];} else {echo "Hier bitte den Mailtext hinterlegen...";} ?></textarea>
+  <br>
+  <br>
+  <table width="100%" border="0">
+    <tr>
+      <td>
+        <? if ($mailingarray[$mailingid]["final"] != "true") echo "<input type=\"submit\" name=\"Abschicken\" value=\"Speichern\">\n"; ?>
+      </td>
+      <td align="right">
+        <input type="button" value="zum RecruitingCenter" onClick="location.replace('../bcenter/?<? echo session_name()."=".session_id(); ?>');">
+      </td>
+    </tr>
+<? if ($mailingarray[$mailingid]["final"] != "true") { ?>
+    <tr>
+      <td colspan="2"><hr>Sie k&ouml;nnen nun das Mailing endg&uuml;ltig senden. Eine weitere &Auml;nderung der Texte ist danach nicht mehr m&ouml;glich.<br><br>
+        <input type="submit" name="FINAL" value="Mailing senden">
+      </td>
+    </tr><? } ?>
+  </table>
+        <? if ($mailingid) echo "<input type=\"hidden\" name=\"mailingid\" value=\"".$mailingid."\">\n"; ?>
+        <input type="hidden" name="SAVE" value="YES">
+        <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+</form>
+
+<? } 
+echo "<br><br><br><p>&nbsp;</p>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+?>
+	  </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

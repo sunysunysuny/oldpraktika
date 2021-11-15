@@ -1,0 +1,24 @@
+<?
+ $gruppe = "unternehmen";
+ $restricted = "yes";
+ require("/home/praktika/etc/config.inc.php"); 
+
+//print_pr($s_ergebnisarry);
+
+$insertcount = 0;
+foreach ($s_firmenproparray["kandidatensuche"]["warenkorb"] as $nutzerid => $suchart) {
+mysql_db_query($database_db,"INSERT INTO firmenbookmark SET firmenid=$s_firmenid,nutzerid=$nutzerid,art=3,datum_eintrag=now()",$praktdbmaster);
+$insertcount++;
+}
+
+$s_ergebnisarry["mailing"] = $s_firmenproparray["kandidatensuche"]["warenkorb"];
+unset ($s_firmenproparray["kandidatensuche"]["warenkorb"]);
+
+if ($s_firmenlevel < 2 || $s_firmenlevel > 2) { 
+$updatestring = "UPDATE firmen_prop_assign SET gesuchedb=gesuchedb-$insertcount WHERE firmenid=$s_firmenid";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+}
+
+header("Location: /home/firmen/bcenter/?bereich=4&".session_name()."=".session_id()."#anker");
+
+?>

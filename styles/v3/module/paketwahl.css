@@ -1,0 +1,254 @@
+/* Paketwahl - Begin */
+
+div#main div#content div#header_image {
+	background: url(/cms/uploads/media/final-produkte_01.jpg) no-repeat;
+	height: 225px;
+}
+#content table#paketwahl {
+	border-top-width: 0;
+	margin-top: -3px;
+	width: 857px;
+}
+#content table#paketwahl tr.even2,
+#content table#zusatzprodukte tr.even2,
+#content table#zusatzprodukte_moreneu tr.even2,
+#content table#paketwahl tr.odd2,
+#content table#zusatzprodukte tr.odd2,
+#content table#zusatzprodukte_moreneu tr.odd2 {
+	background-color: #fff;
+	text-align:center;
+}
+#content table#paketwahl td {
+	padding: 5px 0 2px 0;
+	border-bottom: 1px dotted #bbb;
+	vertical-align: middle;
+}
+#content table#paketwahl td.leistung {
+	background-color: #f0f4f7;
+	text-align: left;
+	padding-left: 10px;
+}
+#content table#paketwahl td.free {
+	background-color: #fff;
+}
+#content table#paketwahl td.basis {
+	background-color: #faf7f0;
+}
+#content table#paketwahl td.komfort {
+	background-color: #f5f0e1;
+}
+#content table#paketwahl td.premium {
+	background-color: #f2e9ce;
+}
+#content table#paketwahl tr.price td.free,
+#content table#paketwahl tr.price td.basis,
+#content table#paketwahl tr.price td.komfort,
+#content table#paketwahl tr.price td.premium {
+	text-align: center;
+	color :#fff;
+	border-top: 1px solid #f27000;
+	font-weight: bold;
+	padding: 3px 0 7px 0;
+	font-size: 20px;
+	}
+#content table#paketwahl tr.price td.leistung {
+	background: url(/styles/images/wht_dot.gif) repeat-x top #eee;
+	border: 1px solid #ccc;
+	border-right-width: 0;
+	padding: 9px 0 0 10px;
+}
+#content table#paketwahl tr.price td.free {
+	background-color: #d2e7ef;
+	border-left: 1px solid #f27000;
+	color: #333;
+	font-size: 13px;
+	border-bottom: none;
+}
+#content table#paketwahl tr.price td.basis {
+	background-color: #ffa948;
+	border-bottom: none;
+}
+#content table#paketwahl tr.price td.komfort {
+	background-color: #f08000;
+	border-right: 1px solid #f27000;
+	border-bottom: none;
+}
+#content table#paketwahl tr.price td.premium {
+	background-color: #f27000;
+	font-size: 11px;
+	border-bottom: none;
+}
+#content table#paketwahl tr.price2 {
+	border-bottom: none;
+}
+#content table#paketwahl tr.price2 td.leistung {
+	background-color: #fff;
+	border: none;
+}
+#content table#paketwahl tr.price2 td.anmelden {
+	background: url(/gifs/stelle/arrows_bottom.png) center top no-repeat #f4f4f4;
+	border: 1px solid #f27000;
+	border-top-width: 0;
+	padding: 15px 0 15px 0;
+}
+#content table#paketwahl tr.price2 td.premium {
+	background: url(/gifs/stelle/arrows_bottom.png) center top no-repeat #f4f4f4;
+	border: 1px solid #f27000;
+	border-top-width: 0;
+	padding: 15px 0 15px 0;
+}
+#content table#paketwahl tr.price td.free,
+#content table#paketwahl tr.price2 td.free {
+	border: 1px solid #d2e7ef;
+	border-right-width: 0;
+}
+#content table#paketwahl tr.price td.basis,
+#content table#paketwahl tr.price2 td.basis {
+	border: 1px solid #ffa948;
+	border-right-width: 0;
+}
+#content table#paketwahl tr.price td.komfort,
+#content table#paketwahl tr.price2 td.komfort {
+	border: 1px solid #f08000;
+	border-right-width: 0;
+}
+#content table#paketwahl tr.price2 td.free {
+	padding: 15px 0 15px 0;
+}
+#content table#paketwahl tr.price2 td.basis {
+	padding: 15px 0 15px 0;
+}
+#content table#paketwahl tr.price2 td.komfort {
+	padding: 15px 0 15px 0;
+}
+#content table#paketwahl tr.price2 span.bereits {
+	font-size: 11px;
+	color: #aaaaaa;
+}
+div#main div#content table tr td.anmelden a.button,
+div#main div#content table tr td.basis a.button,
+div#main div#content table tr td.komfort a.button,
+div#main div#content table tr td.premium a.button {
+	display: block;
+	float: none;
+	margin: 10px auto;
+	width: 175px;
+}
+div#main div#content table tr td.basis a.button {
+	width: 85px;
+}
+div#main div#content table tr td.komfort a.button {
+	width: 85px;
+}
+div#main div#content table tr td.premium a.button {
+	width: 85px;
+}
+div#main div#content table tr.price2 td.premium {
+	vertical-align: top;
+}
+div#main div#content table tr td.anmelden span {
+	font-size: 11px;
+	color: #777;
+}
+
+/* Paketwahl - Begin */
+
+
+/* Zusatzprodukte - Begin */
+
+#content table#zusatzprodukte {
+	margin-top: 10px;
+	border: 1px solid #ddd;
+	width: 700px;
+}
+#content table#zusatzprodukte td {
+	border-bottom: 1px dotted #bbb;
+	vertical-align: middle;
+}
+#content table#zusatzprodukte td.leistung {
+	background-color: #f0f4f7;
+	text-align: left;
+	padding: 6px 0 8px 10px;
+}
+#content table#zusatzprodukte td.basis {
+	padding: 6px 0 8px 0;
+}
+
+/* Zusatzprodukte - End */
+
+
+/* Stellenbuchung - Begin */
+
+div#main div#content #laufzeit {
+	float: left;
+	background: #faf0bd;
+	width: 100%;
+	padding: 7px 20px 7px 10px;
+}
+div#main div#content #laufzeit span {
+	font-weight: bold;
+	float: left;
+	padding: 7px 32px 0 0;
+}
+div#main div#content #laufzeit label {
+	width: auto;
+	margin: 0;
+}
+div#main div#content #PackageBuchung {
+	background: transparent url(/styles/images/companies/produkt_buchung_bg.png) no-repeat;
+	margin: 15px auto;
+	text-align: center;
+	color: #fff;
+	width: 509px;
+	height: 175px;
+}
+div#main div#content #PackageBuchung p {
+	font-size: 20px;
+	font-weight: bold;
+	line-height: 40px;
+	padding-top: 30px;
+}
+div#main div#content p.zusatz span {
+	padding-left: 20px;
+	display: block;
+}
+div#main div#content p.monthBuchung {
+	margin-left: 20px;
+}
+div#main div#content p#gesamtPreis {
+	width: 100%;
+	text-align: center;
+	font-weight: bold;
+	font-size: 16px;
+	background: #faf0bd;
+	padding: 10px 0;
+	margin: 15px 0;
+}
+div#main div#content p#gesamtPreis span {
+	font-weight: bold;
+	font-size: 16px;
+	border-width: 0;
+	border-bottom-width: thick;
+	border-color: #000;
+	border-style: double;
+}
+div#main div#content p#gesamtPreisAboHint {
+	text-align:justify;
+	margin-bottom:15px;
+}
+
+/* Stellenbuchung - Begin */
+
+
+/* smallbox styles - Begin */
+
+.typo {
+	padding: 5px;
+}
+.typo h2 {
+	color: #9a0203;
+	font-weight: normal;
+	margin-bottom: 6px;
+}
+
+/* smallbox styles - End */

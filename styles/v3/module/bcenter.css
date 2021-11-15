@@ -1,0 +1,339 @@
+/* Recruiting Center [div#recruitingCenter] */
+div#recruitingCenter {
+	width:776px;
+	margin-top: 13px; 
+}
+div#recruitingCenter div {
+	margin: 0px;
+}
+div#recr_navi {
+	cursor:pointer;
+	width: auto;
+	height:40px;
+	font-weight: bold;
+	padding: 5px 0 0 0px;
+	line-height: 18px;
+	font-size: 0.85em;
+	display: block;
+	margin-bottom:0px !important;
+}
+
+div#recr_navi img {
+	margin-left:0px;
+}
+div#recr_navi .naviButton.active {
+	
+}
+div#recr_navi .naviButton {
+	float:left;
+	text-align:left;
+	padding:5px 0px;
+	vertical-align:middle;
+
+}
+div#recr_navi .naviButton img {
+	float:left;
+	margin-bottom:-10px;
+}
+
+div#recr_navi .naviButton:hover {
+	text-decoration:underline;
+}
+
+div#recr_navi .naviLabel {
+	text-align:left;
+	padding-top:5px;
+	margin-bottom:0 !important;
+	margin-right:25px;
+	color: #0060bf;
+	font-weight: bold;
+	margin-left:32px;
+}
+div#recruitingCenter .hinweis {
+	background-color:#faf0bd;
+	padding:10px;
+	color:#9a0104;
+	
+}
+
+div#recruitingCenter .hinweis .hinweis_text_achtung {
+	font-weight:bold;
+	color:#fe0100;
+}
+div#recruitingCenter .notiz_arrow {
+	margin-top:3px;
+	margin-bottom:0px;
+}
+div#recruitingCenter .directories {
+	float:left;
+	width:260px;
+	background-image:url(/gifs/bcenter/messaging/directory_bg.gif);
+	background-repeat:no-repeat;
+	background-position:top right;
+}
+
+div#recr_container .logoInfo th {
+	padding-left:10px;
+	padding-top:10px;
+}
+div#recr_container .logoInfo td {
+	background-color:#fff;
+	padding-top:10px;
+	border-top:1px dashed #ddd;
+}
+div#recr_container .logoInfo {
+	border:1px solid #ddd;
+}
+div#recr_container div#firmenlogo_upload{
+	border:1px dashed #ddd;
+	width:150px;
+	text-align:center;
+	margin: -1px auto;
+	padding: 25px;
+}
+
+div#recr_container {
+	margin-top:10px;
+}
+div#recr_container div.bearbeiter {
+	margin:auto;
+}
+div#recr_container div.bearbeiter table.informationen {
+    margin-left:15px;
+    margin-top:8px;
+}
+
+div#recr_container div.bearbeiter div.actionButtons {
+    margin-top:10px;
+}
+div#recr_container div.bearbeiter {
+    border-top:1px solid #777;
+    margin-top:10px;
+}
+
+div#recr_container #mailbox_container {
+	padding-left:10px;
+	margin-left:260px;
+}
+div#recr_container .activeNode {
+	font-weight:bold;
+}
+
+div#recr_container #bearbeiterfilter {
+	width:328px;
+}
+div#recr_container .div_bearbeiterfilter {
+	text-align:left;
+	margin-bottom:8px;
+}
+
+div#recr_container div#mailbox_container h4.folder_title {
+	margin: 0 0 15px 0;
+}
+
+div#recr_container .sortingContainer {
+	float:right;
+}
+div#recr_container .sortingContainer .sortIcon {
+	cursor:pointer;
+}
+
+/* BewerbungHeader */
+div#main div#content div#recr_container .bewerbungHeader a {
+    font-weight:bold;
+	font-size:14px;
+}
+div#main div#content div#recr_container .bewerbungHeader span.jobcode {
+    font-weight:bold;
+    font-size:11px;
+}
+div#recr_container .bewerbungHeader a,
+div#recr_container .bewerbungHeader span {
+    font-size:13px;
+}
+div#recr_container .bewerbungHeader {
+	font-weight:bold;
+	font-size:13px;
+	height:23px;
+	width:500px;
+	padding:15px 0px 0px 0px;
+	margin-top:25px;
+	clear:right;	
+	border-top:1px dashed #999;
+}
+p.bewerbungHeader .bewerberStatus{
+	float:right;
+	text-align:right;
+	font-weight:normal;
+}
+p.bewerbungHeader .bewerberBetreff {
+	margin-top:0px !Important;
+}
+
+/* BewerbungBody */
+table.bewerbungBody {
+    width:400px;
+    float:left;
+}
+table.bewerbungBody .bewerberInformation {
+	width:250px;
+}
+div.bewerberFoto  {
+	float:right;
+	width:80px;
+	border:1px solid #555;
+}
+
+/* Action Buttons */
+div#mailbox_container .actionButtons {
+	margin:0px !important;
+	padding:0px !important;
+	list-style-type: none !important;
+	
+	float:right;
+	width:100px;
+	font-size:10px;
+	line-height:20px;
+}
+.actionButtons .actionButton {
+	margin:0px !important;
+	padding:0px !important;
+	
+	line-height:25px !important;
+	vertical-align:middle;
+
+}
+div#main div#content .actionButtons .actionButton a {
+	line-height:25px !important;
+	font-size:11px;
+	vertical-align:middle;
+}
+.actionButtons .actionButton img {
+	margin-bottom:-8px;
+}
+
+/* BewerbungControl */
+div#recr_container .bewerbungControl {
+	padding: 0 0 0 0;
+	margin:0px !important;
+	width:480px;
+    clear:both;
+
+}
+div.bewerbungControl .statusButton {
+	background-image:url(/gifs/bcenter/empty.gif);
+	background-repeat:no-repeat;
+	font-size:10px;
+	float:left;
+	width:95px;
+	cursor:pointer;
+	display:block;
+	padding:2px 5px 2px 20px;
+	margin-top:5px !important;
+	padding-top:-7px !important;
+}
+
+div.bewerbungControl .statusButton.activeButton {
+	background-image:url(/gifs/bcenter/ok.gif);
+		cursor:default !important;
+}
+
+/* Rechnungen */
+table.rechnungen {
+	border-top: 0;
+	margin-bottom: 15px;
+}
+table.rechnungen thead tr {
+	border-top: 0 !important;
+}
+table.rechnungen thead tr th {
+	font-weight: bold !important;
+	background-color: #ffffff !important;
+}
+table.rechnungen tr {
+	border-top: 1px dashed #999999;
+}
+
+/* Ordner-Ansicht in Recruiting Center */
+    #content #usermenu_left {
+        float: left;
+        width: 40%;
+        margin-bottom:20px;
+        /* background: transparent url(/gifs/kcenter/verlauf.gif) right repeat-y; */
+        height: auto;
+    }
+    #content #usermenu_left h5 {
+        margin: 10px 0 0 10px;
+        padding-left: 30px;
+        line-height: 25px;
+        font-size: 1.2em;
+        color: #bbb;
+    }
+    #content #usermenu_left ul {
+        margin: -9px 0 0 20px;
+        padding: 0;
+        list-style: none;
+    }
+    #content #usermenu_left ul li {
+        line-height: 1.7em;
+        padding: 0.5em 0;
+        margin: 0;
+        /*word-wrap: no-break;*/
+    }
+    #content #usermenu_left ul li.first_node {
+        padding-left: 15px;
+        padding-top: 18px;
+    }
+    #content #usermenu_left ul li.last_node {
+        padding-left: 15px;
+    }
+    #content #usermenu_left ul li.middle_node {
+        padding-left: 15px;
+    }
+    #content #usermenu_left ul li a {
+        display: block;
+        height: 100%;
+        font-size: 11px;
+        color:#333;
+    }
+    #content #usermenu_left ul li a.opened {
+        padding-left: 30px;
+        font-weight: bold;
+        text-decoration: none !important;
+        color: #9a0203;
+    }
+    #content #usermenu_left ul li a.closed {
+        padding-left: 30px;
+    }
+    #content #usermenu_left ul li.first_node a.closed {
+        background-position: left center;
+    }
+    #content #usermenu_left ul.submenu {
+        margin: 0 0 0 12px;
+    }
+    #content #usermenu_left ul.submenu li.first_node {
+        margin-top: -7px;
+    }
+    #content #usermenu_left a.button {
+        float:none;
+    }
+/* Ordner-Ansicht in Recruiting Center ENDE */
+
+/* Ordner verwalten */
+    table.ordnerverwaltung tr.head td {
+        background-color:#f4f4f4;
+    }
+    table.ordnerverwaltung tr.dir td, table.ordnerverwaltung td.action {
+        line-height:32px;
+    }
+/* Ordner verwalten ENDE */
+
+/* Bewerbungsantwort */
+div.bewerbungsantwort label {
+    width:150px !important;
+}
+
+div#main div#content p.pageNumbers {
+	float:left;
+	width:50%;
+}

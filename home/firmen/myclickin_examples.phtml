@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+
+<style type="text/css">
+	.box {
+		border:1px solid #222222;
+		padding:10px;
+		margin:5px;
+		min-height:30px;
+	}
+	.box:hover {
+		border:1px solid #ccc;
+		background-image:url(/home/gifs/clickin/hover.jpg);
+		background-position:bottom right;
+		background-repeat:no-repeat;
+	}
+	.box:hover .button {
+		border:1px solid #aaa;
+	}
+	.preview {
+		
+	}
+	.button {
+		margin-top:3px;
+		margin-left:3px;
+		border: 1px solid #bbb;
+		background: #f8f8f8;		
+		
+		padding: 2px 2px 3px;
+		width:150px;
+		float:right;
+	}
+	
+</style>
+
+<script type="text/javascript" src="<?=$_SERVER['SERVER_PORT']==443?"https":"http" ?>://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/clickin.js"></script>
+<script type="text/javascript">
+clickin_data_buttons = Array({
+	"bg_image":"",
+	"mode":1,
+	"bg_color":"#ffffff",
+	"text":"Unsere Praktikumsstellen",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#333333",
+	"height":"16px",
+	"width":"160",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg1.jpg",
+	"mode":1,
+	"bg_color":"#000000",
+	"text":"Unsere Praktikumsstellen",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#cccccc",
+	"height":"30",
+	"width":"200",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg2.jpg",
+	"mode":1,
+	"bg_color":"#000000",
+	"text":"Unsere Praktikumsstellen",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#cccccc",
+	"height":"30",
+	"width":"200",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg3.jpg",
+	"mode":1,
+	"bg_color":"#000000",
+	"text":"Unsere Praktikumsstellen",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#cccccc",
+	"height":"30",
+	"width":"200",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg4.jpg",
+	"mode":1,
+	"bg_color":"#000000",
+	"text":"Unsere Praktikumsstellen",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"30",
+	"width":"200",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg5.png",
+	"mode":1,
+	"bg_color":"transparent",
+	"text":"&nbsp;",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"105",
+	"width":"118",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg6.png",
+	"mode":1,
+	"bg_color":"transparent",
+	"text":"&nbsp;",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"105",
+	"width":"118",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg7.png",
+	"mode":1,
+	"bg_color":"transparent",
+	"text":"&nbsp;",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"105",
+	"width":"118",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg8.png",
+	"mode":1,
+	"bg_color":"transparent",
+	"text":"&nbsp;",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"105",
+	"width":"118",	
+},{
+	"bg_image":"http://<?=$_SERVER['HTTP_HOST'] ?>/home/clickin/examples/bg9.jpeg",
+	"mode":1,
+	"bg_color":"transparent",
+	"text":"&nbsp;",
+	"fontName":"Arial",
+	"fontSize":"12px",
+	"fontColor":"#444444",
+	"height":"60",
+	"width":"200",	
+});
+
+
+function clone(obj){
+    if(obj == null || typeof(obj) != 'object')
+        return obj;
+
+    var temp = new obj.constructor(); // changed (twice)
+    for(var key in obj)
+        temp[key] = clone(obj[key]);
+
+    return temp;
+}
+
+function setContent(id) {
+	top.insertData(clone(clickin_data_buttons[id], "button"));
+}
+</script>
+</html>
+<body>
+
+<script type="text/javascript">
+for(a=0;a<clickin_data_buttons.length;a++) {
+	document.write('<div class="box"><input type="button" class="button" name="" onclick="setContent(' + a+ ');" value="Einbinden" /><div class="preview">');
+	clickin_data = clone(clickin_data_buttons[a]); 
+	clickin_data.f = 0;
+	document.write(getCode());
+	document.write('</div></div>');
+}
+</script>
+
+</body>
+</html>

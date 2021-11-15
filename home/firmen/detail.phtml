@@ -1,0 +1,340 @@
+<?php
+$sprachbasisdatei = "/home/firmen/detail.phtml";
+$sprachbasisdatei2 = "/absolventen/praktikanten/detail.phtml";
+
+require("/home/praktika/etc/gb_config.inc.php");
+require("/home/praktika/etc/kandidatensuche.inc.php");
+
+Praktika_Log::logOld();
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+// GET-Variablen
+$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$nutzerid = isset($_GET['nutzerid']) ? intval($_GET['nutzerid']) : 0;
+$spalte = isset($_GET['spalte']) ? intval($_GET['spalte']) : 0;
+
+if ($id == 0) {
+	header('Location: /kandidatensuche/');
+	break;
+}
+
+pageheader(array('page_title' => ''));
+
+// datensatz abfragen //
+$sql = sprintf("SELECT 
+					*
+				FROM 
+					nutzer
+				WHERE 
+					id = '%1\$d'
+				LIMIT 
+					1",
+				$nutzerid);
+//echo $sql."<hr/>";
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+
+// array erzeugen //
+$row = mysql_fetch_array($result);
+
+// alter berechnen
+$zeit = time();
+$geburtstag = strtotime($row['geburtsdatum']);
+$alterdiff = $zeit - $geburtstag;
+$diff = 31560000; // 365 Tage
+$alter = $alterdiff / $diff;
+
+// Statistikinfos speichern
+$aktdatum = date('YmdHis');
+
+if (isset($_SESSION['s_loginid'])) {
+	$sql = sprintf("INSERT INTO 
+						viewstatspraktikanten (stellenid, nutzerid, userid, spalte, modify) 
+					VALUES 
+						('%1\$d', '%2\$d', '%3\$s', '%4\$s', '%5\$s')",
+					$id,
+					$nutzerid,
+					$_SESSION['s_loginid'],
+					$spalte,
+					$aktdatum);
+	mysql_db_query($database_db, $sql, $praktdbmaster);
+}
+
+// check auf buchung der kandidatensuche
+if (isset($_SESSION['s_firmenid'])) {
+	$sql = sprintf("SELECT 
+						kandidatensuche_ts 
+					FROM 
+						firmen_prop_assign 
+					WHERE 
+						firmenid = %1\$d
+						AND FROM_UNIXTIME(kandidatensuche_ts) > CURRENT_TIMESTAMP",
+					$_SESSION['s_firmenid']);
+	mysql_db_query($database_db, $sql, $praktdbslave);
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$num_rows = mysql_num_rows( $result );	
+
+	// Wer darf was sehen
+	if ($num_rows > 0) {
+		$einsicht = true;
+	} else {
+		$einsicht = false;
+		$buchung = true;
+	}
+} else {
+	$einsicht = false;
+	$minilogin = true;
+}
+
+
+// auf Merkzettel setzen
+if (isset($_GET['wkvalue'])) {
+	if (!isset($_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'])) {
+		$_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'] = array();
+	}
+	
+	$_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'][$_REQUEST['wknutzerid']] = true;
+	
+	if (isset($_SESSION['s_firmenproparray']['kandidatensuche']['warenkorb'][$nutzerid])){
+		echo '      <div align="right" width="100%">Der Kandidat wurde ausgew&auml;hlt!</div>';
+	}
+}
+
+echo '
+      <div style="margin:10px;">
+       <h4>Kandidat</h4>
+      <table width="100%">
+        <colgroup>
+          <col width="30%" />
+          <col width="70%" />
+        </colgroup>';
+
+echo '  <tr>
+          <td>'.$language['strName'].'</td>
+          <td>';
+
+if ( $row['geschlecht'] == "weiblich") {
+	echo $language['strFrau']." ";
+} else {
+	echo $language['strHerr']." ";
+}
+
+if (!empty($row['titel'])) {
+	echo $row['titel'].' '."\n";
+}
+echo '<b>'.ucfirst($row['vname']).' ';
+
+if($_SESSION['s_loggedin'] != true) {
+	echo substr(ucfirst($row['name']), 0, 1).'.';
+} else {
+	echo ucfirst($row['name']);
+}
+
+echo '</b></td>
+          </tr>';
+
+if ($einsicht == true) {
+	if ($_SESSION['s_loggedin'] == true) {
+		echo '
+        <tr>
+          <td>'.$language['strAnschrift'].'</td>
+          <td>'.$row['strasse'].'</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>'.$row['plz'].' '.$row['ort'].'</td>
+        </tr>'; 
+	}
+} else {
+	if (isset($buchung) && $buchung == true) {
+		echo '
+	        <tr>
+	          <td>'.$language['strAnschrift'].'</td>
+	          <td><a href="/mitteilung_buchung/" onclick="smallbox.loadUrl(\'\',this.href); return false;">Anzeige nach Buchung</a></td>
+	        </tr>';
+	} elseif (isset($minilogin) && $minilogin == true) {
+		echo '
+	        <tr>
+	          <td>'.$language['strAnschrift'].'</td>
+	          <td><a href="/minilogin/Unternehmen/" onclick="smallbox.loadLogin(); return false;">'.$language['strAnzeige'].'</a></td>
+	        </tr>';
+	}
+}
+
+if ($row['grossraum'] <> 94 || $row['grossraum'] > 0) {
+	$such = $row['grossraum'];
+	$suchres = @mysql_db_query($database_db, 'SELECT grossraum FROM grossraum WHERE id = \''.$such.'\'', $praktdbslave);
+	if ($einsicht ==1) {
+		echo '
+        <tr>
+          <td>Gro&szlig;raum</td>
+          <td>'.mysql_result($suchres, 0, "grossraum").'</td>
+        </tr>';
+	}
+}
+
+if ($row['bundesland'] != 0) {
+	$bundeslandid = $row['bundesland'];
+	$bland = mysql_db_query($database_db, 'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid, $praktdbslave);
+	echo '
+        <tr>
+          <td>'.$language['strBundesland'].'</td>
+          <td>'.mysql_result($bland,0,$_SESSION['s_sprache']).'</td>
+        </tr>';
+}
+
+$landid = $row['land'];
+if ($landid > 0) {
+	$land = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM land WHERE id = '.$landid,$praktdbslave);
+	echo '
+        <tr>
+          <td>'.$language['strLand'].'</td>
+          <td>'.mysql_result($land,0,$_SESSION['s_sprache']).'</td>
+        </tr>';
+}
+
+echo '
+        <tr>
+          <td>'.$language['strAlter'].'</td>
+          <td>'.sprintf("%01.0u", $alter).' '.$language['strJahre'].'</td>
+        </tr>';
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (!empty($row['tel'])) {
+		if ($einsicht == 1) {
+			echo "<tr><td>".$language['strTelefon']."</td><td>".$row['tel']."</td></tr>\n";
+		}
+	}
+} else {
+	echo '
+        <tr>
+          <td>'.$language['strTelefon'].'</td>
+          <td><a href="mitglied.phtml?id='.$id.'&amp;wknutzerid='.$nutzerid.'&amp;spalte='.$spalte.'">'.$language['strAnzeige'].'</a></td>
+        </tr>';
+}
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (!empty($row['fax'])) {
+		if ($einsicht == 1) {
+			echo '
+        <tr>
+          <td>'.$language['strTelefax'].'</td>
+          <td>'.$row['fax'].'</td>
+        </tr>';
+		}
+	}
+} else {
+	echo '
+        <tr>
+          <td>'.$language['strTelefax'].'</td>
+          <td><a href="mitglied.phtml?id='.$id.'&amp;wknutzerid='.$nutzerid.'&amp;spalte='.$spalte.'">'.$language['strAnzeige'].'</a></td>
+        </tr>';
+}
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (!empty($row['funktel'])) {
+		if ($einsicht == 1) {
+			echo '
+        <tr>
+          <td>'.$language['strFunktelefon'].'</td>
+          <td>'.$row['funktel'].'</td>
+        </tr>';
+		}
+	}
+} else {
+	echo '
+        <tr>
+          <td>'.$language['strFunktelefon'].'</td>
+          <td><a href="mitglied.phtml?id='.$id.'&amp;wknutzerid='.$nutzerid.'&amp;spalte='.$spalte.'">'.$language['strAnzeige'].'</a></td>
+        </tr>';
+}
+
+if ($_SESSION['s_loggedin'] == true) {
+    if ($einsicht == 1) {
+		echo '
+        <tr>
+          <td>'.$language['strEmail'].'</td>
+          <td><a href="/recruiting/email_antwort/'.$nutzerid.'/'.$spalte.'/">eMail verfassen</a></td>
+        </tr>';
+	}
+} else {
+	echo '
+        <tr>
+          <td>'.$language['strEmail'].'</td>
+          <td><a href="mitglied.phtml?id='.$id.'&amp;wknutzerid='.$nutzerid.'&amp;spalte='.$spalte.'">'.$language['strAnzeige'].'</a></td>
+        </tr>';
+}
+
+if ($_SESSION['s_loggedin'] == true) {
+	if (!empty($row['homepage'])) {
+		if ($einsicht == 1) {
+			echo '
+	        <tr>
+	          <td>'.$language['strHomepage'].'</td>
+	          <td><a href="'.$row['homepage'].'" target="_blank">'.$row['homepage'].'</a></td>
+	        </tr>';
+		}
+	}
+} else {
+	echo '
+        <tr>
+          <td>'.$language['strHomepage'].'</td>
+          <td><a href="mitglied.phtml?id='.$id.'&amp;wknutzerid='.$nutzerid.'&amp;spalte='.$spalte.'">'.$language['strAnzeige'].'</a></td>
+        </tr>';
+}
+
+echo '
+        <tr>
+          <td colspan="2"></td>
+        </tr>
+      </table>';
+
+switch ($spalte) {
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		require("/home/praktika/public_html/home/firmen/detail".$spalte.".inc.php");
+		break;
+	default:
+		if (isset($_GET['wknutzerid'])) {
+			$nutzerid = intval($_GET['wknutzerid']);
+		}
+		require("/home/praktika/public_html/home/firmen/detail_only.phtml");
+}
+
+// Anzeige der Bewerbungsmappe
+/*if ($_SESSION['s_loggedin'] == true && isset($nutzerid)) {
+	$modifydatum = $row['modifydatum'];
+	bewerbermappeeinzelansicht($nutzerid, $modifydatum, $num_rows);
+}*/
+
+if (isset($_GET['wkvalue']) && $_GET['wkvalue'] == true) {
+	$values = -2;
+} else {
+	$values = -1;
+}
+if (isset($back)) $values = $back;
+
+if (isset($_GET['wknutzerid']) || isset($_GET['wkid'])) { ?>
+              <a href="javascript:history.go(<?php echo $values; ?>)"><?php echo $language['strZurueck']; ?></a>
+<?php
+}
+echo "</div>";
+if (isset($_SESSION['detail_refer']) && $_SESSION['detail_refer'] == true) {
+	echo '<p class="control"><a class="button small" href="/recruiting/kontaktdetails/'.$_SESSION['detail_refer_nutzer'].'/'.$_SESSION['detail_refer_id'].'/'.$_SESSION['detail_refer_spalte'].'/">ZUR&Uuml;CK</a></p>'."\n";
+} elseif (isset($_SESSION['kdetail_refer']) && $_SESSION['kdetail_refer'] == true) {
+	$_SESSION['kdetail_nutzer_id'] = intval($_GET['nutzerid']);
+	$_SESSION['kdetail_spalte'] = intval($_GET['spalte']);
+	
+	echo '<p class="control"><a class="button small" href="/recruiting/kandidatendetail/'.$_SESSION['kdetail_refer_id'].'/">ZUR&Uuml;CK</a></p>'."\n";
+}
+
+bodyoff();
+?>

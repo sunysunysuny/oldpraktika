@@ -1,0 +1,222 @@
+<?
+ $gruppe = "unternehmen";
+ $sprachbasisdatei="/absolventen/praktikanten/einblick.phtml";
+ $sprachbasisdatei2="/home/firmen/einblick.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+//echo $s_kandidatentable;
+
+pageheader(session_id(), session_name()); 
+
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=16";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+$bundeslanduebergabe=$bundesland;
+$grossraumuebergabe=$grossraum;
+
+
+unset($s_ergebnisarry[bereiche]);
+unset($s_ergebnisarry[sucheingabe]);
+$s_ergebnisarry[sucheingabe][suchart]=1;
+
+if ($land > 0) { $defland=" AND land=$land"; $s_ergebnisarry[sucheingabe][land]=array($land); }
+if ($bundesland > 0) { $defbundesland=" AND bundesland=$bundesland"; $s_ergebnisarry[sucheingabe][bundesland]=array($bundesland); }
+if ($grossraum > 0) { $defgrossraum=" AND grossraum=$grossraum";  $s_ergebnisarry[sucheingabe][grossraum]=array($grossraum); }
+if ($geschlecht != "") $defgeschlecht=" AND geschlecht='$geschlecht'";
+if ($alterdef == "" && $alter >0)  $alterdef="=";
+
+// Alter setzen
+if ($alter >0 ) {
+$datumjahr=(date("Y") - $alter);
+$datummonat=date("m");
+$datumtag=date("d");
+
+$datum=$datumjahr."-".$datummonat."-".$datumtag;
+if ($alterdef=="<") $alterdefsql=" AND geburtsdatum > '$datum'";
+if ($alterdef==">") $alterdefsql=" AND geburtsdatum < '$datum'";
+
+if ($alterdef=="=") {
+	$datum1=($datumjahr - 1)."-".$datummonat."-".$datumtag;
+	$datum2=($datumjahr + 1)."-".$datummonat."-".$datumtag;
+	
+	$alterdefsql=" AND geburtsdatum > '$datum1' AND geburtsdatum < '$datum2'";
+}
+
+//echo $datum."<br>";
+}
+
+
+$query="select id as nutzerid, geburtsdatum, bundesland,grossraum,land from $database_db.nutzer where inactive='false' $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql ORDER by ID desc LIMIT 20000";
+$querycount="select count(id) as anzahl from nutzer where inactive='false' $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql ORDER by ID desc";
+
+$dbtestsel=mysql_db_query($database_temp,"select count(id) as anzahl from $s_kandidatentable",$praktdbmaster);
+
+//echo $query;
+
+$resultcount=mysql_db_query($database_db,$querycount,$praktdbslave);
+
+if (mysql_result($resultcount,0,"anzahl") > 0 && mysql_result($dbtestsel,0,"anzahl") < 1) mysql_db_query($database_temp,"INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,bundesland,grossraum,land) ".$query,$praktdbmaster);
+
+$kstatusselect = mysql_db_query($database_db,"select id,$s_sprache from karierrestatus order by anzeigeorder",$praktdbslave);
+$anz_kstatus = mysql_NumRows($kstatusselect);
+
+$querycount="select id from $s_kandidatentable";
+$resultcount=mysql_db_query($database_temp,$querycount,$praktdbmaster);
+$anzahl=mysql_numrows($resultcount);
+
+
+
+?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Suchergebnis: Statussuche Kandidaten</h1>
+            <table width="100%">
+
+<script language="JavaScript" type="text/javascript" src="/scripts/bundesland_such.js"></script>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="bundeslandvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="grossraumvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<script for="bundeslandvalues" event="ondatasetcomplete">show_bundesland(this.recordset);</script>
+<script for="grossraumvalues" event="ondatasetcomplete">show_grossraum(this.recordset);</script>
+
+<?
+
+if ($anzahl == 20000) $maximal = "mind. ";
+echo "Es wurden <b>".$maximal.$anzahl." Ergebnisse</b> auf Ihre Anfrage gefunden. Sie haben nun folgende M&ouml;glichkeiten:";
+
+if (isset($land)) {$landid=$land;} else {$landid=$land;}
+if (isset($bundesland)) {/* nix */} else {$bundesland = $bundesland;}
+if (isset($grossraum)) {/* nix */} else {$grossraum = $grossraum;}
+if ($landid=="") $landid=$s_landid;
+
+echo "<br><br><b><ol><li><span class=normal><a href=\"/home/firmen/suchen/standardsuche.phtml?".session_name()."=".session_id()."\">Suchergebnisse ansehen</a></span></li>";
+echo "<li><span class=normal><a href=\"/home/firmen/suchen/warenkorb.phtml?gesamt=true&dest=merkzettel&".session_name()."=".session_id()."\">Ergebnisse auf Merkzettel setzen</a></span>";
+echo "<li><span class=normal><a href=\"/home/firmen/suchen/warenkorb.phtml?gesamt=true&dest=mailing&".session_name()."=".session_id()."\">Mailing vorbereiten</a></span></ol>";
+
+                    echo "<form method=\"get\" action=\"/home/firmen/suchen/standardwahl.phtml\" name=\"anmeldung\">";
+                    echo "<table cellspacing=\"0px\" cellpadding=\"0px\"><tr><td>";
+		    echo "<table width=\"410px\" cellspacing=\"1px\" cellpadding=\"0px\" bgcolor=\"#F7E7CE\"><tr><td>";
+		    echo "<table width=\"408px\" cellspacing=\"0px\" cellpadding=\"0px\" bgcolor=\"".$spalte2quickloginhell."\" ><tr><td align=\"center\"><br>";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td colspan=2><b>Suchergebnis verfeinern<b><br><br></td></tr>";
+
+
+$landselect = mysql_db_query($database_db,"select $s_sprache,id from land order by $s_sprache",$praktdbslave);
+$anz_land = mysql_NumRows($landselect);
+
+$bundeslandselect = mysql_db_query($database_db,"select * from bundesland where landid=$landid order by $s_sprache",$praktdbslave);
+$anz_bundesland = mysql_NumRows($bundeslandselect);
+
+if ($anz_bundesland > 0) {
+$bundeslandsel=mysql_result($bundeslandselect,0,"id");
+if ($bundesland == "") $bundesland = $bundeslandsel;
+$grossraumselect = mysql_db_query($database_db,"select grossraum,id from grossraum where bundesland=$bundesland order by grossraum",$praktdbslave);
+$anz_grossraum = mysql_NumRows($grossraumselect);
+}
+
+$browser = SniffBrowser(); 
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strLand"] . ":</td> <td>";
+if ($browser['type'] == 'Explorer') { 
+echo "<select name=\"land\" class=\"eingabe210\" onChange=\"load_bundesland(this.value)\">\n";
+} else {
+echo "<select name=\"land\" onChange=\"netscape_reload('anmeldung')\" class=\"eingabe210\">\n";
+}
+	$i=0;
+		while ($i<$anz_land):
+			$html = htmlspecialchars(mysql_result($landselect,$i,$s_sprache));
+			echo "    <option ";
+			if  (mysql_result($landselect,$i,"id") == $landid) {
+				echo "selected ";
+			}
+			echo "value=\"" . mysql_result($landselect,$i,"id") . "\">" . $html . "</option>\n";
+		$i++;
+		endwhile;
+	echo"    </select></td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Bundesland:</td> <td>";
+if ($browser['type'] == 'Explorer') { 
+echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"load_grossraum(document.anmeldung.land.value,this.value)\" onClick=\"load_grossraum(document.anmeldung.land.value,this.value)\" id=\"bundeslandid\">\n";
+} else {
+echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"netscape_reload('anmeldung')\" class=\"eingabe210\">\n";
+}
+		echo"    <option value=\"\">KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+		$i=0;
+		while ($i<$anz_bundesland):
+			$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$s_sprache));
+			echo "    <option ";
+
+if ($bundeslanduebergabe > 0) {
+			if  (mysql_result($bundeslandselect,$i,"id") == $bundesland) {
+				echo "selected ";
+			}
+}
+			echo "value=\"" . mysql_result($bundeslandselect,$i,"id") . "\">" . $html . "</option>\n";
+		$i++;
+		endwhile;
+echo "</select></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strGrossraum"] . ":</td> <td><select name=\"grossraum\" class=\"eingabe210\" id=\"grossraumid\">\n";
+		echo"    <option value=\"\">KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+	$i=0;
+		while ($i<$anz_grossraum):
+			$html = htmlspecialchars(mysql_result($grossraumselect,$i,"grossraum"));
+			echo "    <option ";
+
+if ($grossraumuebergabe > 0) {
+			if  (mysql_result($grossraumselect,$i,"id") == $grossraum) {
+				echo "selected ";
+			}
+}
+			echo "value=\"" . mysql_result($grossraumselect,$i,"id") . "\">" . $html . "</option>\n";
+			
+		$i++;
+		endwhile;
+echo "</select></td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Alter:</td> <td>";
+
+	echo "<select name=\"alterdef\" class=\"eingabe100\">\n";
+			echo "<option value=\"\"></option>\n";
+			echo "<option value=\">\""; if ($alterdef== ">") echo " selected"; echo ">&auml;lter als</option>\n";
+			echo "<option value=\"<\""; if ($alterdef== "<") echo " selected"; echo ">j&uuml;nger als</option>\n";
+			echo "<option value=\"=\""; if ($alterdef== "=") echo " selected"; echo ">genau</option>\n";
+			
+	echo "</select>&nbsp;";
+	echo "<select name=\"alter\" style=width:106px>\n";
+			echo "<option value=\"\"></option>\n";
+	$i=15;
+		while ($i < 60):
+		echo "<option value=\"$i\""; if ($alter== $i) echo " selected"; echo ">".$i." Jahre</option>\n";
+		$i++;
+		endwhile;
+			
+	echo "</select>";
+echo "</td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Nutzergruppe:</td> <td>";
+
+	echo "<select name=\"geschlecht\" class=\"eingabe210\">\n";
+			echo "<option value=\"\""; if ($geschlecht== "") echo " selected"; echo ">KEINE EINSCHR&Auml;NKUNG</option>\n";
+			echo "<option value=\"weiblich\""; if ($geschlecht== "weiblich") echo " selected"; echo ">nur Frauen</option>\n";
+			echo "<option value=\"m&auml;nnlich\""; if ($geschlecht== "m&auml;nnlich") echo " selected"; echo ">nur M&auml;nner</option>\n";
+	echo "</select>";
+echo "</td></tr>\n";
+
+
+echo"<tr valign=\"baseline\"><td><br></td></tr>\n";
+			echo"<tr valign=\"baseline\"><td>&nbsp;</td><td colspan=\"2\">\n";
+			echo"<input type=\"submit\" value=\"". $language["strSuchB"] ."\" name=\"submit\">\n";
+			echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+			echo"<br><br></td></tr></table>\n";
+			echo"</td></tr></table></td></tr></table></form>\n";
+?> 
+                    <input type="BUTTON" value="zur Suchauswahl" onClick=location.replace('/home/firmen/einblick.phtml?<?=session_name()."=".session_id()?>')>
+
+<?
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+?>
+</td></tr></table>
+<? bodyoff(session_id(), session_name()); ?>

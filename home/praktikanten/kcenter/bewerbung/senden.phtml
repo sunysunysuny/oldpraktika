@@ -1,0 +1,139 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$isAjax = true;
+
+// Wenn Aufruf mit einem Array übergeben ist, dann wurde es ohne Ajax aufgerufen
+if(is_array($_POST["ids"])) {
+	$isAjax = false;
+	$ids = $_POST["ids"];
+} else {
+	$ids = explode(",", $_POST["ids"]);
+}
+
+for($a = 0; $a < count($ids); $a++) {
+	$ids[$a] = (int)$ids[$a];
+}
+$ids = implode(",", $ids);
+
+$result = $hDB->query('SELECT 
+					bewerbung.id `bewerbung_id`,
+					bewerbung.firmenid `firmenid`, 
+					bewerbung.preview `bewerbung_preview`, 
+					bewerbung.spalte `bewerbung_spalte`,
+					bearbeiter.email `bearbeiter_email`,
+					bearbeiter.id `bearbeiter_id`,
+					bearbeiter.passwort  `bearbeiter_passwort`,
+					OLD_PASSWORD(concat(bewerbung.id,"'.$cryptbasis.'")) AS bearbeiter_vercrypted,
+					nutzer.id `nutzer_id`,
+					nutzer.anrede `nutzer_anrede`,
+					nutzer.vname `nutzer_vname`,
+					nutzer.name `nutzer_name`,
+					nutzer.email `nutzer_email`,
+					firmen_prop_assign.firmenlevel,
+					firmen.firma `firmen_firma`
+				FROM 
+					'.$database_db.'.bewerbung 
+						LEFT JOIN '.$database_db.'.bearbeiter
+							ON(bearbeiter.id = bewerbung.bearbeiterid)
+						INNER JOIN '.$database_db.'.nutzer
+							ON(nutzer.id = bewerbung.nutzerid)	
+						INNER JOIN '.$database_db.'.firmen_prop_assign
+							ON(firmen_prop_assign.firmenid = bewerbung.firmenid)
+						INNER JOIN '.$database_db.'.firmen
+							ON(firmen.id = bewerbung.firmenid)
+				WHERE 
+					bewerbung.id IN ('.$ids.') AND 
+					bewerbung.nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+					bewerbung.inactive = \'false\''
+,$praktdbslave);
+# var_dump(mysql_fetch_assoc($result));					
+while($bewerbungData = mysql_fetch_assoc($result)) {
+	$bewerbungData["bewerbung_preview"] = true;
+	
+	if (empty($bewerbungData["bearbeiter_id"])) {
+		$eintrag = mysql_fetch_assoc(mysql_query('SELECT 
+				email, id, passwort
+			FROM 
+				'.$database_db.'.bearbeiter 
+			WHERE 
+				firmenid = '.$firmenid." 
+			LIMIT 1",$praktdbslave));
+
+		$bewerbungData["bearbeiter_id"] = $eintrag["id"];
+		$bewerbungData["bearbeiter_email"] = $eintrag["email"];
+		$bewerbungData["bearbeiter_passwort"] = $eintrag["passwort"];
+		
+		$linkcrypt = mysql_query('SELECT OLD_PASSWORD(concat('.$bewerbungData["bewerbung_id"].',\''.$cryptbasis.'\')) AS verkryptet', $praktdbslave);
+		$bewerbungData["bearbeiter_vercrypted"] = $bewerbungData["bearbeiter_vercrypted"];
+	}
+	#var_dump($bewerbungData);
+	// Nur wenn noch eine Vorschau, dann versenden
+	if ($bewerbungData["bewerbung_preview"] == 'true') {
+			$update = $hDB->query('UPDATE '.$database_db.'.bewerbung SET preview = \'false\', erinnert = \''.$erinnerung.'\', d_eintrag = NOW(), modify = \''.$modify.'\' WHERE id = '.$bewerbungData["bewerbung_id"].' AND spalte = '.$bewerbungData["bewerbung_spalte"].' AND nutzerid = '.$_SESSION['s_nutzerid'].' AND inactive = \'false\'', $praktdbmaster);			
+			
+			$objBewerbung = new Praktika_Kcenter_Bewerbung($bewerbungData["bewerbung_id"]);
+
+			if(!$objBewerbung->checkAuth()) {
+				echo "Sie besitzen nicht die notwendigen Zugriffsrechte!";
+				exit();
+			}
+			$result = $objBewerbung->sendBewerbungsInfo($bewerbungData["bearbeiter_email"]);
+/*			
+			// Infomail an Firma basteln
+			$mailtoaddr = $bewerbung["bearbeiter_email"];
+			$emailobj = new emailtemplate(16);
+			
+			$emailobj->replace('{anrede}', $bewerbung['nutzer_anrede']);
+			$emailobj->replace('{name}', $bewerbung['nutzer_name']);
+			$emailobj->replace('{vname}', $bewerbung['nutzer_vname']);
+			
+			$emailobj->replace('{id}', $bewerbung["bearbeiter_id"]);
+			
+			if ($bewerbung['firmenlevel'] > 0) {
+				$group = 1;
+				$action = 2;
+				$id = base64_encode($bewerbung["bearbeiter_id"]);
+ 				$summe = md5($bewerbung["bearbeiter_id"].'ioxns3268'.$action.$bewerbung["bearbeiter_passwort"]);
+ 				
+				$emailobj->replace('{link}','zu Ihrer Bewerbung: http://'.$_SERVER['HTTP_HOST'].'/al/'.$group.'/'.$action.'/'.$bewerbung["bearbeiter_vercrypted"].'/'.$id.'/'.$summe.'/');
+			} else {
+				$emailobj->replace('{link}','Direktlink: http://'.$_SERVER['HTTP_HOST'].'/home/firmen/bcenter/?bereich=3&loginidemail='.$bewerbung["bearbeiter_id"]);
+			}
+			
+			$emailobj->send_email($mailtoaddr);
+			unset($emailobj);*/
+			
+			// Infomail an Nutzer
+			$mailtoaddrnutzer = $bewerbungData["nutzer_email"];
+
+			$emailobj = new emailtemplate(15);
+			$emailobj->replace('{anrede}',$bewerbungData["nutzer_anrede"]);
+			$emailobj->replace('{name}',$bewerbungData["nutzer_name"]);
+			$emailobj->replace('{vname}',$bewerbungData["nutzer_vname"]);
+			$emailobj->replace('{firma}', $bewerbungData["firmen_firma"]);
+			$emailobj->send_email($mailtoaddrnutzer);
+			
+			unset($emailobj);
+
+			$erinnerung = time() + 604800; // = + 1 Woche 
+			$modify = date('YmdHis');
+
+			
+
+			$z++;		
+	}
+	
+}
+
+if($isAjax == false) {
+	echo '<meta http-equiv="refresh" content="0; url=/Karriere_Center/messaging/Merkzettel/0/">';
+}

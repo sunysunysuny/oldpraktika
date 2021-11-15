@@ -1,0 +1,20 @@
+div#main div#content div#header_image {
+    background: url("/styles/images/candidates/ratgeber.jpg") no-repeat scroll 0 0 transparent;
+    height: 225px;
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+div#main div#content div#header_image h1 {
+	color: #fff;
+	font-weight: normal;
+	margin-left: 18px;
+	margin-top: 38px;
+	text-transform: uppercase;
+}
+div#main div#content div#header_image p {
+	color: #ad8b8a;
+	font-size: 23px;
+	line-height: 25px;
+	margin-left: 18px;
+	margin-top: 12px;
+}

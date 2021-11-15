@@ -1,0 +1,12 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php");
+
+pageheader( array('page_title' => '') );
+?>
+
+<p>Sparen Sie sich zuk&uuml;nftig das m&uuml;hevolle Durchsuchen unz&auml;hliger Praktikumsgesuche - die Kandidatensuche bringt die passenden Bewerber zu Ihnen! Finden Sie Ihren Wunschkandidaten schnell und einfach anhand sinnvoller Suchkriterien und setzen Sie sich direkt mit ihm in Verbindung. Das ist Unternehmen-Bewerber-Matching der neuesten Generation!</p>
+<p class="control_panel"><br /><button type="button" onclick="top.location.href = '/cms/fileadmin/AGB_pdf/Zusatzprodukte.pdf'"><span><span><span>Buchungsformular</span></span></span></button></p>
+
+<?php
+bodyoff();
+?>

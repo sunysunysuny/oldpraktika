@@ -1,0 +1,663 @@
+<?
+ob_start();
+
+if ($_GET['popup'] == 'true') {
+	$popup = true;
+}
+
+if($_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest' || $popup == true) {
+	require("/home/praktika/etc/gb_config.inc.php");
+} else {
+	require("/home/praktika/etc/config.inc.php");
+}
+
+$_SESSION['current_page'] = PAGE_STELLENANZEIGE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = 'none';
+
+$softLimitViews = 100;
+$hardLimitViews = 1000;
+
+// Soll der Redirect-Check in der PageHeader ausgesetzt werden?
+$noAuthCheck = false;
+
+function crossLink($value) {
+
+    $from = array(
+        "Leipzig",
+        "Elektrotechnik",
+        "Marketing",
+        "Fernsehen",
+        "Berlin"
+    );
+    $to = array(
+        "<a class=\"crossLink\" alt=\"Andere Angebote aus Leipzig\"  title=\"Andere Angebote aus Leipzig\" href='https://www.praktika.de/praktikum/leipzig.html'>Leipzig</a>",
+        "<a class=\"crossLink\" alt=\"Andere Angebote aus dem Bereich Elektrotechnik\"  title=\"Andere Angebote aus dem Bereich Elektrotechnik\"  href='https://www.praktika.de/praktika/praktikum_elektronik-elektrotechnik.php'>Elektrotechnik</a>",
+        "<a class=\"crossLink\" alt=\"Andere Angebote im Bereich Marketing\"  title=\"Andere Angebote im Bereich Marketing\"  href='https://www.praktika.de/praktika/praktikum_marketing-werbung-pr.php'>Marketing</a>",
+        "<a class=\"crossLink\" alt=\"Andere Angebote im Bereich Fernsehen/Medien\"  title=\"Andere Angebote im Bereich Fernsehen/Medien\"  href='https://www.praktika.de/praktika/praktikum_film-fernsehen.php'>Fernsehen</a>",
+        "<a class=\"crossLink\" alt=\"Andere Angebote aus Berlin\"  title=\"Andere Angebote aus Berlin\"  href='https://www.praktika.de/praktika/praktikum_berlin.php'>Berlin</a>"
+    );
+
+    return str_replace($from, $to, $value);
+}
+
+function showAfterLogin($value, $key) {
+	if (empty($value)) {
+		if($key == "entgelt") {
+			return "";
+		} else {
+			return '<p class="noContent">keine Angabe</p>';
+		}
+	}
+
+	if (empty($_SESSION['s_nutzerid'])) {
+		if ($key == 'entgelt') {
+			return '<a href="login" onclick="smallbox.loadLogin(function() {location.reload();}, {mode:\'small\'}); return false;">Anzeige der Verg&uuml;tung erst nach Login.</a>';
+		} elseif ($key == 'kontakt2plz') {
+			return '';
+		} else {
+			return '<a href="login" onclick="smallbox.loadLogin(function() {location.reload();}, {mode:\'small\'}); return false;">Anzeige erst nach Login</a>';
+		}
+	}
+
+	if ($key == 'kontakt2email') {
+		return '<a href="mailto:'.$value.'" title="Eine eMail an die Kontaktperson senden.">eMail an Kontakt senden</a>'."\n";
+	} elseif ($key == 'kontakt2webseite') {
+		return '<a href="'.$value.'" target="_blank" title="Webseite des Unternehmens aufrufen.">Link zur Firmenwebseite</a>';
+	} else {
+		return $value;
+	}
+}
+
+// Wenn mehr als in HardLimit definierte Impressions get�tigt wurde, gibt es keinen anderen Weg als der Login
+if ($_SESSION['stellenImpressions'] >= $hardLimitViews) {
+	header('Location: https://www.praktika.de');
+	exit();
+}
+
+// StellenID wird per $_GET[stellenid] uebergeben
+if (!empty($_GET['stellenid'])) {
+	$stellenid = intval($_GET['stellenid']);
+
+	if ($_SESSION['aktuelleStellenId'] == $stellenid) {
+		unset($_GET['log']);
+	}	
+} elseif (!empty($_GET['id'])) { // StellenID wird per $_GET[id] uebergeben
+	$stellenid = intval($_GET['id']);
+} elseif (!empty($_SESSION['aktuelleStellenId'])) {
+	$stellenid = $_SESSION['aktuelleStellenId'];
+} else {
+	$stellenid = false;
+}
+
+if ($stellenid !== false && !empty($stellenid)) {
+	$objStelle = new Praktika_Stelle($stellenid);
+
+	if (1 == 1 || !$stellenCache = $objStelle->loadStellenCache()) {
+		$resultRst = $hDB->query('SELECT 
+						stellen.*,
+						firmen.firma,
+						firmen_prop_assign.firmenlevel,
+						UNIX_TIMESTAMP(stellen.datum_verfall) as datum_verfall, 
+						UNIX_TIMESTAMP(stellen.modify) AS datum_unix,
+						berufsfelder.german AS berufsfeld_german,
+						bundesland.german AS bundesland_german,
+						land.german AS land_german,
+						grossraum.grossraum AS grossraum_german,
+                        branchen.german AS branche_german,
+						firmenprofil.id `firmenprofil`,
+						firmen_prop_assign.stelle_border as firma_stelle_border,
+						firmen_prop_assign.stelle_width,
+						firmen_prop_assign.stelle_height
+					FROM 
+						prakt2.stellen `stellen`
+					LEFT JOIN 
+						prakt2.firmen `firmen` ON firmen.id = stellen.firmenid
+					LEFT JOIN 
+						prakt2.firmen_prop_assign `firmen_prop_assign` ON firmen.id = firmen_prop_assign.firmenid
+					LEFT JOIN
+						prakt2.firmenprofil `firmenprofil` ON (firmenprofil.firmenid = stellen.firmenid AND firmenprofil.inactive = \'false\')
+					LEFT JOIN
+						prakt2.berufsfelder ON berufsfelder.id = stellen.berufsfeld
+					LEFT JOIN
+						prakt2.bundesland ON bundesland.id = stellen.bundesland
+					LEFT JOIN 
+						prakt2.land ON land.id = stellen.land
+					LEFT JOIN 
+						prakt2.grossraum ON grossraum.id = stellen.grossraum
+					LEFT JOIN
+						prakt2.branchen ON branchen.id = stellen.branche
+					WHERE 
+						stellen.id = '.$stellenid, $praktdbslave);
+
+		$errno = 0;
+
+		if (mysql_num_rows($resultRst) > 0) {
+			
+			$stelle = mysql_fetch_assoc($resultRst);
+
+			//Checkt, ob altes Kontaktfeld oder neues Kontaktfeld geladen werden muss
+			$sql = '
+					SELECT
+						id
+					FROM
+						prakt2.stellen
+					WHERE
+						kontakt2strasse IS NULL
+						AND kontakt2plz IS NULL
+						AND kontakt2ort IS NULL
+						AND kontakt2ansprechpartner IS NULL
+						AND kontakt2tel IS NULL
+						AND kontakt2fax IS NULL
+						AND kontakt2email IS NULL
+						AND kontakt2webseite IS NULL
+						AND id = '.intval($stelle['id']);
+			
+			$result = $hDB->query($sql, $praktdbslave);
+
+			if (mysql_num_rows($result) != 0) {
+				$template = $objStelle->getTemplateBody($stelle['templateid'], 0);				
+			} else {
+				$template = $objStelle->getTemplateBody($stelle['templateid'], 1);
+			}
+# var_dump($template);
+			$templateBodyCount = preg_match('/<body(.*?)>(.*)<\/body>/msi', $template, $templateParts);
+			
+			if ($templateBodyCount == 0) {
+				$stelle['template'] = $template;
+			} else {
+				$stelle['template'] = $templateParts[2]; 
+			}
+		//var_dump(preg_match('/<colgroup>(.*)<\/table>/sm', $stelle['template']));
+		
+			if ($stelle['firmenlevel'] == '0') {
+				$replaceContact = '
+						<colgroup>
+							<col width="150" />
+							<col width="*" />
+						</colgroup>
+						<tr>
+							<td><strong>Unternehmen:</strong></td>
+							<td>###FIRMANAME###</td>
+						</tr>
+						<tr>
+							<td><strong>Ansprechpartner:</strong></td>
+							<td>###KONTAKT2ANSPRECHPARTNER###</td>	
+						</tr>
+					</table>
+				';
+				
+				$stelle['template'] = preg_replace('/<colgroup>(.*)<\/table>/sm', $replaceContact, $stelle['template']);
+			} elseif ($stelle['firmenlevel'] == '1') {
+				$replaceContact = '
+					<colgroup>
+						<col width="150" />
+						<col width="*" />
+					</colgroup>
+					<tr>
+						<td><strong>Unternehmen:</strong></td>
+						<td>###FIRMANAME###</td>
+					</tr>
+					<tr>
+						<td>Stra&szlig;e:</td>
+						<td>###KONTAKT2STRASSE###</td>
+					</tr>
+					<tr>
+						<td>PLZ:</td>
+						<td>###KONTAKT2PLZ###</td>
+					</tr>
+					<tr>
+						<td>Ort:</td>
+						<td>###KONTAKT2ORT###</td>
+					</tr>					  
+					<tr>
+						<td colspan="2">&nbsp;</td>
+					</tr>
+					<tr>
+						<td><strong>Ansprechpartner:</strong></td>
+						<td>###KONTAKT2ANSPRECHPARTNER###</td>
+					</tr>
+					<tr>
+						<td>Tel.:</td>
+						<td>###KONTAKT2TEL###</td>
+					</tr>
+					<tr>
+						<td>Fax:</td>
+						<td>###KONTAKT2FAX###</td>
+					</tr>
+					<tr>
+						<td>eMail-Adresse:</td>
+						<td>###KONTAKT2EMAIL###</td>
+					</tr>
+				</table>
+				';
+				
+				$stelle['template'] = preg_replace('/<colgroup>(.*)<\/table>/sm', $replaceContact, $stelle['template']);
+			}
+			
+			if (($stelle['inactive'] == 'true' || $stelle['deleted'] == 'true') && (($_SESSION['s_firmenid'] != $stelle['firmenid']) && !isset($_SESSION['s_adminid']))) {
+				$errno = 2;
+			}
+
+			if(($_SESSION['s_firmenid'] == $stelle['firmenid']) || (isset($_SESSION['s_adminid']) && intval($_SESSION['s_adminid']) != 0) || (!empty($_GET["h"]) && $_GET["h"] == md5($stelle['firmenid']."#".$stelle["id"]))) {
+				$errno = 0;
+				$noAuthCheck = true;
+			}
+		} else {
+			$errno = 1;
+		}
+		
+		if ($popup != true) {
+				// Aehnliche Praktikumsstellen werden gesuche
+				$morePlacements = $objStelle->getSimilar($stelle);
+		}
+		
+		if ($errno == 0) {
+			switch ($stelle['spalte']) {
+				case '1':
+					$titelPraefix = 'Praktikum';
+					break;
+				case '2':
+					$titelPraefix = 'Bachelorarbeit';
+					break;
+				case '3':
+					$titelPraefix = 'Nebenjob';
+					break;
+				case '4':
+					$titelPraefix = 'Ausbildung';
+					break;
+				case '5':
+					$titelPraefix = 'Berufseinstieg';
+					break;
+				case '6':
+					$titelPraefix = 'Projekt';
+					break;
+				case '7':
+					$titelPraefix = 'Trainee';
+					break;
+			}
+
+			if($stelle["firmen_agentur_id"] != "0") {
+				$tmpFirmenName = $hDB->getOne("SELECT name FROM prakt2.firmen_agentur WHERE id = ".(int)$stelle["firmen_agentur_id"]);
+				if(!empty($tmpFirmenName)) {
+					$stelle["firma"] = $tmpFirmenName;
+				}
+			}
+			
+			if( $stelle['land'] != '68') {
+				$pageTitle = 'Auslandspraktikum in '.$stelle['land_german'].' / '.(empty($stelle['grossraum_german']) ? $stelle['einsatzort'] : $stelle['grossraum_german']);
+			} else {
+				$pageTitle = Praktika_String::htmlentities(Praktika_String::removeStopwords(stripslashes(strip_tags(Praktika_String::getUtf8String($stelle['taetigkeit']))))).' bei '.stripslashes($stelle['firma']);
+			}
+			
+			$pageDescription = htmlspecialchars($titelPraefix.' in '.$stelle['einsatzort'].' / '.$stelle['bundesland_german'].' im Bereich '.$stelle['berufsfeld_german'].' bei '.stripslashes($stelle['firma']));
+			
+			$more = array();
+			$merkzettel = array();
+				
+			$stelle_width = !empty($stelle["frame_width"])?$stelle["frame_width"]: $stelle["stelle_width"];
+			// $stelle_height = !empty($stelle["frame_height"])?$stelle["frame_height"]: $stelle["stelle_height"];
+			
+			if($stelle["preview_frame"] == "0") {
+				if ($stelle['link_anzeige_abfr'] == 'true') {
+					if(strpos($stelle["link_anzeige"], ".pdf") !== false || $stelle['firmenid'] == 22023 || $stelle['firmenid'] == 27804) {
+						$stellenBody = '	<iframe id="frame_content2" frameborder=0 name="frame_content2" src="'.$stelle["link_anzeige"].'" style="overflow:hidden;border: 0;width:'.$stelle_width.';"></iframe><script>jQuery(function() { sizeIFrame(); jQuery("#frame_content2").load(sizeIFrame);});</script>'."\n";
+					} else {
+						$stellenBody = '	<iframe id="frame_content2" frameborder=0 name="frame_content2" src="/home/firmen/preview-extern.php?i='.$stelle["id"].'" style="overflow:hidden;border: 0;width:'.$stelle_width.';"></iframe><script>jQuery(function() { sizeIFrame(); jQuery("#frame_content2").load(sizeIFrame);});</script>'."\n";
+					}
+					
+					$stellenBody .= '<style type="text/css">.template { width:'.$stelle_width.' !important;height:'.$stelle_height.' !important; margin: 0 auto !important; } .stellenanzeige { border: 10px solid #ffffff !important; border-top: 0 solid #fff !important; }</style>';
+				} else {
+					$markerArray = array(
+											'###LOGO###',
+											'###FIRMENINFOS_HEAD###',
+											'###FIRMENTAETIGKEIT_HEAD###',
+											'###FIRMENQUALI_HEAD###',
+											'###FIRMENPERSP_HEAD###',
+											'###FIRMENKONTAKT_HEAD###',
+											'###FIRMENINFOS###',
+											'###FIRMENTAETIGKEIT###',
+											'###FIRMENQUALI###',
+											'###FIRMENPERSP###',
+											'###FIRMENKONTAKT###',
+											'###JOBCODE###',
+											'###TAETIGKEIT###',
+											'###SUBTITLE###',
+											'###ENTGELT###',
+											'###BESCHREIBUNG###',
+											'###DATUM###',
+											'###FLASH###',
+											'###APPLICATIONLINK###',
+											'###KONTAKT2STRASSE###',
+											'###KONTAKT2PLZ###',
+											'###KONTAKT2ORT###',
+											'###FIRMANAME###',
+											'###KONTAKT2TEL###',
+											'###KONTAKT2FAX###',
+											'###KONTAKT2EMAIL###',
+											'###KONTAKT2WEBSEITE###',
+											'###KONTAKT2ANSPRECHPARTNER###',
+											'###EINSATZORT###',
+											'###STARTDATUM###',
+											'###ZEITRAUM###'
+									);
+
+					if (!empty($stelle['entgelt']) && preg_match('/[^0-9]/', $stelle['entgelt']) == 0) {
+						$stelle['entgelt'] = 'Verg&uuml;tung: '.$stelle['entgelt'].' EUR';				
+					}
+					
+					if ($stelle['entgelt'] === '0') {
+						$stelle['entgelt'] = '';
+					}
+
+					// Stelle einer Agentur?
+					$agentur = new Praktika_Firmen_Agentur($stelle['firmenid']);
+					$unternehmensId = $agentur->gehoertStelleZurAgentur($stelle['id']);
+
+					if ($unternehmensId !== false) {
+						if ($agentur->hasLogo($unternehmensId)) {
+							$stelle['logoURL'] = $agentur->getLogoUrl($unternehmensId);
+						} else {
+							$stelle['logoURL'] = '/gifs/zentralelemente/logo.gif';
+						}
+					} else {
+						$stelle['logoURL'] = Praktika_Firma::getLogoUrl($stelle['firmenid'], "stelle");
+					}
+
+					if ($stelle['logoURL'] != false) {
+						$logoPath = $stelle['logoURL'];
+						$firmenlogoHTML = '<img src="'.$logoPath.'" alt="Logo '.$stelle['firma'].'" />'."\n";
+					} else {
+						$logoPath = '/gifs/zentralelemente/logo.gif';
+						$firmenlogoHTML = ''."\n";
+					}
+					
+					if ($objStelle->isVideoTemplate($stelle['templateid'])) {
+						if (preg_match('/^https?:\/\/youtu.be\/(.*)/', $stelle['flash'], $matches) == 1) {
+							$stelle['flash'] = '<iframe width="560" height="315" src="https://www.youtube.com/embed/'.$matches[1].'" frameborder="0" allowfullscreen></iframe>'."\n";
+							
+						} elseif (preg_match('/^http:\/\//', $stelle['flash']) == 1) {
+							$stelle['flash'] = '
+								<script type="text/javascript">
+									var flashvars = {};
+									flashvars.url = "'.trim($stelle['flash']).'";
+									var params = {};
+									var attributes = {};
+									attributes.align = "middle";
+									swfobject.embedSWF("/scripts/swfobject/player/praktika_player.swf", "video", "320", "240", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+								</script><div id="video"><a href="https://www.adobe.com/go/getflashplayer"><img src="https://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></div>'."\n";
+						}
+						
+						$defaultFLASH = '
+										<script type="text/javascript">
+											var flashvars = {};
+											flashvars.url = "/scripts/swfobject/player/praktika.flv";
+											var params = {};
+											var attributes = {};
+											attributes.align = "middle";
+											swfobject.embedSWF("/scripts/swfobject/player/240x180.swf", "video", "240", "180", "9.0.0", "expressInstall.swf", flashvars, params, attributes);
+										</script><div id="video"><a href="https://www.adobe.com/go/getflashplayer"><img src="https://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="Get Adobe Flash player" /></a></div>'."\n";
+					}
+
+					$monat = array("","Januar", "Februar", "M&auml;rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober","November","Dezember");
+					#if($_COOKIE["stefanDebug"] == "1") { var_dump(Praktika_String::removeWordChars(crossLink(nl2br($stelle['beschreibung'])))); ob_flush(); }
+					$replaceArray = array(
+											$firmenlogoHTML,
+											$stelle['firmeninfosHead'],
+											$stelle['firmentaetigkeitHead'],
+											$stelle['firmenqualiHead'],
+											$stelle['firmenperspHead'],
+											$stelle['firmenkontaktHead'],
+											crossLink(stripslashes(nl2br($stelle['firmeninfos']))),
+											crossLink(stripslashes(nl2br($stelle['firmentaetigkeit']))),
+											Praktika_String::removeWordChars(crossLink(stripslashes(nl2br($stelle['firmenquali'])))),
+											crossLink(stripslashes(nl2br($stelle['firmenpersp']))),
+											showAfterLogin(stripslashes(nl2br($stelle['firmenkontakt'])), "firmenkontakt"),
+											((!empty($stelle['jobcode'])) ? 'Jobcode: '.$stelle['jobcode'] : ''),
+											stripslashes(strip_tags($stelle['taetigkeit'])),
+											stripslashes($stelle['subtitle']),
+											showAfterLogin($stelle['entgelt'], 'entgelt'),
+											Praktika_String::removeWordChars(crossLink(nl2br($stelle['beschreibung']))),
+											'Zuletzt bearbeitet: '.date('d.m.Y', strtotime($stelle['modify'])),
+											!empty($stelle['flash']) ? htmlspecialchars_decode(str_replace('\\', '', $stelle['flash'])) : $defaultFLASH,
+											empty($stelle['link_bewerbung']) ? '' : $stelle['link_bewerbung'],
+											showAfterLogin($stelle['kontakt2strasse'], 'kontakt2strasse'),
+											showAfterLogin($stelle['kontakt2plz'], 'kontakt2plz'),
+											showAfterLogin($stelle['kontakt2ort'], 'kontakt2ort'),
+											$stelle['firma'],
+											showAfterLogin($stelle['kontakt2tel'], 'kontakt2tel'),
+											showAfterLogin($stelle['kontakt2fax'], 'kontakt2fax'),
+											showAfterLogin($stelle['kontakt2email'], 'kontakt2email'),
+											showAfterLogin($stelle['kontakt2webseite'], 'kontakt2webseite'),
+											showAfterLogin($stelle['kontakt2ansprechpartner'], 'kontakt2ansprechpartner'),
+											$stelle['einsatzort'],
+											$monat[$stelle["von_monat"]]." ".$stelle["von_jahr"],
+											!empty($stelle["zeitraum"]) ? "<strong>Praktikumszeitraum:</strong> ".$stelle["zeitraum"]. " Monate":""
+										);
+
+					$stellenBody = str_replace($markerArray, $replaceArray, $stelle['template']);	
+
+					$stellenBody .= ob_get_clean();
+					
+					// Minify_HTML auf PageCache anwenden
+					#set_include_path($incPath.PATH_SEPARATOR.SERVER_ROOT."/public_html/min/lib/");
+					#require_once(SERVER_ROOT."/public_html/min/lib/Minify/HTML.php");
+					#require_once(SERVER_ROOT."/public_html/min/lib/Minify/CSS.php");
+					#$stellenBody = Minify_HTML::minify($stellenBody, array("cssMinifier" => "Minify_CSS::minify"));
+					#set_include_path($incPath);	
+					
+				}
+				
+				unset($stelle['template']);
+				# $objStelle->saveStellenCache(array('body' => $stellenBody, 'similar' => $morePlacements, 'data' => $stelle, 'title' => $pageTitle, 'description' => $pageDescription));
+			} else {
+				$stellenBody = "";
+				$popup = true;
+				$stelle_width = "1030px";
+				$stelle_height = "2700px";
+				
+				if($stelle["templateid"] == "132") {
+					$popup = true;
+					$stelle_width = "960px";
+					$stelle_height = "2700px";
+					$stellenBody .= '<script type="text/javascript" src="/templates/daimler2014/praktika/iframeResizer.min.js"></script>';
+				}
+			
+				if ($stelle['link_anzeige_abfr'] == 'true') {
+					if(strpos($stelle["link_anzeige"], ".pdf") !== false || $stelle['firmenid'] == 22023) {
+						$jobURL = $stelle["link_anzeige"];
+					} else {
+						$jobURL = '/home/firmen/preview-extern.php?i='.$stelle["id"];
+					}
+				} else {
+					$jobURL = '/home/firmen/preview-frame.php?i='.$stelle["id"];
+				}
+				
+				$stellenBody .= '<iframe id="frame_content2" frameborder=0 name="frame_content2" src="'.$jobURL.'" style="overflow:hidden;border: 0;width:'.$stelle_width.';height:'.$stelle_height.';"></iframe><script>jQuery(function() { jQuery("#frame_content2").iFrameResize(); });</script>'."\n";
+				$stellenBody .= '<style type="text/css">#div-gpt-ad-1370847781804-6 {display:none;}.template { width:'.$stelle_width.' !important; margin: 0 auto !important; } .stellenanzeige { border: 10px solid #ffffff !important; border-top: 0 solid #fff !important; }</style>';
+			}
+		}
+	} else {
+		$stellenBody = $stellenCache['body'];
+		$stelle = $stellenCache['data'];
+		$morePlacements = $stellenCache['similar'];
+		$pageTitle = $stellenCache['title'];
+		$pageDescription = $stellenCache['description'];
+	}
+} else {
+	$errno = 3;	
+}
+
+if(!empty($stelle['firmenid'])) {
+	$objFirma = new Praktika_Firma($stelle['firmenid']);
+	$allFirmenJobs = $objFirma->getAllJobs2($stelle['id']);
+	# error_log("Preview2 ohne FirmenId ".$stellenid);
+}
+
+$veranstaltungen = array();
+$sql = "SELECT * FROM prakt2.veranstaltungskalender WHERE bundesland = ".$stelle["bundesland"]." AND datumanfang > NOW() ORDER BY datumanfang LIMIT 3";
+$eventsRst = mysql_query($sql);
+while($row = mysql_fetch_assoc($eventsRst)) {
+	$veranstaltungen[] = $row;
+}
+
+
+// Wenn ein Fehler aufgetreten ist, dann soll der Body nicht zusammengebaut werden
+if ($errno != 0) {
+	switch($errno) {
+		case 1:
+			$errText = 'Es wurde keine passende Stellenanzeige gefunden.';
+			$pageTitle = 'Anzeige konnte nicht geladen werden.';
+			break;
+		case 2:
+			$errText = 'Diese Stellenanzeige wurde bereits deaktiviert.';
+			$pageTitle = 'Anzeige konnte nicht geladen werden.';			
+			break;
+		case 3:
+			$errText = 'Es wurde keine passende Stellenanzeige gefunden.';
+			$pageTitle = 'Anzeige konnte nicht geladen werden.';			
+			break;
+	}
+
+	$stellenBody = '<p class="hint error" style="margin:10px;">'.$errText.'</p>';
+	
+	if(count($morePlacements) > 0) {
+		$stellenBody .= "<div style='padding:10px;'><br /><br /><b>Evtl. sind folgende Stellenangebote f&uuml;r Sie interessant:</b><br /><br />";
+		for($a = 0;$a < count($morePlacements) && $a < 5;$a++) {
+			$logoUrl = Praktika_Firma::getLogoUrl($morePlacements[$a]["firmenid"], "small");
+			if(!empty($logoUrl)) {
+				$stellenBody.= "<div style='margin-left:5px; padding:4px; font-size:12px;'><img src='".Praktika_Firma::getLogoUrl($morePlacements[$a]["firmenid"], "small")."' /><b><a href='".Praktika_Stelle::getURL($morePlacements[$a])."'>".$morePlacements[$a]["taetigkeit"]."</a></b><br /><span>bei ".$morePlacements[$a]["firma"]." in ".$morePlacements[$a]["grossraum_german"]."</span></div>";
+			} else {
+				$stellenBody.= "<div style='margin-left:5px; padding:4px; font-size:12px;'><b><a href='".Praktika_Stelle::getURL($morePlacements[$a])."'>".$morePlacements[$a]["taetigkeit"]."</a></b><br /><span>bei ".$morePlacements[$a]["firma"]." in ".$morePlacements[$a]["grossraum_german"]."</span></div>";
+			}
+		}
+	}
+	$stellenBody .= "</div>";
+
+	header('HTTP/1.1 404 Not Found');
+}
+
+if ($popup != true) {
+	// Merkzettel des Nutzers laden
+	if (empty($_SESSION['s_nutzerid'])) {
+		$tbl = 'nutzerbookmark_tmp';
+		$cond = 'bookmark.cookiekey = \''.$_COOKIE['cookiekey'].'\'';
+	} else {
+		$tbl = 'nutzerbookmark';
+		$cond = 'bookmark.nutzerid = \''.$_SESSION['s_nutzerid'].'\'';
+	}
+
+	$sql = 'SELECT
+				stellen.taetigkeit,
+				stellen.stellenid \'stellenid\',
+				stellen.spalte,
+				stellen.firma
+			FROM 
+				prakt2.'.$tbl.' AS bookmark
+			LEFT JOIN
+				prakt2_temp.tmp_stellensuche AS stellen ON stellen.stellenid = bookmark.stellenid
+			WHERE
+				'.$cond.'
+			LIMIT 10';
+	$result = $hDB->query($sql, $praktdbslave);
+
+	while ($row = mysql_fetch_assoc($result)) {
+		$merkzettel[] = array('spalte' => $row['spalte'], 'firma' => $row['firma'], 'taetigkeit' => $row['taetigkeit'], 'id' => $row['stellenid']);
+	}
+}
+
+$breadcrumps = array(
+						$titelPraefix => 'https://www.praktika.de/suche/'.$titelPraefix,
+						$stelle['branche_german'] => '/praktika/praktikum_'.Praktika_String::toUrl(strtolower(Praktika_String::cleanString($stelle['branche_german']))).'.php',
+						empty($stelle['grossraum_german']) ? $stelle['land_german'] : $stelle['grossraum_german'] => '/praktika/praktikum_'.(empty($stelle['grossraum_german']) ? Praktika_String::toUrl(strtolower(Praktika_String::cleanString($stelle['land_german']))) : Praktika_String::toUrl(strtolower(Praktika_String::cleanString($stelle['branche_german']))).'/'.Praktika_String::toUrl(strtolower(Praktika_String::cleanString($stelle['grossraum_german'])))).'.php',
+						Praktika_String::cutWord($stelle['firma'],65 - strlen($stelle['branche_german'].$stelle['grossraum_german'])) => '/unternehmenssuche/'.$stelle['firmenid'].'/'.urlencode(stripslashes($stelle['firma']))
+					);
+
+$pageScripts[] = "ajax/stellenanzeige.js";
+pageheader(array('breadcrumps' => $breadcrumps, 'noAuthCheck' => $noAuthCheck, 'page_title' => $pageTitle, 'page_hideHeader' => true, 'noCSS' => true, 'canonical' => Praktika_Stelle::getURL($stelle), 'description' => $pageDescription, 'dynPageDescription' => true, 'grid_system' => '6-0'));
+
+Praktika_Static::__("stellenanzeige");
+
+if ($stelle['firmenid'] != $_SESSION['s_firmenid']) {
+	$stellenBody .= '<img src="/tracking/viewCount.php?s='.$stelle['id'].'" width="1" height="1" alt="Zugriffszaehler" />';
+}
+$zView->assign("stellenBody", $stellenBody);
+
+if (isset($objStelle)) {
+	$isBookmarked = $objStelle->isBookmarked() ? true : false;	
+} else {
+	$isBookmarked = false;
+}
+
+if($stelle["firmen_agentur_id"] != "0") {
+	$tmpFirmenName = $hDB->getOne("SELECT name FROM prakt2.firmen_agentur WHERE id = ".(int)$stelle["firmen_agentur_id"]);
+	if(!empty($tmpFirmenName)) {
+		$stelle["firma"] = $tmpFirmenName;
+	}
+}
+
+	if (!empty($stelle['link_bewerbung'])) {
+		$url = strrpos($stelle['link_bewerbung'], '/');
+
+		if ($url != false) {
+			$urlSuffix = substr($stelle['link_bewerbung'], $url);
+		} else {
+			$urlSuffix = '/index.html';
+		}
+
+		$stelle['link_bewerbung'] = '/redirects/'.Praktika_Redirect::getUrlId($stelle['link_bewerbung'], $stelle['firmenid'], $stelle['id']).$urlSuffix;
+	}
+				
+$zView->assign(array(
+	'stellenAbsoluteUrl' => Praktika_Stelle::getURL($stelle),
+	'latPOS' => $stelle['lat'],
+	'lngPOS' => $stelle['lng'],
+    'bewerbung_mode_eigen' => $stelle['bewerbungpereigen'],
+    'bewerbung_url' => $stelle['link_bewerbung'],
+	'morePlacements' => $morePlacements,
+	'merkzettel' => $merkzettel,
+	"veranstaltungen" => $veranstaltungen,
+	'stelle_id' => $stelle['id'],
+	'firma_id' => $stelle['firmenid'],
+	'aktuelleStellenId' => $_SESSION['aktuelleStellenId'],
+	'taetigkeit' => $stelle['taetigkeit'],
+	'firma_name' => stripslashes($stelle['firma']),
+	'bundesland_german' => $stelle["bundesland_german"],
+	'spalte_name' => $titelPraefix,
+	'grossraum' => $stelle["grossraum_german"],
+	'berufsfeld' => $stelle['berufsfeld_german'],
+	'stelle_taetigkeit' => $stelle['taetigkeit'],
+	'printDialog' => ($_GET['print'] == 'true' ? true : false),
+	'stelle_bookmarked' => $isBookmarked,
+	'allFirmaJobs' => $allFirmenJobs,
+	'inactive' => $errno!=0 || $stelle["inactive"]=='true' || $stelle["deleted"]=='true',
+	'url' => Praktika_Stelle::getURL($stelle),
+	'stelle_border' => $stelle["stelle_border"] == 1,
+	'show_profil' => !empty($stelle['firmenprofil']) && empty($stelle["firmen_agentur_id"]),
+    'showPreview' => ($noAuthCheck == true && $stelle['inactive'] == 'true'),
+	'showLogin' => ($noAuthCheck == false && $_SESSION['stellenImpressions'] >= $softLimitViews && empty($_SESSION['s_nutzerid'])),
+	"width" => $stelle_width,
+));
+
+if ($popup == false) {
+	echo $zView->render('stellenanzeige.php');
+} else {
+	echo $zView->render('stellenanzeige_popup.php');
+}
+
+if (empty($_COOKIE['cookiekey']) && empty($_SESSION['s_nutzerid'])) {
+	$cookiekey = generateCookieKey();
+	$_COOKIE['cookiekey'] = $cookiekey;
+	setcookie('cookiekey', $cookiekey, time() + (86400 * 31), '/', "praktika.de");
+}
+
+if($_SESSION["lastStelle"] != $stelle['id']) {
+	Praktika_User::addFavorite($_COOKIE['cookiekey'], "berufsfeld", $stelle["berufsfeld"]);
+	Praktika_User::addFavorite($_COOKIE['cookiekey'], "bundesland", $stelle["bundesland"]);
+    $_SESSION["lastStelle"] = $stelle['id'];
+}
+
+$_SESSION['stellenImpressions']++;
+
+bodyoff(); 
+?>

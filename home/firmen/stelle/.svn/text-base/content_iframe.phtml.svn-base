@@ -1,0 +1,198 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+	function w($a = '')
+	{
+	    if (empty($a)) return array();
+	    
+	    return explode(' ', $a);
+	}
+	function _browser($a_browser = false, $a_version = false, $name = false)
+	{
+	    $browser_list = 'msie firefox safari opera chrome mozilla gecko';
+	    $user_browser = strtolower($_SERVER['HTTP_USER_AGENT']);
+	    $this_version = $this_browser = '';
+	    
+	    $browser_limit = strlen($user_browser);
+	    foreach (w($browser_list) as $row)
+	    {
+	        $row = ($a_browser !== false) ? $a_browser : $row;
+	        $n = stristr($user_browser, $row);
+	        if (!$n || !empty($this_browser)) continue;
+	        
+	        $this_browser = $row;
+	        $j = strpos($user_browser, $row) + strlen($row) + 1;
+	        for (; $j <= $browser_limit; $j++)
+	        {
+	            $s = trim(substr($user_browser, $j, 1));
+	            $this_version .= $s;
+	            
+	            if ($s === '') break;
+	        }
+	    }
+	    
+	    if ($a_browser !== false)
+	    {
+	        $ret = false;
+	        if (strtolower($a_browser) == $this_browser)
+	        {
+	            $ret = true;
+	            
+	            if ($a_version !== false && !empty($this_version))
+	            {
+	                $a_sign = explode(' ', $a_version);
+	                if (version_compare($this_version, $a_sign[1], $a_sign[0]) === false)
+	                {
+	                    $ret = false;
+	                }
+	            }
+	        }
+	        
+	        return $ret;
+	    }
+	    
+	    //
+	    $this_platform = '';
+	    if (strpos($user_browser, 'linux'))
+	    {
+	        $this_platform = 'linux';
+	    }
+	    elseif (strpos($user_browser, 'macintosh') || strpos($user_browser, 'mac platform x'))
+	    {
+	        $this_platform = 'mac';
+	    }
+	    else if (strpos($user_browser, 'windows') || strpos($user_browser, 'win32'))
+	    {
+	        $this_platform = 'windows';
+	    }
+	    
+	    if ($name !== false)
+	    {
+	        return $this_browser . ' ' . $this_version;
+	    }
+	    
+	    return array(
+	        "browser"      => $this_browser,
+	        "version"      => $this_version,
+	        "platform"     => $this_platform,
+	        "useragent"    => $user_browser
+	    );
+	}	
+	
+	function isOpera($version = "9.0", $compare = ">=") {
+		return _browser('opera', $compare.' '.$version);
+	}
+	function isFirefox($version = "3.0", $compare = ">=") {
+		return _browser('firefox', $compare.' '.$version);
+	}		
+	function isSafari($version = "3.0", $compare = ">=") {
+		return _browser('safari', $compare.' '.$version);
+	}	
+			
+$stellenid = (int)$_GET['id'];
+$alternative = isFirefox()||isOpera()||isSafari()?0:1;
+
+$platzhalter = array("taetigkeit"=>"PLATZHALTER Stellenbezeichnung", 
+"firmeninfosHead"=>"PLATZHALTER Unser Unternehmen",
+"firmentaetigkeitHead"=>"PLATZHALTER T&auml;tigkeit",
+"firmenqualiHead"=>"PLATZHALTER Qualifikation",
+"firmenperspHead"=>"PLATZHALTER Perspektiven",
+"firmenkontaktHead"=>"PLATZHALTER Kontaktaufnahme",
+"firmeninfos"=>"PLATZHALTER Text zum Unternehmen",
+"firmentaetigkeit"=>"PLATZHALTER Text zur T&auml;tigkeit",
+"firmenquali"=>"PLATZHALTER Text zu den Qualifiaktionen",
+"firmenpersp"=>"PLATZHALTER Text zu den Perspektiven",
+"firmenkontakt"=>"PLATZHALTER Text zum Kontakt des Unternehmens",
+"jobcode"=>"PLATZHALTER Stellencode",
+"subtitle"=>"PLATZHALTER Text zur erweiterten Stellenbezeichnung",
+"entgelt"=>"PLATZHALTER Text zur Verg&uuml;tung",
+"beschreibung"=>"PLATZHALTER Text zum Unternehmen",
+"flash"=>"Flash-Video (URL oder embedded Object von Youtube z.B.)");
+
+$rawModus = array("jobcode","flash","taetigkeit");
+
+$stelle_Rst = mysql_db_query($database_db,'SELECT *, DATE_FORMAT(von_monat, \'%m\') AS monat, DATE_FORMAT(von_jahr, \'%Y\') AS jahr, DATE_FORMAT(datum_verfall, \'%d\') AS tagv, DATE_FORMAT(datum_verfall, \'%m\') AS monatv,  DATE_FORMAT(datum_verfall, \'%Y\') AS jahrv FROM stellen WHERE id = '.$stellenid.' AND firmenid = '.$_SESSION['s_firmenid'], $praktdbslave);
+
+
+if (($stelle_Rst != false) && (mysql_num_rows($stelle_Rst) > 0)) {
+	$stelle = mysql_fetch_array($stelle_Rst);
+}
+
+// externe Seite?
+if ($stelle["templateid"] != 0) {
+	$template = mysql_db_query($database_db,'SELECT id,template FROM stellentemplates WHERE id = '.$stelle["templateid"],$praktdbslave);
+	
+	/* Template holen */
+	if (($template != false) && (mysql_num_rows($template) > 0)) {
+		$row = mysql_fetch_assoc($template);
+		
+		$htmlBody = $row['template'];
+	} else {
+		die('<p class="error">Bitte w&auml;hlen Sie zuerst ein Template aus.<br /><a href="/firmen/stelle/layout/'.$stellenid.'/">Zur Templatewahl</a></p>');
+	}
+} else {
+	echo "Fehler 1";
+}
+
+	
+$logo = mysql_db_query($database_db, 'SELECT uri FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' AND dateiname = \'resultlogo.gif\'', $praktdbslave);
+	
+if ($logo != false && mysql_num_rows($logo) > 0) {
+	$row = mysql_fetch_assoc($logo);
+		
+	$logoPath = $row['uri'];
+} else {
+	$logoPath = '/gifs/zentralelemente/logo.png';
+}
+	
+// Logo bekommt eigene Bearbeitungsfunktion
+$firmenlogoHTML = '<img src="'.$logoPath.'" class="logo" alt="Firmenlogo"onclick="parent.GB_showCenter(\'\',\'/firmen/logo_upload/'.$stellenid.'/\',500,450)" /><br />'; //'<img src="'.$logoPath.'" class="logo" onclick="parent.GB_showCenter(\'\',\'/firmen/logo_upload/'.$stellenid.'/\',600,450)" alt="Firmenlogo" /><br />'."\n";
+
+$datumHTML = 'Aktuell seit: '.date('d.m.Y', strtotime($stelle["modify"]));
+// Flash bekommt eigene Bearbeitungsfunktion
+
+preg_match_all("/###(.*)###/U", $htmlBody, $treffer);
+
+$default = $platzhalter["flash"];
+$htmlBody = str_replace("###LOGO###",$firmenlogoHTML, $htmlBody);
+$htmlBody = str_replace("###DATUM###",$datumHTML, $htmlBody);
+$htmlBody = str_replace("###FLASH###", '<div default="'.$default.'" title="'.str_replace("PLATZHALTER ","",$default).'" onblur="parent.blur(this.id); parent.resizeIframe();" id="field_flash" class="editable flashEditable" '.($alternative!=true?'contentEditable="true"':'').' onmouseup="parent.resizeIframe(); parent.setField(\'field_flash\',\'raw\')" onkeyup="parent.keypressed();">'.(empty($stelle["flash"])?$default:stripslashes($stelle["flash"])).'</div>', $htmlBody);
+
+$stelle["jobcode"] = "Jobcode: ".$stelle["jobcode"];
+
+for($a = 0;$a < count($treffer[0]);$a++) {
+	$feld = strtolower($treffer[1][$a]);
+	if(strpos($feld,"_head") !== false) {
+		$feld = substr($feld,0,strlen($feld)-5)."Head";
+	} elseif(strpos($feld,"head") !== false) {
+		$feld = substr($feld,0,strlen($feld)-4)."Head";
+	}
+	$default = $platzhalter[$feld];
+	
+	if(in_array($feld,$rawModus)) $type="raw"; else $type="html";
+	
+	$htmlBody = str_replace($treffer[0][$a], '<div default="'.$default.'" title="'.str_replace("PLATZHALTER ","",$default).'" onblur="parent.blur(this.id); parent.resizeIframe();" id="field_'.$feld.'" class="editable" '.($alternative!=true?'contentEditable="true"':'').' onmouseup="parent.resizeIframe(); parent.setField(\'field_'.$feld.'\',\''.$type.'\')" onkeyup="return parent.keypressed()">'.(empty($stelle[$feld])?$default:nl2br(stripslashes($stelle[$feld]))).'</div>', $htmlBody);
+	
+	if($feld != "logo" && $feld != "datum") $initField[] = 'field_'.$feld;
+}
+
+$htmlBody = str_replace("</head>", '<link rel="stylesheet" type="text/css" href="/styles/stellenEditor/editor.css" /></head>',$htmlBody);
+
+$htmlBody = preg_replace(
+	array("/<body(.*)>/U", "/checkIfEmpty\('(.*)'\);/"), 
+	array("<body onscroll='parent.rePosCommandFrame()' onload='parent.init(); parent.resizeIframe();' style='width:100%; height:100%; margin:0px; padding:0px;'>",""),
+	$htmlBody);
+
+echo $htmlBody; ?>
+<style type="text/css">
+	ul { margin-top:0px !important; margin-bottom:0px; } 
+</style>
+<script type="text/javascript">
+	var htmlEl = document.getElementsByTagName('html')[0];
+	htmlEl.onscroll = function() { parent.rePosCommandFrame;}
+	
+	/* FireFox 3 oder Opera 9 sehen moderne Ansicht  */
+	alternative = <?=(int)$alternative ?>;
+
+
+</script>

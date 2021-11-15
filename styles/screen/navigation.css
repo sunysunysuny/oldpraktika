@@ -1,0 +1,155 @@
+#navigation,
+#navigation_mappe {
+	font-size: 1em;
+	min-height: 2.2em;
+}
+
+#navigation_mappe {
+	float: left;
+	margin-top: 15px;
+}
+
+.candidates #navigation {
+	border: 1.5em solid #F27000;
+	border-top-width: 0.01em;
+	border-top-color: #fffff7;
+	border-left-width: 0;
+	border-right-width: 0;
+}
+
+.companies #navigation {
+	border-bottom: 1.5em solid #9D1720;
+}
+
+#navigation ol {
+}
+
+.candidates #navigation ol {
+	margin-left: 26%;
+}
+
+.companies #navigation ol {
+	width: 35.1em;
+}
+
+
+
+#navigation p,
+#navigation ol li,
+#navigation_mappe ol li {
+	background: #CFDEE1 repeat-x top;
+	display: /*inline-*/block;
+	float: left;
+	margin-right: 3px;
+}
+
+#navigation p a,
+#navigation ol li a,
+#navigation_mappe ol li a {
+	background: url(/gifs/zentralelemente/reiter_left.gif) no-repeat left top;
+	color: #000; 
+	display: block;
+	font-weight: bolder;
+	padding-left: 8px;
+	text-decoration: none;
+}
+
+.candidates #navigation ol li a:hover,
+#navigation_mappe ol li a:hover {
+	color: #F27000;
+}
+
+.companies #navigation ol li a:hover {
+	color: #9D1720;
+}
+
+#navigation p a span,
+#navigation ol li a span,
+#navigation_mappe ol li a span {
+	background: url(/gifs/zentralelemente/reiter_right.gif) no-repeat right top;
+	display: block;
+	line-height: 2.2em;
+	padding-right: 8px;
+}
+
+#navigation ol li#current a,
+#navigation_mappe ol li#current a {
+	color: #fff;
+}
+
+#navigation ol li.abroad, 
+#navigation ol li.look_for_candidates {
+	margin-right: 0;
+}
+
+.candidates #navigation ol li#current,
+#navigation_mappe ol li#current {
+	background-color: #F27000;
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_middle.gif);
+}
+
+.candidates #navigation ol li#current a,
+#navigation_mappe ol li#current a {
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_left.gif);
+}
+
+.candidates #navigation ol li#current a span,
+#navigation_mappe ol li#current a span {
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_right_shadow.gif);
+	padding-right: 11px;
+}
+
+.companies #navigation ol li#current {
+	background-color: #9D1720;
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_middle.gif);
+}
+
+.companies #navigation ol li#current a {
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_left.gif);
+}
+
+.companies #navigation ol li#current a span {
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_right_shadow.gif);
+}
+
+#navigation p.for_candidates,
+#navigation p.for_companies {
+	float: right;
+	margin-right: 0;
+}
+
+#navigation p.for_candidates a,
+#navigation p.for_companies a {
+	color: #fff;
+}
+
+#navigation p.for_candidates a span,
+#navigation p.for_companies a span {
+	padding: 0 13px 0 5px;
+}
+
+#navigation p.for_candidates {
+	background-color: #F27000;
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_middle.gif);
+}
+
+#navigation p.for_candidates a {
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_left.gif);
+}
+
+#navigation p.for_candidates a span {
+	background-image: url(/gifs/zentralelemente/reiter_bewerber_right_noshadow.gif);
+}
+
+#navigation p.for_companies {
+	background-color: #9E181F;
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_middle.gif);
+}
+
+#navigation p.for_companies a {
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_left.gif);
+}
+
+#navigation p.for_companies a span {
+	background-image: url(/gifs/zentralelemente/reiter_unternehmen_right_noshadow.gif);
+}

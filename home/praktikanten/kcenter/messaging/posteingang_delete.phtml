@@ -1,0 +1,8 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+
+$dbstring = 'UPDATE bewerberkontakte SET inactive=\'true\' WHERE id = '.(int)$_POST["mID"].' AND nutzerid = '.$_SESSION['s_loginid'];
+mysql_query($dbstring, $praktdbmaster);
+
+echo (int)$_POST["mID"];

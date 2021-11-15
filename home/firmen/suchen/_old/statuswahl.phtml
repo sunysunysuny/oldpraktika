@@ -1,0 +1,300 @@
+<?
+ $gruppe = "unternehmen";
+ $sprachbasisdatei="/absolventen/praktikanten/einblick.phtml";
+ $sprachbasisdatei2="/home/firmen/einblick.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+pageheader(session_id(), session_name()); 
+
+if ($suchauswahl=="gesuche") $gesuche = "true";
+
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=17";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+//echo $s_kandidatentable;
+
+$bundeslanduebergabe=$bundesland;
+$grossraumuebergabe=$grossraum;
+
+
+unset($s_ergebnisarry[bereiche]);
+unset($s_ergebnisarry[sucheingabe]);
+$s_ergebnisarry[sucheingabe][suchart]=2;
+if ($land > 0) { $defland=" AND t1.land=$land"; $s_ergebnisarry[sucheingabe][land]=array($land); }
+if ($bundesland > 0) { $defbundesland=" AND t1.bundesland=$bundesland"; $s_ergebnisarry[sucheingabe][bundesland]=array($bundesland); }
+if ($grossraum > 0) { $defgrossraum=" AND t1.grossraum=$grossraum";  $s_ergebnisarry[sucheingabe][grossraum]=array($grossraum); }
+if ($geschlecht != "") $defgeschlecht=" AND t1.geschlecht='$geschlecht'";
+if ($alterdef == "" && $alter >0)  $alterdef="=";
+
+// Alter setzen
+if ($alter >0 ) {
+$datumjahr=(date("Y") - $alter);
+$datummonat=date("m");
+$datumtag=date("d");
+
+$datum=$datumjahr."-".$datummonat."-".$datumtag;
+if ($alterdef=="<") $alterdefsql=" AND t1.geburtsdatum > '$datum'";
+if ($alterdef==">") $alterdefsql=" AND t1.geburtsdatum < '$datum'";
+
+if ($alterdef=="=") {
+	$datum1=($datumjahr - 1)."-".$datummonat."-".$datumtag;
+	$datum2=($datumjahr + 1)."-".$datummonat."-".$datumtag;
+	
+	$alterdefsql=" AND t1.geburtsdatum > '$datum1' AND t1.geburtsdatum < '$datum2'";
+}
+}
+
+// Studienrichtung Multiple auswerten und zum Query zusammenbasteln 
+if ( count($studienrichtung) > 0 && $studienrichtung[0] !="") {
+$studiengaenge = implode(",",$studienrichtung);
+   $studienrichtungquery.="AND (t2.studiengang IN (".$studiengaenge.") OR t2.studiengang2 IN (".$studiengaenge.") OR t2.studiengang3 IN (".$studiengaenge."))";
+   $studiumdb=",$database_bprofil.profil_studium as t2";
+   $studiumdbnutzer="AND t1.id=t2.nutzerid";
+   $studvalue=",studiengang";
+   $sudiengangsel=",t2.studiengang";
+}
+/*
+   $studienrichtungquery="AND (";
+
+while (list($key, $val) = each($studienrichtung)) {
+
+   $studienrichtungquery.="t2.studiengang=".$val." OR t2.studiengang2=".$val." OR t2.studiengang3=".$val." OR ";
+   $studiumdb=",$database_bprofil.profil_studium as t2";
+   $studiumdbnutzer="AND t1.id=t2.nutzerid";
+   $studvalue=",studiengang";
+}
+	$studienrichtungquery= substr ($studienrichtungquery,0 , (strlen($studienrichtungquery)-4)).")"; 
+$sudiengangsel=",t2.studiengang";
+
+}
+*/
+// Karrierestatus Multiple auswerten und zum Query zusammenbasteln 
+if ( count($kstatus) > 0 && $kstatus[0] !="") {
+   $kstatusquery="AND (";
+while (list($key, $val) = each($kstatus)) {
+   $kstatusquery.="t1.karierrestatus=".$val." OR ";
+}
+	$kstatusquery= substr ($kstatusquery,0 , (strlen($kstatusquery)-4)).")"; 
+}
+
+// GesucheDBs ber&uuml;cksichtigen
+if ($gesuche =="true") {
+$bereich1query = "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus $studvalue ,bundesland,grossraum,land) select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus $sudiengangsel,t1.bundesland,t1.grossraum,t1.land from $database_db.nutzer as t1 $studiumdb, $database_db.praktikanten as t3 $gesuchedbs where t1.inactive='false' AND t3.inactive='false' AND t1.id=t3.nutzerid $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer group by t1.id";
+$sqlabfrage=mysql_db_query($database_temp,$bereich1query,$praktdbmaster);
+if ($s_debug=="yes") echo $bereich1query;
+
+$bereich2query = "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus,$studvalue bundesland,grossraum,land) select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus $sudiengangsel,t1.bundesland,t1.grossraum,t1.land from $database_db.nutzer as t1 $studiumdb, $database_db.diplomgesuch as t3 $studiumdb where t1.inactive='false' AND t3.inactive='false' AND t1.id=t3.nutzerid $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer group by t1.id";
+$sqlabfrage=mysql_db_query($database_temp,$bereich2query,$praktdbmaster);
+
+$bereich3query = "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus,$studvalue bundesland,grossraum,land) select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus $sudiengangsel,t1.bundesland,t1.grossraum,t1.land from $database_db.nutzer as t1 $studiumdb, $database_db.nebenjobgesuch as t3 $gesuchedbs where t1.inactive='false' AND t3.inactive='false' AND t1.id=t3.nutzerid $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer group by t1.id";
+$sqlabfrage=mysql_db_query($database_temp,$bereich3query,$praktdbmaster);
+
+$bereich4query = "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus $studvalue ,bundesland,grossraum,land) select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus $sudiengangsel,t1.bundesland,t1.grossraum,t1.land from $database_db.nutzer as t1 $studiumdb, $database_db.ausbildungsgesuch as t3 $gesuchedbs where t1.inactive='false' AND t3.inactive='false' AND t1.id=t3.nutzerid $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer group by t1.id";
+$sqlabfrage=mysql_db_query($database_temp,$bereich4query,$praktdbmaster);
+
+$bereich5query = "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus $studvalue ,bundesland,grossraum,land) select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus $sudiengangsel,t1.bundesland,t1.grossraum,t1.land from $database_db.nutzer as t1 $studiumdb, $database_db.berufseinstieggesuch as t3 $gesuchedbs where t1.inactive='false' AND t3.inactive='false' AND t1.id=t3.nutzerid $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer group by t1.id";
+$sqlabfrage=mysql_db_query($database_temp,$bereich5query,$praktdbmaster);
+
+
+$querycount="select id from $s_kandidatentable group by nutzerid";
+$resultcount=mysql_db_query($database_temp,$querycount,$praktdbmaster);
+$anzahl=mysql_numrows($resultcount);
+
+} else {
+
+// Query zusammenbauen
+$query="select t1.id as nutzerid,t1.geburtsdatum, t1.karierrestatus,t1.bundesland,t1.grossraum,t1.land $sudiengangsel from $database_db.nutzer as t1 $studiumdb $gesuchedbs where t1.inactive='false' $defland $defbundesland $defgrossraum $defgeschlecht $alterdefsql $studienrichtungquery $kstatusquery $studiumdbnutzer $gesuchsesql group by t1.id  ORDER by t1.ID desc LIMIT 20000";
+
+if ($s_debug=="yes") echo $query."<br>";
+
+mysql_db_query($database_temp,"INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus,bundesland,grossraum,land $studvalue) ".$query,$praktdbmaster);
+//echo "INSERT INTO prakt2temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus,bundesland,grossraum,land) ".$query;
+
+$querycount="select count(id) as anzahl from $s_kandidatentable";
+$resultcount=mysql_db_query($database_temp,$querycount,$praktdbmaster);
+$anzahl=mysql_result($resultcount,0,"anzahl");
+
+}
+
+
+?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Suchergebnis: Statussuche Kandidaten</h1>
+            <table width="100%">
+
+<script language="JavaScript" type="text/javascript" src="/scripts/bundesland_such.js"></script>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="bundeslandvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="grossraumvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<script for="bundeslandvalues" event="ondatasetcomplete">show_bundesland(this.recordset);</script>
+<script for="grossraumvalues" event="ondatasetcomplete">show_grossraum(this.recordset);</script>
+
+<?
+if ($anzahl == 20000) $maximal = "mind. ";
+echo "Es wurden <b>".$maximal.$anzahl." Ergebnisse</b> auf Ihre Anfrage gefunden. Sie haben nun folgende M&ouml;glichkeiten:";
+
+if (isset($land)) {$landid=$land;} else {$landid=$land;}
+if (isset($bundesland)) {/* nix */} else {$bundesland = $bundesland;}
+if (isset($grossraum)) {/* nix */} else {$grossraum = $grossraum;}
+if ($landid=="") $landid=$s_landid;
+
+echo "<br><br><b><ol><li><span class=normal><a href=\"/home/firmen/suchen/statussuche.phtml?".session_name()."=".session_id()."\">Suchergebnisse ansehen</a></span></li>";
+echo "<li><span class=normal><a href=\"/home/firmen/suchen/warenkorb.phtml?gesamt=true&dest=merkzettel&".session_name()."=".session_id()."\">Ergebnisse auf Merkzettel setzen</a></span>";
+echo "<li><span class=normal><a href=\"/home/firmen/suchen/warenkorb.phtml?gesamt=true&dest=mailing&".session_name()."=".session_id()."\">Mailing vorbereiten</a></span></ol>";
+
+                    echo "<form method=\"POST\" action=\"/home/firmen/suchen/statuswahl.phtml\" name=\"anmeldung\">";
+                    echo "<table cellspacing=\"0px\" cellpadding=\"0px\"><tr><td>";
+		    echo "<table width=\"410px\" cellspacing=\"1px\" cellpadding=\"0px\" bgcolor=\"#F7E7CE\"><tr><td>";
+		    echo "<table width=\"408px\" cellspacing=\"0px\" cellpadding=\"0px\" bgcolor=\"".$spalte2quickloginhell."\" ><tr><td align=\"center\"><br>";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td colspan=2><b>Suchergebnis verfeinern<b><br><br></td></tr>";
+
+
+$landselect = mysql_db_query($database_db,"select $s_sprache,id from land order by $s_sprache",$praktdbslave);
+$anz_land = mysql_NumRows($landselect);
+
+$bundeslandselect = mysql_db_query($database_db,"select * from bundesland where landid=$landid order by $s_sprache",$praktdbslave);
+$anz_bundesland = mysql_NumRows($bundeslandselect);
+
+if ($anz_bundesland > 0) {
+$bundeslandsel=mysql_result($bundeslandselect,0,"id");
+if ($bundesland == "") $bundesland = $bundeslandsel;
+$grossraumselect = mysql_db_query($database_db,"select grossraum,id from grossraum where bundesland=$bundesland order by grossraum",$praktdbslave);
+$anz_grossraum = mysql_NumRows($grossraumselect);
+}
+
+$browser = SniffBrowser(); 
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strLand"] . ":</td> <td>";
+if ($browser['type'] == 'Explorer') { 
+echo "<select name=\"land\" class=\"eingabe210\" onChange=\"load_bundesland(this.value)\">\n";
+} else {
+echo "<select name=\"land\" onChange=\"netscape_reload('anmeldung')\" class=\"eingabe210\">\n";
+}
+	$i=0;
+		while ($i<$anz_land):
+			$html = htmlspecialchars(mysql_result($landselect,$i,$s_sprache));
+			echo "    <option ";
+			if  (mysql_result($landselect,$i,"id") == $landid) {
+				echo "selected ";
+			}
+			echo "value=\"" . mysql_result($landselect,$i,"id") . "\">" . $html . "</option>\n";
+		$i++;
+		endwhile;
+	echo"    </select></td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Bundesland:</td> <td>";
+if ($browser['type'] == 'Explorer') { 
+echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"load_grossraum(document.anmeldung.land.value,this.value)\" onClick=\"load_grossraum(document.anmeldung.land.value,this.value)\" id=\"bundeslandid\">\n";
+} else {
+echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"netscape_reload('anmeldung')\" class=\"eingabe210\">\n";
+}
+		echo"    <option value=\"\">KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+		$i=0;
+		while ($i<$anz_bundesland):
+			$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$s_sprache));
+			echo "    <option ";
+
+if ($bundeslanduebergabe > 0) {
+			if  (mysql_result($bundeslandselect,$i,"id") == $bundesland) {
+				echo "selected ";
+			}
+}
+			echo "value=\"" . mysql_result($bundeslandselect,$i,"id") . "\">" . $html . "</option>\n";
+		$i++;
+		endwhile;
+echo "</select></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strGrossraum"] . ":</td> <td><select name=\"grossraum\" class=\"eingabe210\" id=\"grossraumid\">\n";
+		echo"    <option value=\"\">KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+	$i=0;
+		while ($i<$anz_grossraum):
+			$html = htmlspecialchars(mysql_result($grossraumselect,$i,"grossraum"));
+			echo "    <option ";
+
+if ($grossraumuebergabe > 0) {
+			if  (mysql_result($grossraumselect,$i,"id") == $grossraum) {
+				echo "selected ";
+			}
+}
+			echo "value=\"" . mysql_result($grossraumselect,$i,"id") . "\">" . $html . "</option>\n";
+			
+		$i++;
+		endwhile;
+echo "</select></td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Alter:</td> <td>";
+
+	echo "<select name=\"alterdef\" class=\"eingabe100\">\n";
+			echo "<option value=\"\"></option>\n";
+			echo "<option value=\">\""; if ($alterdef== ">") echo " selected"; echo ">&auml;lter als</option>\n";
+			echo "<option value=\"<\""; if ($alterdef== "<") echo " selected"; echo ">j&uuml;nger als</option>\n";
+			echo "<option value=\"=\""; if ($alterdef== "=") echo " selected"; echo ">genau</option>\n";
+			
+	echo "</select>&nbsp;";
+	echo "<select name=\"alter\" style=width:106px>\n";
+			echo "<option value=\"\"></option>\n";
+	$i=15;
+		while ($i < 60):
+		echo "<option value=\"$i\""; if ($alter== $i) echo " selected"; echo ">".$i." Jahre</option>\n";
+		$i++;
+		endwhile;
+			
+	echo "</select>";
+echo "</td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Nutzergruppe:</td> <td>";
+
+	echo "<select name=\"geschlecht\" class=\"eingabe210\">\n";
+			echo "<option value=\"\""; if ($geschlecht== "") echo " selected"; echo ">KEINE EINSCHR&Auml;NKUNG</option>\n";
+			echo "<option value=\"weiblich\""; if ($geschlecht== "weiblich") echo " selected"; echo ">nur Frauen</option>\n";
+			echo "<option value=\"m&auml;nnlich\""; if ($geschlecht== "m&auml;nnlich") echo " selected"; echo ">nur M&auml;nner</option>\n";
+	echo "</select>";
+echo "</td></tr>\n";
+echo "<tr valign=\"top\"><td>".$einruecken."</td><td>Karrierestatus:</td> <td><select name=\"kstatus[]\" class=\"eingabe210\" size=\"5\" multiple>\n";
+$kstatusselect = mysql_db_query($database_db,"select id,$s_sprache from karierrestatus order by anzeigeorder",$praktdbslave);
+$anz_kstatus = mysql_NumRows($kstatusselect);
+			echo"    <option value=\"\""; if (count($kstatus) < 2 && $kstatus[0] == "" ) echo " selected"; echo " >KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+	$i=0;
+		while ($i<$anz_kstatus):
+			$html = htmlspecialchars(mysql_result($kstatusselect,$i,$s_sprache));
+			echo "    <option ";
+			if (in_array (mysql_result($kstatusselect,$i,"id"),$kstatus)) echo "selected ";
+			echo "value=\"" . mysql_result($kstatusselect,$i,"id") . "\">" . $html . "</option>\n";
+			
+		$i++;
+		endwhile;
+echo "</select></td></tr>\n";
+
+echo"<tr valign=\"top\"><td>".$einruecken."</td><td>" . ($language["strGesuchteSR"]) . ":<td><select name=\"studienrichtung[]\" style=\"font-size:10px\" class=\"eingabe210\" size=\"5\" multiple>\n";
+		    $studienrichtungsel= mysql_db_query($database_db,"select id,studiengang from studiengaenge order by studiengang",$praktdbslave);
+		    $anz_studienrichtung = mysql_NumRows($studienrichtungsel);
+			echo"    <option value=\"\""; if (count($studienrichtung) < 2 && $studienrichtung[0] == "" ) echo " selected"; echo " >KEINE EINSCHR&Auml;NKUNG</OPTION>\n";
+
+			$i=0;
+			while ($i<$anz_studienrichtung):
+			echo "    <option ";
+			if (in_array (mysql_result($studienrichtungsel,$i,"id"),$studienrichtung)) echo "selected ";
+			echo "value=\"" . mysql_result($studienrichtungsel,$i,"id") . "\">" . htmlspecialchars(mysql_result($studienrichtungsel,$i,"studiengang")) . "</option>\n";
+			$i++;
+			endwhile;
+echo"    </select></td></tr>\n";
+
+echo"<tr valign=\"baseline\"><td><br></td></tr>\n";
+			echo"<tr valign=\"baseline\"><td>&nbsp;</td><td colspan=\"2\">\n";
+			echo"<input type=\"submit\" value=\"". $language["strSuchB"] ."\" name=\"submit\">\n";
+			echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+			echo"<input type=\"hidden\" name=\"gesuche\" value=\""; if ($gesuche == "true") echo "true"; echo "\">\n";
+			echo"<br><br></td></tr></table>\n";
+			echo"</td></tr></table></td></tr></table></form>\n";
+?> 
+                        <input type="BUTTON" value="zur Suchauswahl" onClick=location.replace('/home/firmen/einblick.phtml?<?=session_name()."=".session_id()?>')>
+
+<?
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+?>
+</td></tr></table>
+<? bodyoff(session_id(), session_name()); ?>

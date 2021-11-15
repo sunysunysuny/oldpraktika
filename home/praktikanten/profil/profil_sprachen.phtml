@@ -1,0 +1,221 @@
+<?
+$sprachbasisdatei = '/home/praktikanten/profil/profil_schulausbildung.phtml';
+$sprachbasisdatei2 = '/home/praktikanten/profil/profil_leistung.phtml';
+
+require('/home/praktika/etc/config.inc.php');
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if ($_SESSION['s_sprachid'] == 2) {
+	$headline = 'F&auml;higkeiten &amp; Sprachkenntnisse';
+	$headline2 = 'F&auml;higkeiten/Kenntnisse';
+	$text1 = 'Bewerberprofil in';
+	$text2 = 'Anzahl der Eintr&auml;ge';
+	$text4 = '';
+	$myaccount = 'Mein Account';
+	$lebenslaufprofil = 'zum Profil';
+	$weitereSprachen = 'weitere Sprachen';
+	$mittelmass = 'Mittelm&auml;&szlig;ig';
+	$beginner = 'Beginner';
+	$strSprache = "Sprache";	
+} elseif ($_SESSION['s_sprachid'] == 1) {
+	$headline = 'Language Skills & Further Skills';
+	$headline2 = 'Skills';
+	$text1 = 'Profile in';
+	$text2 = 'choose number of forms below';
+	$text4 = '';
+	$myaccount = 'my account';
+	$lebenslaufprofil = 'profile';
+	$weitereSprachen = 'Other languages';
+	$mittelmass = 'Moderately well';
+	$beginner = 'Beginner';
+	$strSprache = "Language";
+}
+
+
+if (isset($_POST['save'])) {
+	$select = mysql_db_query($database_bprofil, 'SELECT * FROM profil_leistung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+	$test = mysql_num_rows($select);
+
+	if ($test < 1) {
+		$insertstring = 'INSERT INTO profil_leistung (nutzerid, sprachid, datum_eintrag, modify) VALUES (\''.$_SESSION['s_loginid'].'\', \''.$_SESSION['s_sprachid'].'\', NOW(), NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+	}
+
+	$updatestring = 'UPDATE profil_leistung SET sprachid='.$_SESSION['s_sprachid'].', beschreibungen=\''.mysql_real_escape_string($_POST['beschreibungen']).'\', sprachkenntnisse1=\''.$_POST['sprachkenntnisse1'].'\',sprachkenntnisse2=\''.$_POST['sprachkenntnisse2'].'\', sprachkenntnisse3=\''.$_POST['sprachkenntnisse3'].'\', sprachbegabung1=\''.$_POST['sprachbegabung1'].'\', sprachbegabung2=\''.$_POST['sprachbegabung2'].'\', sprachbegabung3=\''.$_POST['sprachbegabung3'].'\', weiteresprachen=\''.mysql_real_escape_string($_POST['weiteresprachen']).'\', modify=NOW() WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+	# echo $updatestring;
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+	Praktika_Lebenslauf::deleteCache();	
+	recalc_profilquali();
+	
+	if($_POST["backToStart"] == "1") {
+		header("Location: /lebenslauf/ok/");
+	}		
+}
+
+$select = mysql_db_query($database_bprofil, 'SELECT * FROM profil_leistung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+$profil = mysql_fetch_array($select);
+
+pageheader(array('page_title' => $headline)); 
+
+if (isset($_POST['vorschau'])) {
+	$sel = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbslave);
+	if (strlen((mysql_result($sel, 0, 'lebenslauftemplate'))) != 0) {
+		$linktemplate = mysql_result($sel, 0, 'lebenslauftemplate');
+	} else {
+		$linktemplate = '01';
+	}
+	echo '			<script type="text/javascript">'."\n";
+	echo '				vorschau = window.open(\'/home/praktikanten/profil/previewlebenslauf'.$linktemplate.'.phtml\',\'BewerbungsWindow\',\'scrollbars=yes,status=no,toolbar=no,width=720,height=580\');'."\n";
+	echo '			</script>'."\n";
+}
+
+if (isset($_POST['save'])) {
+	echo '<p class="hint success">'.$language['strGespeichert'].'</p>'."\n";
+}
+
+$sprachen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM sprachen WHERE inactive=\'false\' ORDER BY '.$_SESSION['s_sprache'].'',$praktdbslave);
+$anz_sprachen = ($sprachen != false) ? mysql_num_rows($sprachen) : 0;
+
+# language_select($text1);
+
+echo '<div id="recruitingCenter">';
+
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+echo '		<br /><form id="contentform" action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post">'."\n";
+echo '			<h4>'.$headline2.'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="beschreibungen">'.$language['strHeadline1'].'<br /><span class="hint">'.$language['strHeadline1unter'].'</span></label><textarea id="beschreibungen" name="beschreibungen" rows="10" cols="16">'.stripslashes(($profil['beschreibungen'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<h4>'.$language['strHeadline2'].'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<table class="profile_language" style="border:0px;" cellspacing="0" cellpadding="0">'."\n";
+echo '					<colgroup>'."\n";
+echo '						<col width="49%" />'."\n";
+echo '						<col width="23%" />'."\n";
+echo '						<col width="3%" />'."\n";
+echo '						<col width="23%" />'."\n";
+echo '						<col width="2%" />'."\n";
+echo '					</colgroup>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<label for="sprachkenntnisse1">1. '.$strSprache.'</label>'."\n";
+echo '						</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="sprachkenntnisse1"name="sprachkenntnisse1">'."\n";
+echo '								<option value="">'.$language['strWaehlen'].'</option>'."\n";
+if (!$profil['sprachkenntnisse1']) {
+	$profil['sprachkenntnisse1'] = $_SESSION['s_sprache'];
+}
+$i=0;
+while ($i < $anz_sprachen) {
+	$html = (mysql_result($sprachen, $i, $_SESSION['s_sprache']));
+	echo '								<option ';
+	if (isset($profil['sprachkenntnisse1']) && $profil['sprachkenntnisse1'] == mysql_result($sprachen, $i, 'id')) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.mysql_result($sprachen, $i, 'id').'">'.$html.'</option>'."\n";
+	$i++;
+}
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;"> - </td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="sprachbegabung1" class="html_controlled" name="sprachbegabung1" class="second">'."\n";
+echo '								<option value=""'.((!isset($profil['sprachbegabung1'])) ? ' selected="selected"' : '').'>'.$language['strWaehlen'].'</option>'."\n";
+echo '								<option value="1"'.((isset($profil['sprachbegabung1']) && $profil['sprachbegabung1'] == '1') ? ' selected="selected"' : '').'>'.$language['strMuttersprache'].'</option>'."\n";
+echo '								<option value="2"'.((isset($profil['sprachbegabung1']) && $profil['sprachbegabung1'] == '2') ? ' selected="selected"' : '').'>'.$language['strSehrgut'].'</option>'."\n";
+echo '								<option value="3"'.((isset($profil['sprachbegabung1']) && $profil['sprachbegabung1'] == '3') ? ' selected="selected"' : '').'>'.$mittelmass.'</option>'."\n";
+echo '								<option value="4"'.((isset($profil['sprachbegabung1']) && $profil['sprachbegabung1'] == '4') ? ' selected="selected"' : '').'>'.$beginner.'</option>'."\n";
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td>&nbsp;</td>';
+echo '					</tr>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<label for="sprachkenntnisse2">2. '.$strSprache.'</label>'."\n";
+echo '						</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="sprachkenntnisse2" name="sprachkenntnisse2">'."\n";
+echo '								<option value="">'.$language['strWaehlen'].'</option>'."\n";
+$i=0;
+while ($i < $anz_sprachen) {
+	if(mysql_result($sprachen, $i, 'id') !== "0") {
+		$html = (mysql_result($sprachen, $i, $_SESSION['s_sprache']));
+		echo '								<option ';
+		if (isset($profil['sprachkenntnisse2']) && $profil['sprachkenntnisse2'] == mysql_result($sprachen, $i, 'id')) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($sprachen, $i, 'id').'">'.$html.'</option>'."\n";
+	}
+	$i++;
+}
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;"> - </td>';
+echo '						<td>'."\n";
+echo '							<select id="sprachbegabung2" class="html_controlled" name="sprachbegabung2" class="second">'."\n";
+echo '								<option value=""'.((!isset($profil['sprachbegabung2'])) ? ' selected="selected"' : '').'>'.$language['strWaehlen'].'</option>'."\n";
+echo '								<option value="1"'.((isset($profil['sprachbegabung2']) && $profil['sprachbegabung2'] == '1') ? ' selected="selected"' : '').'>'.$language['strMuttersprache'].'</option>'."\n";
+echo '								<option value="2"'.((isset($profil['sprachbegabung2']) && $profil['sprachbegabung2'] == '2') ? ' selected="selected"' : '').'>'.$language['strSehrgut'].'</option>'."\n";
+echo '								<option value="3"'.((isset($profil['sprachbegabung2']) && $profil['sprachbegabung2'] == '3') ? ' selected="selected"' : '').'>'.$mittelmass.'</option>'."\n";
+echo '								<option value="4"'.((isset($profil['sprachbegabung2']) && $profil['sprachbegabung2'] == '4') ? ' selected="selected"' : '').'>'.$beginner.'</option>'."\n";
+echo 		'					</select>'."\n";
+echo '						</td>'."\n";
+echo '					</tr>'."\n";
+echo '					<tr>'."\n";
+echo '						<td>'."\n";
+echo '							<label for="sprachkenntnisse3">3. '.$strSprache.'</label>'."\n";
+echo '						</td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="sprachkenntnisse3" name="sprachkenntnisse3">'."\n";
+echo '								<option value="">'.$language['strWaehlen'].'</option>'."\n";
+$i=0;
+while ($i < $anz_sprachen) {
+	if(mysql_result($sprachen, $i, 'id') !== "0") {	
+		$html = (mysql_result($sprachen, $i, $_SESSION['s_sprache']));
+		echo '								<option ';
+		if (isset($profil['sprachkenntnisse3']) && $profil['sprachkenntnisse3'] == mysql_result($sprachen, $i, 'id')) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($sprachen, $i, 'id').'">'.$html.'</option>'."\n";
+	}
+	$i++;
+}
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '						<td style="text-align: center;"> - </td>'."\n";
+echo '						<td>'."\n";
+echo '							<select id="sprachbegabung3" class="html_controlled" name="sprachbegabung3" class="second">'."\n";
+echo '								<option value=""'.((!isset($profil['sprachbegabung3'])) ? ' selected="selected"' : '').'>'.$language['strWaehlen'].'</option>'."\n";
+echo '								<option value="1"'.((isset($profil['sprachbegabung3']) && $profil['sprachbegabung3'] == '1') ? ' selected="selected"' : '').'>'.$language['strMuttersprache'].'</option>'."\n";
+echo '								<option value="2"'.((isset($profil['sprachbegabung3']) && $profil['sprachbegabung3'] == '2') ? ' selected="selected"' : '').'>'.$language['strSehrgut'].'</option>'."\n";
+echo '								<option value="3"'.((isset($profil['sprachbegabung3']) && $profil['sprachbegabung3'] == '3') ? ' selected="selected"' : '').'>'.$mittelmass.'</option>'."\n";
+echo '								<option value="4"'.((isset($profil['sprachbegabung3']) && $profil['sprachbegabung3'] == '4') ? ' selected="selected"' : '').'>'.$beginner.'</option>'."\n";
+echo '							</select>'."\n";
+echo '						</td>'."\n";
+echo '					</tr>'."\n";
+echo '				</table>'."\n";
+echo '				<p class="clear_left">'."\n";
+echo '					<label for="weiteresprachen">'.$weitereSprachen.'</label><textarea id="weiteresprachen" name="weiteresprachen" rows="10" cols="16">'.(isset($profil['weiteresprachen']) ? stripslashes(($profil['weiteresprachen'])) : '').'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p class="center"><input class="button small" type="submit" value="&Auml;nderungen speichern" name="save" /></p>'."\n";
+echo '				<p><label for="backToStart" class="komplette_breite"><input type="checkbox" class="html_controlled" name="backToStart" id="backToStart" value="1" '.(!isset($_SESSION["backToStart"]) || (isset($_SESSION["backToStart"]) && $_SESSION["backToStart"] != "1")?'':'checked="checked"').' /> Nach dem Speichern zur&uuml;ck zur Lebenslauf&uuml;bersicht</label></p>';
+echo '			</fieldset>'."\n";
+echo '		</form>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

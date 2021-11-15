@@ -1,0 +1,263 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+pageheader(array('page_title' => 'Fehlermeldung', 'page_image' => true)); ?>
+
+<?
+
+if (isset($_POST['sendmail']) && !empty($_POST['email']) && !empty($_POST['name']) && !empty($_POST['kommentar']) && $_POST["sicherheit"] == substr(md5("praktika"),2,5)) {
+
+	/* Bestaetigungsmail an Firma basteln*/
+	$mailtoaddr = 'support@praktika.de';
+
+	$subject = 'Ich melde einen Fehler auf praktika.de';
+	$mailstring = utf8_decode('Soeben hat '.$_POST['geschlecht'].' '.$_POST['vorname'].' '.$_POST['name'].' von Praktika ein Fehlerformular ausgefüllt.')."\n\n";
+	$mailstring = $mailstring.'Vorname: '.utf8_decode($_POST['vorname'])."\n";
+	$mailstring = $mailstring.'Name: '.utf8_decode($_POST['name'])."\n";
+	$mailstring = $mailstring.'E-Mail Adresse: '.utf8_decode($_POST['email'])."\n";
+	$mailstring = $mailstring.'Fehlerseite: '.utf8_decode($_POST['homepage'])."\n\n";
+	$mailstring = $mailstring.'Betriebssystem: '.utf8_decode($_POST['systemhome'])."\n";
+	$mailstring = $mailstring.'Browser: '.utf8_decode($_POST['browserhome'])."\n";
+	$mailstring = $mailstring.utf8_decode('Auflösung: '.$_POST['resolutionhome'])."\n\n";
+	$mailstring = $mailstring.'Kommentar'."\n".utf8_decode($_POST['kommentar'])."\n\n";
+
+	if ($_POST['antwort'] == 'true') {
+		$mailstring = $mailstring.'Antwort erwünscht!'."\n\n";
+	} else {
+		$mailstring = $mailstring.utf8_decode('Antwort unerwünscht!')."\n\n";
+	}
+	
+	$mailstring = $mailstring.'Loginid: '.$_POST['userugid']." | ".$_SESSION["s_nutzerid"]."\n\n";
+
+	$mailstring = Praktika_String::getISOString($mailstring);
+	
+	$mailstring .= "\n\nSESSION:\n\n";
+	$mailstring .= var_export($_SESSION, true);
+	
+	$mailstring .= "\n\nSERVER:\n\n";
+	$mailstring .= var_export($_SERVER, true);
+
+	
+	/* Bestaetigunsmail verschicken */
+	mail($mailtoaddr, $subject, $mailstring, 'From: '.$_POST['email']."\n".'X-Mailer: praktika.de Mailscript PHP');
+
+	echo '<p class="hint success">Ihre Nachricht wurde erfolgreich versandt.<br />Bitte geben Sie uns f&uuml;r eine Antwort bis zu zwei Werktage Zeit.</p>'."\n";
+	echo '<p class="control_panel"><button type="button" name="back" value="zur Hauptseite" onclick="location.href = \'/bewerber/\';"><span><span><span>zur Hauptseite</span></span></span></button></p>'."\n";
+} else {
+	echo '<p>Trotz sorgf&auml;ltiger Programmierung und Pr&uuml;fung k&ouml;nnen sich Fehler einschleichen. Wenn Sie einen Fehler bemerken oder vermuten, dann informieren Sie uns bitte dar&uuml;ber. Wir danken Ihnen f&uuml;r Ihren Hinweis.</p>'."\n";
+
+	if (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true && $_SESSION['s_unternehmen'] == true) {
+		$firma = mysql_db_query($database_db,'SELECT firmen.firma, firmen.strasse, firmen.plz, firmen.ort, firmen.tel, firmen.homepage, bearbeiter.name, bearbeiter.vname, bearbeiter.email FROM firmen, bearbeiter WHERE firmen.id = '.$_SESSION['s_firmenid'].' AND bearbeiter.id = '.$_SESSION['s_loginid'],$praktdbslave);
+		$fetch = mysql_fetch_array($firma);
+		$userugid = $_SESSION['s_loginid'];
+	}
+	
+	if (isset($_COOKIE['c_group']) && $_COOKIE['c_group'] == 'unternehmen' && !$fetch && $_COOKIE['c_lid'] > 0) {
+		$firma = mysql_db_query($database_db,'SELECT firmen.firma, firmen.strasse, firmen.plz, firmen.ort, firmen.tel, firmen.homepage, bearbeiter.name, bearbeiter.vname, bearbeiter.email FROM firmen, bearbeiter WHERE bearbeiter.id = '.$c_lid.' AND bearbeiter.firmenid = firmen.id',$praktdbslave);
+		$fetch = mysql_fetch_array($firma);
+		$userugid = $_COOKIE['c_lid'];
+	}
+	
+	if (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true && $_SESSION['s_unternehmen'] == false) {
+		$nutzer = mysql_db_query($database_db,'SELECT * FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+		$fetch = mysql_fetch_array($nutzer);
+		$userugid = $_SESSION['s_nutzerid'];
+	}
+	
+	if ($_COOKIE['c_group'] && $_COOKIE['c_group'] == 'nutzer' && !$fetch && $_COOKIE['c_lid'] > 0) {
+		$nutzer = mysql_db_query($database_db,'SELECT * FROM nutzer WHERE id = '.$c_lid,$praktdbslave);
+		$fetch = mysql_fetch_array($nutzer);
+		$userugid = $$_COOKIE['c_lid'];
+	}
+	
+	if (isset($fetch['name']) && !empty($fetch['name'])) {
+		$vorname = $fetch['vname'];
+		$name = $fetch['name'];
+		$email = $fetch['email'];
+	}
+
+	if (isset($_POST['sendmail'])) {
+		echo '<p class="hint error">Bitte f&uuml;llen Sie die rot hervorgehobenen Felder aus.</p>'."\n";
+	}
+	
+	if(empty($_POST["browserhome"])) {
+		if(Praktika_Browser::isIE("8.0","=")) {
+			$b = "IE6";
+		} else if(Praktika_Browser::isIE("7.0","=")) {
+			$b = "IE7";
+		} else if(Praktika_Browser::isIE("8.0","=")) {
+			$b = "IE8";
+		} else if(Praktika_Browser::isIE("9.0","=")) {
+			$b = "IE9";
+		} else if(Praktika_Browser::isIE("10.0","=")) {
+			$b = "IE10";
+		} else if(Praktika_Browser::isOpera()) {
+			$b = "Opera";
+		} else if(Praktika_Browser::isSafari()) {
+			$b = "Safari";
+		} else if(Praktika_Browser::isFirefox("1.0", "=")) {
+			$b = "Mozilla1";
+		} else if(Praktika_Browser::isFirefox("2.0","=")) {
+			$b = "Mozilla2";
+		} else if(Praktika_Browser::isFirefox("3.0","=")) {
+			$b = "Mozilla3";
+		} else if(Praktika_Browser::isFirefox("4.0","=")) {
+			$b = "Mozilla4";
+		} else if(Praktika_Browser::isFirefox("5.0","=")) {
+			$b = "Mozilla5";
+		} else if(Praktika_Browser::isFirefox("6.0","=")) {
+			$b = "Mozilla6";
+		} else if(Praktika_Browser::isFirefox("3.0","=")) {
+			$b = "anderes";
+		}
+		$_POST["browserhome"] = $b;
+	}
+	
+	if(empty($_POST["systemhome"])) {
+		$OSList = array
+		(
+				// Match user agent string with operating systems
+				'Windows 3.11' => 'Win16',
+				'Windows 95' => '(Windows 95)|(Win95)|(Windows_95)',
+				'Windows 98' => '(Windows 98)|(Win98)',
+				'Windows 2000' => '(Windows NT 5.0)|(Windows 2000)',
+				'Windows XP' => '(Windows NT 5.1)|(Windows XP)',
+				'Windows Server 2003' => '(Windows NT 5.2)',
+				'Windows Vista' => '(Windows NT 6.0)',
+				'Windows 7' => '(Windows NT 6.1)',
+				'Windows NT 4.0' => '(Windows NT 4.0)|(WinNT4.0)|(WinNT)|(Windows NT)',
+				'Windows ME' => 'Windows ME',
+				'Open BSD' => 'OpenBSD',
+				'Sun OS' => 'SunOS',
+				'Linux' => '(Linux)|(X11)',
+				'Mac OS 9' => '(Mac_PowerPC)|(Macintosh)',
+				'QNX' => 'QNX',
+				'BeOS' => 'BeOS',
+				'OS/2' => 'OS/2',
+				'Search Bot'=>'(nuhk)|(Googlebot)|(Yammybot)|(Openbot)|(Slurp)|(MSNBot)|(Ask Jeeves/Teoma)|(ia_archiver)'
+		);
+		 
+		// Loop through the array of user agents and matching operating systems
+		foreach($OSList as $CurrOS=>$Match)
+		{
+				// Find a match
+				if (eregi($Match, $_SERVER['HTTP_USER_AGENT']))
+				{
+						// We found the correct match
+						break;
+				}
+		}
+
+		$_POST["systemhome"] = $CurrOS;
+	}
+?>
+
+<p class="hint info"><sup>*</sup> wichtig f&uuml;r eine schnelle pers&ouml;nliche Bearbeitung</p>
+<form method="post" action="/fehler/" name="fehlerForm">
+	<h4>Ihre Fehlerbeschreibung</h4>
+	<fieldset>
+		<p>
+			<label for="anrede">Anrede:<sup>*</sup></label>
+			<select id="anrede" name="geschlecht">
+				<option value="Herr"<?php echo (isset($_POST['sendmail']) && $_POST['geschlecht'] == 'Herr') ? 'selected="selected"' : '' ?>>Herr</option>
+				<option value="Frau"<?php echo (isset($_POST['sendmail']) && $_POST['geschlecht'] == 'Frau') ? 'selected="selected"' : '' ?>>Frau</option>
+			</select>
+		</p>
+		<p>
+			<label for="vorname"<?php echo (isset($_POST['sendmail']) && empty($_POST['vorname'])) ? ' class="error"' : '' ?>>Vorname:<sup>*</sup></label>
+			<input id="vorname" name="vorname" value="<?php echo isset($_POST['vorname']) ? $_POST['vorname'] : '' ?>" type="text" />
+		</p>
+
+		<p>
+			<label for="name"<?php echo (isset($_POST['sendmail']) && empty($_POST['name'])) ? ' class="error"' : '' ?>>Name:<sup>*</sup></label>
+			<input id="name" name="name" value="<?php echo isset($_POST['name']) ? $_POST['name'] : '' ?>" type="text" />
+		</p>
+		<p>
+			<label for="email"<?php echo (isset($_POST['sendmail']) && empty($_POST['email'])) ? ' class="error"' : '' ?>>eMail-Adresse:<sup>*</sup></label>
+			<input id="email" name="email" value="<?php echo isset($_POST['email']) ? $_POST['email'] : '' ?>" type="text" />
+		</p>
+		<p>
+			<label for="homepage"<?php echo (isset($_POST['sendmail']) && empty($_POST['homepage'])) ? ' class="error"' : '' ?>>URL:<sup>*</sup></label>
+			<input id="homepage" name="homepage" value="<?php echo isset($_POST['homepage']) ? $_POST['homepage'] : $_SERVER['HTTP_REFERER'] ?>" type="text" />
+		</p>
+	</fieldset>
+	<p>Bitte machen Sie, falls m&ouml;glich, einige technische Angaben, damit wir dem Fehler schneller auf die Spur kommen.</p>
+	<fieldset>
+		<p>
+			<label for="systemhome">Ihr Betriebssystem:</label>
+			<select id="systemhome" name="systemhome">
+				<option value="Windows XP"<?php echo ($_POST['systemhome'] == 'Windows XP') ? 'selected="selected"' : '' ?>>Windows XP</option>
+				
+				<option value="Windows 7"<?php echo ($_POST['systemhome'] == 'Windows 7') ? 'selected="selected"' : '' ?>>Windows 7</option>
+				<option value="Windows Vista"<?php echo ($_POST['systemhome'] == 'Windows Vista') ? 'selected="selected"' : '' ?>>Windows Vista</option>
+				
+				<option value="Windows 2000"<?php echo ($_POST['systemhome'] == 'Windows 2000') ? 'selected="selected"' : '' ?>>Windows 2000</option>
+				<option value="Windows NT"<?php echo ($_POST['systemhome'] == 'Windows NT') ? 'selected="selected"' : '' ?>>Windows NT</option>
+				<option value="Windows ME"<?php echo ($_POST['systemhome'] == 'Windows ME') ? 'selected="selected"' : '' ?>>Windows ME</option>
+				<option value="Windows 98"<?php echo ($_POST['systemhome'] == 'Windows 98') ? 'selected="selected"' : '' ?>>Windows 98</option>
+				<option value="Windows 95"<?php echo ($_POST['systemhome'] == 'Windows 95') ? 'selected="selected"' : '' ?>>Windows 95</option>
+				<option value="MAC OS X"<?php echo ($_POST['systemhome'] == 'MAC OS X') ? 'selected="selected"' : '' ?>>MAC OS X</option>
+				<option value="MAC OS 9"<?php echo ($_POST['systemhome'] == 'MAC OS 9') ? 'selected="selected"' : '' ?>>MAC OS 9</option>
+				<option value="Linux"<?php echo ($_POST['systemhome'] == 'Linux') ? 'selected="selected"' : '' ?>>Linux</option>
+				<option value="Unix"<?php echo ($_POST['systemhome'] == 'Unix') ? 'selected="selected"' : '' ?>>Unix</option>
+				<option value="anderes"<?php echo ($_POST['systemhome'] == 'anderes') ? 'selected="selected"' : '' ?>>anderes</option>
+			</select>
+		</p>
+		<p>
+			<label for="browserhome">Ihr Browser:</label>
+			<select id="browserhome" name="browserhome">
+				<option value="IE8"<?php echo ($_POST['browserhome'] == 'IE8') ? 'selected="selected"' : '' ?>>Internet Explorer 8</option>
+				<option value="IE7"<?php echo ($_POST['browserhome'] == 'IE7') ? 'selected="selected"' : '' ?>>Internet Explorer 7</option>
+				<option value="IE6"<?php echo ($_POST['browserhome'] == 'IE6') ? 'selected="selected"' : '' ?>>Internet Explorer 6</option>
+				<option value="IE5"<?php echo ($_POST['browserhome'] == 'IE5') ? 'selected="selected"' : '' ?>>Internet Explorer 5</option>
+				<option value="Mozilla6"<?php echo ($_POST['browserhome'] == 'Mozilla6') ? 'selected="selected"' : '' ?>>Firefox 6</option>
+				<option value="Mozilla5"<?php echo ($_POST['browserhome'] == 'Mozilla5') ? 'selected="selected"' : '' ?>>Firefox 5</option>
+				<option value="Mozilla4"<?php echo ($_POST['browserhome'] == 'Mozilla4') ? 'selected="selected"' : '' ?>>Firefox 4</option>
+				<option value="Mozilla3"<?php echo ($_POST['browserhome'] == 'Mozilla3') ? 'selected="selected"' : '' ?>>Firefox 3</option>
+				<option value="Mozilla2"<?php echo ($_POST['browserhome'] == 'Mozilla2') ? 'selected="selected"' : '' ?>>Firefox 2</option>
+				<option value="Mozilla1"<?php echo ($_POST['browserhome'] == 'Mozilla1') ? 'selected="selected"' : '' ?>>Firefox 1</option>
+				<option value="Opera"<?php echo ($_POST['browserhome'] == 'Opera') ? 'selected="selected"' : '' ?>>Opera</option>
+				<option value="Safari"<?php echo ($_POST['browserhome'] == 'Safari') ? 'selected="selected"' : '' ?>>Safari</option>
+				<option value="anderer"<?php echo ($_POST['browserhome'] == 'anderes') ? 'selected="selected"' : '' ?>>andere</option>
+			</select>
+		</p>
+<!--		<p>
+			<label for="resolutionhome">Ihre Bildschirmaufl&ouml;sung:</label>
+			<select id="resolutionhome" name="resolutionhome">
+				<option value="bigger1280"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == 'bigger1280') ? 'selected="selected"' : '' ?>>&gt; 1280 x 1024</option>
+				<option value="1280"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == '1280') ? 'selected="selected"' : '' ?>>1280 x 1024</option>
+				<option value="1152"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == '1152') ? 'selected="selected"' : '' ?>>1152 x 864</option>
+				<option value="1024"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == '1024') ? 'selected="selected"' : '' ?>>1024 x 768</option>
+				<option value="800"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == '800') ? 'selected="selected"' : '' ?>>800 x 600</option>
+				<option value="640"<?php echo (isset($_POST['sendmail']) && $_POST['resolutionhome'] == '640') ? 'selected="selected"' : '' ?>>640 x 480</option>
+			</select>
+		</p>-->
+		<p>
+			<label for="kommentar"<?php echo (isset($_POST['sendmail']) && empty($_POST['kommentar'])) ? ' class="error"' : '' ?>>Fehlerbeschreibung:<sup>*</sup></label>
+			<textarea id="kommentar" name="kommentar" rows="6" cols="10"><?php echo isset($_POST['kommentar']) ? $_POST['kommentar'] : '' ?></textarea>			
+		</p>
+		<? # Hidden-CAPTCHA gegen Bots ?>
+		<p id="sicherheit_container">
+			<label for="homepage">Zur Spamabwehr bitte "<?=substr(md5("praktika"),2,5) ?>" eintragen:<sup>*</sup></label>
+			<input id="sicherheit" name="sicherheit" value="spam" type="text" />
+		</p>	
+		<script type="text/javascript">
+			$('#sicherheit_container').css("display", "none");
+			$('#sicherheit').val("<?=substr(md5("praktika"),2,5) ?>");
+		</script>		
+		<p class="checkboxes">
+			<label for="antwort" class="komplette_breite"><input type="checkbox" id="antwort" name="antwort" value="true"<?php echo isset($_POST['antwort']) ? ' checked="checked"' : '' ?> /> Ich w&uuml;nsche eine Antwort.</label>
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<a href="#" class="button small" onclick="document.fehlerForm.submit(); return false;">senden</a>
+		<input type="hidden" name="userugid" value="<?php echo isset($_POST['userugid']) ? $_POST['userugid'] : '' ?>" />
+		<input type="hidden" name="sendmail" value="1" />
+	</fieldset>
+</form>		
+
+<?php
+}
+
+bodyoff();
+?>

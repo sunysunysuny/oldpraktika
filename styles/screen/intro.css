@@ -1,0 +1,269 @@
+#intro {
+	background-repeat: repeat-y;
+	background-position: center bottom;
+	color: #fff;
+	position: relative;
+	margin-top: 1px;
+	min-height: 104px; 
+}
+
+#intro h2 {
+	display: none;
+}
+
+
+
+
+
+#intro div.menu { 
+	background-repeat: no-repeat;
+	background-position: right bottom;
+	min-height: 100px;
+	padding: 5px 0 0;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 33%;
+	z-index: 2;
+}
+
+#intro .menu p,
+#intro .menu ul {
+	font-size: .9em;
+}
+
+#intro .menu p.name,
+#intro .menu p.company,
+#intro .menu p.loginid,
+#intro .menu p.logout  {
+	text-align: right;
+	margin-right: 160px;
+}
+
+#intro .menu p.company,
+#intro .menu p.loginid {
+	font-size: .8em;
+}
+
+#intro .menu p.lisence {
+	margin-bottom: .5em;
+	float: right;
+}
+
+#intro .menu p.quality {
+	position: absolute;
+	right: 10px;
+	top: 10px; /* padding-top von div.menu */
+}
+
+#intro .menu ul {
+	font-size: .9em;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 100%;
+	z-index: 2;
+}
+
+#intro .menu ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+
+#intro .menu ul li {
+	float: left;
+	padding: 0;
+	margin: 0;
+	position: relative;
+	width: 33%;
+	height: 3.2em;
+	z-index: 100;
+	text-transform: uppercase;
+}
+
+#intro .menu ul li.cc {
+}
+
+#intro .menu ul li.profile {
+	width: 30%;
+}
+
+#intro .menu ul li.community {
+	width: 36.5%;
+}
+
+
+
+
+
+#intro .menu ul li dl {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 101;
+}
+#intro .menu ul li a {
+	/*outline: none;*/
+	text-decoration: none;
+}
+#intro .menu ul li dd {
+	display: none;
+}
+#intro .menu ul li:hover,
+#intro .menu li a:hover {
+	border: 0;
+}
+
+#intro .menu ul li:hover dl,
+#intro .menu li a:hover dl {
+	border: 1px solid #fff;
+}
+
+#intro .menu ul li:hover dd,
+#intro .menu li a:hover dd {
+	display: block;
+}
+/*#intro .menu ul li:hover dl,
+#intro .menu li a:hover dl {
+	padding-bottom: 20px;
+}*/
+#intro .menu ul table {
+	border-collapse: collapse;
+	padding: 0;
+	margin: -1px;
+	font-size: 1em;
+}
+#intro .menu ul dl {
+	width: 100%;
+	padding: 0;
+	cursor: pointer;
+}
+
+#intro .menu ul dt {
+	background: no-repeat 3px center;
+	color: #fff;
+	font-size: 1em;
+	margin: 0;
+	padding-left: 30px;
+}
+
+#intro .menu ul li.cc dt {
+	background-image: url("/gifs/karriere/symbol_blitz.png");
+}
+
+#intro .menu ul li.profile dt {
+	background-image: url("/gifs/karriere/symbol_blume.png");
+}
+
+#intro .menu ul li.community dt {
+	background-image: url("/gifs/karriere/symbol_menschen.png");
+}
+
+
+#intro .menu ul dd {
+	margin: -1px 0 0;
+	padding: 0;
+	color: #fff;
+	font-size: 1em;
+	/*background: #9cbe18;*/
+	text-align: left;
+	font-size: 1em;
+	text-transform: none;
+}
+
+.sub dt a,
+.sub dt a:visited {
+	display: block;
+	color: #444;
+}
+.sub dd a,
+.sub a:visited {
+	color: #fff;
+	text-decoration: none;
+	display: block;
+	padding: 4px 0 4px 2px;
+}
+.sub dd a:hover {
+	/*background: #738e00;
+	color: #9cf;*/
+}
+
+.sub a:hover, 
+.sub a:hover {
+	border: 1px solid #ffffff;
+	border-width: 0 1px;
+}
+
+
+
+
+
+div#statistics {
+	background: no-repeat bottom left;
+	float: left;
+	font-size: .8em;
+	height: 9.8em;
+	padding: .2em 0;
+	text-align: right;
+	width: 25%;
+}
+
+div#statistics a {
+	text-decoration: none;
+}
+
+div#statistics a:hover {
+	text-decoration: underline;
+}
+
+/*
+#community #intro,
+#company #intro {
+	background-color: #000;
+	background-image: url(/gifs/zentralelemente/introBG_schwarz.gif);
+}
+
+#community #intro form#quicklogin,
+#company #intro form#quicklogin {
+	background-image: url(/gifs/zentralelemente/trenner_schwarz.gif);
+}
+
+#community #intro form#search fieldset p.searchterm,
+#company #intro form#search fieldset p.searchterm {
+	background-image: url(/gifs/zentralelemente/suche_schwarz_left.gif);
+}
+
+#community #intro form#search fieldset p.searchsubmit,
+#company #intro form#search fieldset p.searchsubmit {
+	background-image: url(/gifs/zentralelemente/suche_schwarz_right.gif);
+}
+
+
+#abroad #intro,
+#home #intro {
+	background-color: #6b9a8c;
+	background-image: url(/gifs/zentralelemente/introBG_blau.gif);
+}
+
+#abroad #intro form#quicklogin,
+#home #intro form#quicklogin {
+	background-image: url(/gifs/zentralelemente/trenner_blau.gif);
+}
+
+#abroad #intro form#search fieldset p.searchterm,
+#home #intro form#search fieldset p.searchterm {
+	background-image: url(/gifs/zentralelemente/suche_left_blau.gif);
+}
+
+#abroad #intro form#search fieldset p.searchsubmit,
+#home #intro form#search fieldset p.searchsubmit {
+	background-image: url(/gifs/zentralelemente/suche_right_blau.gif);
+}
+
+*/
+
+#admin #intro {
+	min-height: 0;
+}

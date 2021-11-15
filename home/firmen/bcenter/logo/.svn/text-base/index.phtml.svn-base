@@ -1,0 +1,237 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+	
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+praktikaInclude(array("db.php"));
+
+$hDB = new Praktika_Db();
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+$_SESSION["s_firmenproparray"]["lastPage"] = "logo/index";
+
+$filename = 'resultlogo.gif';
+$logoPath = '/home/praktika/public_html/user/'.$_SESSION['s_firmenid']."/";
+$max_file_size = 140000;
+$cWidth = 150;
+$valid = false;
+
+function sizeGenerate($size) {
+	if($size >= 1000) $return = round($size / 1024,2)." kB";
+	if($size < 1000) $return = ($size)." Byte";
+	
+	return $return;
+}
+
+?>
+
+<?
+if (isset($_POST['downfinal'])) {
+	$sql = sprintf('DELETE FROM 
+						bilddateien
+					WHERE 
+						firmenid = %d
+						AND dateiname = "%s"',
+					$_SESSION['s_firmenid'],
+					$filename);
+	mysql_db_query($database_db,$sql,$praktdbmaster);
+	@unlink($logoPath.'/resultlogo.gif');
+?>
+  <p class="success">Die Bilddatei wurde erfolgreich gel&ouml;scht!</p></p>
+ 
+<?php
+} 
+// Wurde upload getätigt?
+if(isset($_POST['upload'])) {
+	$valid = true;
+	list($width, $height) = getimagesize($_FILES['userfile']['tmp_name']);
+	if($height == 0) {
+		$msg = 'Ihr Logo konnte nicht gespeichert werden. Die von Ihnen ausgew&auml;hlte Datei <b>"'.$_FILES['userfile']['name'].'"</b> ist keine Grafik. Bitte w&auml;hlen Sie eine andere Datei aus.';
+		$valid = false;
+	}
+	if(empty($_FILES['userfile']['name'])) {
+		$msg = 'Sie haben keine Datei ausgew&auml;hlt!';
+		$valid = false;
+	}
+	if($_FILES['userfile']['size'] > $max_file_size) {
+		$msg = 'Die von Ihnen gew&auml;hlte Datei ist zu gro&szlig;, um Sie auf unseren Server zu &uuml;bertragen. Bitte verringern Sie die Dateigr&ouml;&szlig;e und versuchen es noch einmal.';
+		$valid = false;
+	}
+	// Ist Upload valid?
+	if($valid) {
+		$ext = 'gif';
+		
+		if (!is_dir($logoPath)) {
+			mkdir($logoPath, 0775); 
+			chmod($logoPath, 0775);
+		} elseif (substr(decoct(fileperms($logoPath)),2) != '775') {
+			chmod($logoPath, 0775);
+		}
+	
+		$thumb_dest = $logoPath.'/'.$filename;
+		
+		if($cWidth < $width || $width == "") {
+	//			echo '/usr/local/bin/convert -geometry '.$cWidth.' -colors 256 -transparent white -colorspace rgb '.$_FILES['userfile']['tmp_name'].' '.$thumb_dest;
+			exec('/usr/local/bin/convert -geometry '.$cWidth.' -colors 256 -transparent white -colorspace rgb '.$_FILES['userfile']['tmp_name'].' '.$thumb_dest); 
+		} else {
+	//			echo '/usr/local/bin/convert -colors 256 -transparent white -colorspace rgb '.$_FILES['userfile'].' '.$thumb_dest;
+			exec('/usr/local/bin/convert -colors 256 -transparent white -colorspace rgb '.$_FILES['userfile']['tmp_name'].' '.$thumb_dest); 
+		}
+	
+		$size = getimagesize($thumb_dest);
+		$width = $size[0];
+		$height = $size[1];
+		$uri = '/user/'.$_SESSION['s_firmenid'].'/'.$filename;
+	
+		$checkExistingLogo = mysql_db_query($database_db,'SELECT dateiname FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' AND dateiname = \'resultlogo.gif\'',$praktdbmaster);
+		
+		if (mysql_num_rows($checkExistingLogo) > 0) {
+			$sql = 'UPDATE bilddateien SET
+						firmenid = '.$_SESSION['s_firmenid'].',
+						width = '.$width.',
+						height = '.$height.',
+						format = \''.$ext.'\',
+						filesize = \''.$_FILES['userfile']['size'].'\',
+						datum_eintrag = NOW())
+					WHERE
+						firmenid = '.$_SESSION['s_firmenid'].'
+						AND dateiname = \''.$filename.'\'';
+		} else {
+			$sql = sprintf('INSERT INTO
+								bilddateien (firmenid,
+											uri,
+											dateiname,
+											width,
+											height,
+											format,
+											filesize,
+											datum_eintrag)
+							VALUES(
+								%d,
+								"%s",
+								"%s",
+								%d,
+								%d,
+								"%s",
+								"%s",
+								"%s")',
+							$_SESSION['s_firmenid'],
+							$uri,
+							$filename,
+							$width,
+							$height,
+							$ext,
+							$_FILES['userfile']['size'],
+							date('Y-m-d'));
+		}
+		
+		mysql_db_query($database_db,$sql,$praktdbmaster);
+		
+		echo '<p class="success">Ihr Bild wurde erfolgreich auf unserem Server gespeichert.</p>'."\n";
+	}
+
+}
+
+
+
+if (is_dir($logoPath) && file_exists($logoPath.'/'.$filename)) {
+	$rs = mysql_db_query($database_db,'SELECT * FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' AND dateiname = \'resultlogo.gif\'',$praktdbslave);
+?>
+ <h3>Firmenlogo hochladen</h3>
+  <div style="float:left; width:210px;">
+   <table class="logoInfo" align="right" style="font-size:12px;width:210px;height:<?=$height>140?$height:140 ?>px;">
+      <tr>
+        <th>Datei:</th>
+        <td><?=mysql_result($rs,0,'dateiname')?></td>
+      </tr>
+      <tr>
+        <th>Dateityp:</th>
+        <td><?=strtoupper(mysql_result($rs,0,'format'))?></td>
+      </tr>
+      <tr>
+         <th>Ausma&szlig;e:</th>
+         <td><?=mysql_result($rs,0,'width').'x'.mysql_result($rs,0,'height')?> Pixel</td>
+      </tr>
+      <tr>
+         <th>Gr&ouml;&szlig;e:</th>
+         <td><?=sizeGenerate(mysql_result($rs,0,'filesize')) ?></td>
+      </tr>      
+    </table>
+  </div>
+<?
+	echo '  <div id="firmenlogo_upload">'."\n";
+	
+	if (mysql_num_rows($rs) > 0) {	
+		$height = mysql_result($rs,0,'height');
+		$width = mysql_result($rs,0,'width');
+		if ($width > 0 && $height > 0) {
+			echo '    <img src="'.mysql_result($rs,0,'uri').'" alt="" />'."\n";
+		} else {
+			echo '    <a href="'.mysql_result($rs,0,'uri').'" target="_blank">Link zu '.mysql_result($rs,0,'dateiname').'</a>'."\n";
+		}
+?>
+  </div>
+
+  <form action="#" method="post" style="clear:both;">
+    <fieldset class="control_panel">
+<?php
+		if(isset($_POST['down'])) {
+?>
+      <br /><p class="error" style="font-size:13px;"><b>Wollen Sie die Datei wirklich l&ouml;schen?</b></p>
+      <p>
+        <input name="sid" type="hidden" value="<?=$_POST['sid']?>" />
+        <button type="submit" style="margin-top:30px;" name="downfinal" value="ja"><span><span><span>JA</span></span></span></button>
+        <button type="submit" style="margin-top:10px;" name="no" value="nein"><span><span><span>NEIN</span></span></span></button>
+<?php
+		} else {
+?><br />
+      <p class="control_panel">
+        <input name="sid" type="hidden" value="<?=$_GET['greybox']?>" /><br />
+        <center>
+        	<button type="submit" id="downfinal" onclick="return confirm('Wollen Sie die Datei wirklich l&ouml;schen?');" name="downfinal" value="Logo l&ouml;schen"><span><span><span>Logo l&ouml;schen</span></span></span></button>
+        </center>
+<?php
+		}
+?>
+      </p>
+    </fieldset>
+  </form>
+<?php
+		if (!isset($_POST['down'])) {	
+			echo '<br /><h6>Sollte es Probleme beim Einbinden des Firmenlogos geben oder ist die Qualit&auml;t des Logos schlecht, dann helfen wir Ihnen gern. Senden Sie uns einfach eine <a href="mailto:support@praktika.de.de?subject=LogoUpload">E-Mail</a> mit Ihrem Logo, Ihren Login und Telefonnummer f&uuml;r eventuelle R&uuml;ckfragen zu. Wir werden das Logo umgehend einbinden.</h6>'."\n";
+		}
+	} else {
+		echo '<p class="error">Fehler: Datei existiert nicht!</p>';
+	}
+} else {
+?>
+  <form action="#" method="post" enctype="multipart/form-data">
+    <fieldset>
+	 <h3>Firmenlogo hochladen</h3>
+      <p <?=empty($msg) ? '': 'class="error"'?>>
+        <?=empty($msg) ? 'Bitte suchen Sie nun das zum Hochladen bereitgestellte Bild aus und dr&uuml;cken anschlie&szlig;end den "Speichern"-Button.': $msg?>
+      </p>
+      <p style="text-align:center;">
+        <label for="userfile">Datei: (max. 140 KB)</label><br /><br /><br />
+        <input id="userfile" name="userfile" size="30" type="file" style="border:1px solid #ccc;" /><br /><br />
+        <input name="sid" type="hidden" value="<?=$_GET['greybox']?>" />
+      </p>
+    </fieldset>
+    <fieldset class="control_panel">
+      <p>
+        <center>
+        	<button type="submit" id="save" name="upload" value="speichern"><span><span><span>SPEICHERN</span></span></span></button>
+        </center>
+      </p>
+    </fieldset>
+  </form>
+<?php
+
+}

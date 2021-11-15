@@ -1,0 +1,256 @@
+<?
+$sprachbasisdatei="/home/praktikanten/previewlebenslauf.phtml";
+$sprachbasisdatei2="/home/praktikanten/profil/profil_zukunft.phtml";
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (isset($_GET['b'])) {
+	$bewerberid = intval($_GET['b']);
+} else {
+	$bewerberid = $_SESSION['s_nutzerid'];
+}
+$_SESSION["s_sprachid"] = substr($_GET["l"],0,1)==0?2:1;
+
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+echo '<html>'."\n";
+
+echo '<head>'."\n";
+metatags($_SESSION['s_sprache']);
+echo '	<title>Bewerbungsmappe - Bewerbung</title>'."\n";
+
+echo '	<link rel="icon" type="image/ico" href="/favicon.ico" />'."\n";
+echo '	<link rel="shortcut icon" href="/favicon.ico" />'."\n";
+
+echo '	<link rel="stylesheet" type="text/css" media="screen" href="/styles/v2/screen/cv.css" />'."\n";
+echo '</head>'."\n";
+
+echo '<body onload="parent.resize_me(\'frame_content\')">'."\n";
+
+if (isset($bewerberid)) {
+	$result = mysql_db_query($database_db,'SELECT *,date_format(geburtsdatum, \'%d\') AS tag, date_format(geburtsdatum, \'%m\') AS monat, date_format(geburtsdatum, \'%Y\') AS jahr, date_format(modify, \'%d.%m.%Y\') AS datum FROM nutzer WHERE id='.$bewerberid,$praktdbslave);
+	$fetch = mysql_fetch_array($result);
+}
+
+if ($_SESSION['s_loggedin'] == false) {
+    echo '<p class="error">Ihre Abfrage ist ung&uuml;ltig!</p>'."\n";
+} else {	
+	// Check ob Nutzer auf Merkzettel der Firma
+	$firmenbookmark = mysql_db_query($database_db,'SELECT nutzerid FROM firmenbookmark WHERE nutzerid='.$bewerberid,$praktdbslave);
+	$gesuchedb = mysql_num_rows($firmenbookmark);
+	
+	if (isset($_SESSION['s_firmenlevel']) && $_SESSION['s_firmenlevel'] > 0 || $_SESSION['s_loggedin'] == true || $gesuchedb > 0 || $gesuche == 'no') {
+		$landid = $fetch['land'];
+		$land = mysql_db_query($database_db,'SELECT german FROM land WHERE id='.$landid,$praktdbslave);
+		
+		// Sprachvariable
+		if ($_SESSION['s_sprachid'] == 1) {
+			$sprachvar1 = 'Career start';
+			$sprachvar2 = 'Career plans';
+			$sprachvar3 = 'Plans and preferences';
+			$sprachvar4 = 'Future plans';
+			$sprachvar5 = 'Educational institution';
+			
+			$sprachvar8 = '';
+			$sprachvar9 = 'Career start';
+			$sprachvar10 = 'from';
+			$sprachvar11 = 'degree';
+			$sprachvar12 = 'university / college';
+			$sprachvar13 = 'Entering a job through a trainee program?';
+			$sprachvar14 = 'Career start';
+			$sprachvar15 = 'prefered industrial sector';
+			$sprachvar16 = 'branch';
+			$sprachvar17 = 'field of occupation';
+		} else {
+			$sprachvar1 = 'Berufseinstieg';
+			$sprachvar2 = 'zuk&uuml;nftige Berufsrichtung';
+			$sprachvar3 = 'Pl&auml;ne und Pr&auml;ferenzen';
+			$sprachvar4 = 'Zukunftsabsichten';
+			$sprachvar5 = 'Bildungseinrichtung';
+			
+			$sprachvar8 = 'zur Verf&uuml;gung.';
+			$sprachvar9 = 'Zeitpunkt des Berufeinstiegs';
+			$sprachvar10 = 'ab';
+			
+			$sprachvar11 = 'Berufsabschlu&szlig;';
+			$sprachvar12 = 'Hochschule/Universit&auml;t';
+			$sprachvar13 = 'Berufseinstieg &uuml;ber ein Trainee-Programm?';
+			$sprachvar14 = 'Berufseinstieg';
+			$sprachvar15 = 'Wunschbranchen';
+			$sprachvar16 = 'Branche';
+			$sprachvar17 = 'Berufsfeld';
+		}
+
+		// Ab hier werden die Proffile ausgelesen
+		
+		$result = mysql_db_query($database_bprofil,'SELECT * FROM profil_zukunft WHERE nutzerid='.$bewerberid.' AND sprachid='.$_SESSION['s_sprachid'],$praktdbslave);
+		$fetchzukunft = mysql_fetch_array($result);
+		
+		if (mysql_num_rows($result) > 0) { 
+			echo '<table>'."\n";
+			echo '	<colgroup>'."\n";
+			echo '		<col style="width: 200px;" />'."\n";
+			echo '		<col />'."\n";
+			echo '	</colgroup>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<th style="text-align: left;">'.$sprachvar4.'</th>'."\n";
+			echo '		<th style="text-align: left;">';
+		
+			if (!empty($fetch['titel'])) {
+				echo $fetch['titel'].' ';
+			} else {
+				echo '&nbsp;';
+			}
+			
+			echo $fetch['vname'].' '.$fetch['name'];
+			echo '</th>'."\n";
+			echo '	</tr>'."\n";
+			echo '	<tr>'."\n";
+			echo '		<td colspan="2"><hr /></td>'."\n";
+			echo '	</tr>'."\n";
+
+			if (!empty($fetchzukunft['berufsabschluss'])) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar9.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.$sprachvar10.' '.$fetchzukunft['ausbildungsende_monat'].' / '.$fetchzukunft['ausbildungsende_jahr'].' '.$sprachvar8.'</td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar11.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td>&nbsp;</td>'."\n";
+				echo '		<td>'.$fetchzukunft['berufsabschluss'].' ab '.$fetchzukunft['ausbildungsende_jahr'].'</td>'."\n";
+				echo '	</tr>'."\n";
+
+				if (!empty($fetchzukunft['universitaet'])) { 
+					echo '	<tr>'."\n";
+					echo '		<td colspan="2"><strong>'.$sprachvar12.':</strong></td>'."\n";
+					echo '	</tr>'."\n";
+					echo '	<tr>'."\n";
+					echo '		<td>&nbsp;</td>'."\n";
+					echo '		<td>'.$fetchzukunft['universitaet'].'</td>'."\n";
+					echo '	</tr>'."\n";
+				}
+				
+				if (!empty($fetchzukunft['anderebildungseinr'])) { 
+					echo '	<tr>'."\n";
+					echo '		<td colspan="2"><strong>'.$sprachvar5.':</strong></td>'."\n";
+					echo '	</tr>'."\n";
+					echo '	<tr>'."\n";
+					echo '		<td>&nbsp;</td>'."\n";
+					echo '		<td>'.$fetchzukunft['anderebildungseinr'].'</td>'."\n";
+					echo '	</tr>'."\n";
+				}
+			}
+			
+			
+			if ($fetchzukunft['branche'] > 0) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar2.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+
+				if ($fetchzukunft['trainee'] == 'ja' || $fetchzukunft['trainee'] == 'nein') {
+					if ($fetchzukunft['trainee'] == 'ja') {
+						echo '	<tr>'."\n";
+						echo '		<td>&nbsp;</td>'."\n";
+						echo '		<td>'.$sprachvar13.'&nbsp;'.$fetchzukunft['trainee'].'</td>'."\n";
+						echo '	</tr>'."\n";							
+					}
+				}
+				
+				if ($fetchzukunft['branche'] > 0) { 
+					$b1 = $fetchzukunft['branche'];
+					$b2 = $fetchzukunft['branche2'];
+					$b3 = $fetchzukunft['branche3'];
+					$bf1 = $fetchzukunft['berufsfeld'];
+					$bf2 = $fetchzukunft['berufsfeld2'];
+					$bf3 = $fetchzukunft['berufsfeld3'];
+
+					if ($b1 > 0 && $bf1 > 0) {
+						$branchesel = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM branchen WHERE id='.$b1,$praktdbslave);
+						$bfeldsel = mysql_db_query($database_db,'SELECT * FROM berufsfelder WHERE id='.$bf1,$praktdbslave);
+						$branche1 = mysql_result($branchesel,0,$_SESSION['s_sprache']);
+						$berufsfeld1 = mysql_result($bfeldsel,0,$_SESSION['s_sprache']);
+					}
+					if ($b2 > 0 && $bf2 > 0) {
+						$branchesel2 = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM branchen WHERE id='.$b2,$praktdbslave);
+						$bfeldsel2 = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM berufsfelder WHERE id='.$bf2,$praktdbslave);
+						$branche2 = mysql_result($branchesel2,0,$_SESSION['s_sprache']);
+						$berufsfeld2 = mysql_result($bfeldsel2,0,$_SESSION['s_sprache']);
+					}
+					if ($b3 > 0 && $bf3 > 0) {
+						$branchesel3 = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM branchen WHERE id='.$b3,$praktdbslave);
+						$bfeldsel3 = mysql_db_query($database_db,'SELECT * FROM berufsfelder WHERE id='.$bf3,$praktdbslave);
+						$branche3 = mysql_result($branchesel3,0,$_SESSION['s_sprache']);
+						$berufsfeld3 = mysql_result($bfeldsel3,0,$_SESSION['s_sprache']);
+					}
+					
+					echo '	<tr>'."\n";
+					echo '		<td colspan="2"><strong>'.$sprachvar15.':</strong></td>'."\n";
+					echo '	</tr>'."\n";
+					echo '	<tr>'."\n";
+					echo '		<td>&nbsp;</td>'."\n";
+					echo '		<td>'."\n";
+					
+					if ($b1 > 0 && $bf1 > 0) {
+						echo $sprachvar16.' 1: '.$branche1.'<br />'.$sprachvar17.': '.$berufsfeld1.'<br />';
+					}
+					if ($b1 > 0 && $bf1 == 0) {
+						echo $sprachvar16.' 1: '.$branche1.'<br />';
+					}
+					if ($b2 > 0 && $bf2 > 0) {
+						echo '<br />'.$sprachvar16.' 2: '.$branche2.'<br />'.$sprachvar17.': '.$berufsfeld2.'<br />';
+					}
+					if ($b2 > 0 && $bf2 == 0) {
+						echo '<br />'.$sprachvar16.' 2: '.$branche2.'<br />';
+					}
+					if ($b3 > 0 && $bf3 > 0) {
+						echo '<br />'.$sprachvar16.' 3: '.$branche3.'<br />'.$sprachvar17.': '.$berufsfeld3.'<br />';
+					}
+					if ($b3 > 0 && $bf3 == 0) {
+						echo '<br />'.$sprachvar16.' 3: '.$branche3.'<br />';
+					}
+					
+					echo '		</td>'."\n";
+					echo '	</tr>'."\n";
+					echo '	<tr>'."\n";
+					echo '		<td colspan="2"><br /><br /></td>'."\n";
+					echo '	</tr>'."\n";
+				}
+			}
+			
+			if (!empty($fetchzukunft['sonstiges'])) { 
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2"><strong>'.$sprachvar3.':</strong></td>'."\n";
+				echo '	</tr>'."\n";
+				echo '	<tr>'."\n";
+				echo '		<td></td>'."\n";
+				echo '		<td>'.$fetchzukunft['sonstiges'].'</td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			if ($_SESSION['s_loggedin'] == true) {
+				echo '	<tr>'."\n";
+				echo '		<td colspan="2" style="text-align: right;"><br /><br />powered by <img src="/home/gifs/powered_by_praktika.gif" alt="" /></td>'."\n";
+				echo '	</tr>'."\n";
+			}
+			
+			echo '</table>'."\n";
+		} else {
+			echo '<br /><p class="error" style="font-size:12px;">Sie haben in diesem Bereich keinen Inhalt angelegt!<br /><br />Zeigen Sie den Unternehmen übersichtlich,<br />welchen Weg Sie in nächster Zeit beschreiten möchten und<br />welche Ziele Sie sich in Zukunft setzen.</p><br />'."\n";
+			
+			if($_SESSION["s_nutzerid"] == $bewerberid) {
+				echo '<p style="width:100%;"><a href="/lebenslauf/zukunft" style=" color:#0f5ba3;text-decoration:none;" target="_top"><b>Inhalt jetzt bearbeiten</b></a></p>';
+			}
+		}
+	}
+	
+	if (isset($_SESSION['s_firmenlevel']) && $_SESSION['s_firmenlevel'] == 0 && $_SESSION['s_loggedin'] == false &&  $gesuchedb == 0 && !$gesuche) {
+		echo 'Die Anzeige des Bewerber-Profils erfordert die Buchung des Produktes Servicelizenz "KOMFORT"!'."\n";
+		echo '<br /><br />Hier erhalten Sie mehr <span class="normal"><a href="/cms/Produkte_Mediadaten.524.0.html" target="_blank">Informationen</a></span> &uuml;ber unsere <span class="normal"><a href="/cms/Produkte_Mediadaten.524.0.html" target="_blank">Produkte</a></span> oder buchen Sie die <span class="normal"><a href="/cms/Produkte_Mediadaten.527.0.html" target="_blank">Servicelizenz "KOMFORT"</a></span> direkt. Sie erhalten sofort Zugriff auf die Profile Ihrer Bewerbungen.</strong>'."\n";
+	}
+}
+?>
+</body>
+</html>

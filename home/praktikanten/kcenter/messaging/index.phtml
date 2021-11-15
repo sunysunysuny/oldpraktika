@@ -1,0 +1,78 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+praktikaInclude(array("db.php"));
+
+$hDB = new Praktika_Db();
+
+//$hDB->query();
+
+$_SESSION["s_nutzerproparray"]["lastPage"] = "messaging/index";
+
+if(!empty($_POST["bearbeiter"])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['aktbearbeiter']['val'] = (int)$_POST["bearbeiter"];
+}
+
+$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = (int)$_GET["directory"];
+
+if($_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] != 0) {
+	$sql = "SELECT name FROM prakt2.nutzerordner WHERE id = ".(int)$_SESSION['s_nutzerproparray']['kcenter']['ordnerid']." AND nutzerid = ".$_SESSION["s_nutzerid"];
+	$ordnername = mysql_result(mysql_query($sql, $praktdbslave),0,"name");
+}
+
+if($_POST["hiddenAction"] == "newDirectory") {
+
+	mysql_query('INSERT INTO prakt2.nutzerordner (nutzerid, name, bereich, reihenfolge) VALUES ('.intval($_SESSION['s_loginid']).',\''.mysql_real_escape_string($_POST['hiddenValue']).'\','.intval($_SESSION['s_bereich']).',100)',$praktdbmaster);	
+}
+
+$bereichvars[1] = 'Eingang';
+$bereichvars[2] = 'Merkzettel';
+$bereichvars[3] = 'Ausgang';
+
+switch($_GET["fach"]) {
+	case "bewerbungen":
+		$file = "bewerbungen.phtml";
+		$_SESSION["s_bereich"] = 3;
+		break;				
+	case "posteingang":
+		$file = "posteingang.phtml";
+		$_SESSION["s_bereich"] = 1;
+		break;		
+
+	case "merkzettel":
+	default:
+		$file = "merkzettel.phtml";
+		$_SESSION["s_bereich"] = 2;
+		break;
+		
+}
+
+if(empty($_SESSION["anrede"])) {
+	$sql = "SELECT anrede, name FROM nutzer WHERE id = ".$_SESSION["s_nutzerid"];
+	$result = mysql_fetch_assoc($hDB->query($sql, $praktdbslave));
+	
+	$_SESSION["anrede"] = $result["anrede"]." ".$result["name"];
+}
+?>
+<!--<link href="/styles/praktika_box/praktika_box_V2.css" />-->
+<script type="text/javascript">
+	$('kCenterTitle').innerHTML = " - Bewerbungen";	
+</script>
+
+<div id="mailbox_container">
+<?
+
+if(isset($_SESSION["s_nutzerproparray"]["lastMailbox"])) {
+	// Alte Session-Eintr�ge sollen geladen werden
+	$oldInclude = true;
+}
+
+include(dirname(__FILE__)."/".$file);
+?>
+</div>

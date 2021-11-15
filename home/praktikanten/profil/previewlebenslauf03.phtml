@@ -1,0 +1,31 @@
+<?php
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+$hDB = new Praktika_Db();
+
+$sprachid = 2;
+if($_SESSION["s_sprachid"] == 2) {
+	$sprachsel = 'german';
+} else {
+	$sprachsel = 'english';
+}
+
+if (isset($_GET['b'])) {
+	$bewerberid = intval($_GET['b']);
+} else {
+	$bewerberid = $_SESSION['s_nutzerid'];
+}
+
+// Führt SQL-Query aus
+include(dirname(__FILE__)."/previewlebenslauf_basic.phtml");
+
+$lebenslauf = Praktika_Lebenslauf::getLebenslaufArray($bewerberid, $sprachid);
+
+$zView->assign("sprachid", $sprachid);
+$zView->assign("photo", $photo);
+$zView->assign("nutzerdaten", $record);
+$zView->assign("lebenslauf", $lebenslauf);
+
+echo $zView->render("lebenslauf_03.php");
+?>

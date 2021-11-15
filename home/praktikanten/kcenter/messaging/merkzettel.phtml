@@ -1,0 +1,63 @@
+<?
+
+$_SESSION['s_bereich'] = 2;
+$template = _load_view("/home/praktika/etc/vorlagen/kCenterMerkzettelRow.phtml");
+
+// K�rzere Bezeichnung
+$s_kcenter = &$_SESSION['s_nutzerproparray']['kcenter']["merkzettel"];
+
+$ordnerquery = 'AND nutzerbookmark.ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];
+
+# if(!isset($s_kcenter["merkzettelFirmen"])) {
+$merkzettelFirmen = array();
+$sql = "SELECT firmen.firma, nutzerbookmark.firmenid `id`
+		FROM nutzerbookmark
+				LEFT JOIN firmen ON (firmen.id = nutzerbookmark.firmenid)
+		WHERE nutzerbookmark.nutzerid = ".$_SESSION["s_nutzerid"]." AND firmen.firma != '' $ordnerquery
+		GROUP BY nutzerbookmark.firmenid
+		ORDER BY firmen.firma
+		LIMIT 11
+		";
+		# echo $sql;
+$firmen = $hDB->query($sql, $praktdbslave);
+
+while($firma = mysql_fetch_assoc($firmen)) {
+	$merkzettelFirmen[$firma["id"]] = $firma["firma"];
+}
+#	$s_kcenter["merkzettelFirmen"] = $merkzettelFirmen;
+# }
+
+?>
+
+<script type="text/javascript" src="/scripts/wz_tooltip.js"></script>
+
+<? 
+/* if(count($merkzettelFirmen) > 0) { ?>
+	<div id="firmen_filter" class='firmen_filter'>Nur folgende Firma anzeigen:<br />
+	<a href='#' id="filterFirma_0" onclick='kc_setFilter("firmenid", false); return false;'>Alle Firmen</a>, 
+	<? $i = 0;
+	foreach ($merkzettelFirmen as $key => $value) {
+		$i++;
+		echo "<a href='#' id='filterFirma_".$key."' onclick='kc_setFilter(\"firmenid\",".$key."); return false;'>".htmlentities(stripslashes($merkzettelFirmen[$key]))."</a>";
+		if($i == 10) break;
+		if(count($merkzettelFirmen) > $i) {
+			echo ", &nbsp;";
+		}
+	} 
+	if($i == 10 && count($merkzettelFirmen) > 10) {
+		echo ", <a href='#' onclick='kc.loadFilterBox();return false;'>... mehr</a>";
+	}
+	?></div>
+	<div class="firmenFilter_more" style="display:none;" id="firmenFilter_more">
+	
+	</div>
+<? } */ ?>
+
+<div id='posteingang_container'></div>
+
+<script id='tmp_container' type='type/javascript' style='display:none;'><?=$template ?></script>
+<script type='text/javascript'>
+	kc_lastTemplate = document.getElementById('tmp_container').innerHTML; 
+	kc_page(1);
+</script>
+

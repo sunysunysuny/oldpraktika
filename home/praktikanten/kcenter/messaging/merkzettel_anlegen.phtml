@@ -1,0 +1,8 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+$insertstring = 'INSERT INTO prakt2.nutzerbookmark (nutzerid, stellenid, firmenid, spalte, gelesen, datum_eintrag) VALUES ('.$_SESSION['s_nutzerid'].','.(int)$_POST['stellenid'].','.(int)$_POST['firmenid'].','.(int)$_POST['spalte'].',\'true\',NOW())';
+	
+mysql_query($insertstring,$praktdbmaster);
+
+echo (int)$_POST["stellenid"];

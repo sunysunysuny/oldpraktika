@@ -1,0 +1,98 @@
+<?
+ $sprachbasisdatei = "/home/praktikanten/stellenadvanced/bottom.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+?>
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+</HEAD>
+<body BGCOLOR="#FFFFF0">
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (parent.advancedprofilemain.window.print) {
+  parent.advancedprofilemain.focus();
+  parent.advancedprofilemain.window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+
+function ZweiFrames(ID,Url) {
+  Frame1=eval("parent.advancedprofilebottom");
+  Frame2=eval("parent.advancedprofilemain");
+  Frame1.location.href = "<? echo "metabottom.phtml?id=\" + ID + \"&partnerid=".$partnerid; ?>";
+if (Url == '') {
+  Frame2.location.href = "<? echo "stellentemplate.phtml?id=\" + ID + \"&partnerid=".$partnerid; ?>";
+} else {
+  Frame2.location.href = Url;
+}
+}
+
+//-->
+</script>
+
+<?
+		if ($partnerid == 0) {
+			$bewerblink="../onlinebewerbung.phtml?firmenid=" . $firmenid . "&stellenid=" . $id;
+		} else {
+			$bewerblink="#\" onClick=\"alert('Bei diesem Partner leider nicht m&ouml;glich!'); return false;";
+		}
+	$target = "PraktikaMainWindow";
+?>
+
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+<table width="98%" border="0" align="center">
+<? 
+echo "<tr>\n";
+echo "    <td width=\"120\" align=\"center\"><font class=\"hauptseite\"><a href=\"../detail.phtml?id=" . $id . "\" target=\"PraktikaMainWindow\"><img src=\"/partner/campusweb/gifs/logo_praktika_campus.gif\" width=\"114\" height=\"35\" border=\"0\"></a></font></td>\n";
+echo "    <td width=\"30\" align=\"right\"><font class=\"hauptseite\"><a href=\"$bewerblink\" target=\"$target\"><img src=\"../../gifs/symbole/nichtfertig.gif\" border=\"0\" alt=\"online bewerben\" width=\"16\" height=\"16\"></a></font></td>\n";
+echo "    <td align=\"center\"><font class=\"hauptseite\"><a href=\"$bewerblink\" target=\"PraktikaMainWindow\">" . $language ["strOnlineBewerben"] . "</a></font></td>\n";
+/*
+echo "    <td width=\"30\" align=\"right\"><font class=\"hauptseite\"><a href=\"../../clickin/?id=" . $firmenid . "&noinsert=yes\" target=\"PraktikaMainWindow\"><img src=\"../../gifs/symbole/firmenliste.gif\" border=\"0\" alt=\"Stellen einsehen\" width=\"12\" height=\"12\"></a></font></td>\n";
+echo "    <td align=\"center\"><font class=\"hauptseite\"><a href=\"../../clickin/?id=" . $firmenid . "&noinsert=yes\" target=\"PraktikaMainWindow\">" . $language ["strJobs"] . "</a></font></td>\n";
+echo "    <td width=\"30\"  align=\"right\"><font class=\"hauptseite\"><a href=\"../../toppraktika/profiltemplate.phtml?id=" . $firmenid . "&stellenid=" . $id . "\" target=\"PraktikaMainWindow\"><img src=\"../../gifs/symbole/firmenprofil.gif\" border=\"0\" alt=\"Firmenprofil einsehen\" width=\"18\" height=\"16\"></a></font></td>\n";
+echo "    <td align=\"center\"><font class=\"hauptseite\"><a href=\"../../toppraktika/profiltemplate.phtml?id=" . $firmenid . "&stellenid=" . $id . "\" target=\"PraktikaMainWindow\">" . $language ["strFirmenprofil"] . "</a></font></td>\n";
+echo "    <td width=\"30\"  align=\"right\"><font class=\"hauptseite\">";
+echo "    <A href=\"#\" onClick=\"sendmsg=window.open('../detailsend.phtml?id=" . $id . "','sendMessageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=530,height=510'); return false;\"><img src=\"/home/gifs/symbole/versenden.gif\" ALT=\"".$language["strEmailDescribe"]."\" border=\"0\"></A>";
+echo "    </font></td>\n";
+echo "    <td align=\"center\"><font class=\"hauptseite\">";
+echo "    <A href=\"#\" onClick=\"sendmsg=window.open('../detailsend.phtml?id=" . $id . "','sendMessageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=530,height=510'); return false;\">" . $language ["strWeiterempfehlen"] . "</A>";
+echo "    </font></td>\n";
+*/
+echo "    <td width=\"80%\" colspan=\"6\">&nbsp;</td>\n";
+echo "    <td width=\"30\"  align=\"right\"><font class=\"hauptseite\"><a href=\"javascript:printform();\"><img src=\"/home/gifs/symbole/drucken.gif\" ALT=\"".$language["strDruckenDescribe"]."\" border=\"0\"></a></font></td>\n";
+echo "    <td align=\"center\"><font class=\"hauptseite\"><a href=\"javascript:printform();\">" . $language ["strDrucken"]."</a></font></td>\n";
+echo "</tr>\n";
+if ($s_spalte == 5) {
+
+echo "<tr>\n";
+echo "<td colspan=\"11\" height=\"1\" bgcolor=\"gray\">\n";
+echo "</td>\n";
+echo "</tr>\n";
+echo "<tr>\n";
+echo "    <td align=\"left\" colspan=\"6\">\n";
+if ($s_nutzerproparray[suche][$s_spalte][meta][result][$id-1]) {
+	$prevresult = mysql_db_query($database_metasuche,"SELECT url FROM fmetaangebot_new WHERE  id=".$s_nutzerproparray[suche][$s_spalte][meta][result][$id-1],$praktdbslave);
+	echo "<font class=\"hauptseite\"><a href=\"javascript:ZweiFrames('".($id-1)."','".mysql_result($prevresult,0,"url")."');\">" . $language ["strVorherige"] . "</a></font>\n";
+}
+echo "</td>\n";
+echo "    <td align=\"right\" colspan=\"5\">\n";
+if ($s_nutzerproparray[suche][$s_spalte][meta][result][$id+1]) {
+	$nextresult = mysql_db_query($database_metasuche,"SELECT url FROM fmetaangebot_new WHERE id=".$s_nutzerproparray[suche][$s_spalte][meta][result][$id+1],$praktdbslave);
+	echo "<font class=\"hauptseite\"><a href=\"javascript:ZweiFrames('".($id+1)."','".mysql_result($nextresult,0,"url")."');\">" . $language ["strNaechste"] . "</a></font>\n";
+}
+echo "</td>\n";
+echo "</tr>\n";
+}  
+?>
+</table>
+</body>
+</HTML>

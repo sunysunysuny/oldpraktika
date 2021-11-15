@@ -1,0 +1,695 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+include("/home/praktika/public_html/scripts/fckeditor/fckeditor.php");
+
+if (isset($_GET['image']) && $_GET['image'] == 1) {
+	$zusatz = 'Neue Stelle mit Image-Anzeige ver&ouml;ffentlichen';
+} else {
+	$zusatz = 'Standardanzeige ver&ouml;ffentlichen';
+}
+
+if (!isset($_POST['save']) && isset($_GET['id'])) {
+	$stellenid = intval($_GET['id']);
+} elseif (isset($_POST['save']) && isset($_POST['stellenid'])) {
+	$stellenid = intval($_POST['stellenid']);
+}
+
+//Stellenanzahl pr&uuml;fen
+$results = mysql_db_query($database_db,'SELECT count(id) AS zahl FROM stellenlaufzeit WHERE firmenid = '.$_SESSION['s_firmenid'].' AND produktid IN (26,27,28,29,33)',$praktdbslave);
+
+if (!isset($_POST['save']) && (mysql_result($results,0,'zahl') > 2) && ($_SESSION['s_firmenlevel'] == 0) && ($_GET['image'] == 0)) {
+	
+	pageheader(array('page_title' => $zusatz));
+	
+	echo '<p>In Ihrer aktuellen "Servicelizenz BASIS" k&ouml;nnen Sie maximal<br />3 Standardanzeigen auf praktika.de ausschreiben.</p>'."\n";
+	echo '<p>Folgende M&ouml;glichkeiten bieten wir Ihnen an:</p>'."\n";
+	echo '<form method="post" name="Auswahl" action="">'."\n";
+	echo '	<h4>Stellenaussschreibung</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<input type="radio" value="imageanzeige" id="imageanzeigentyp1" name="imageanzeigentyp" />'."\n";
+	echo '			<label for="imageanzeigentyp1">IMAGEANZEIGE - Hier k&ouml;nnen Sie zus&auml;tzlich zur einfachen Stellenanzeige ein Popup im von uns vorgeschlagenen oder in Ihrem Design schalten. Diese M&ouml;glichkeit erzielt bei Bewerbern ein h&ouml;heres Interesse.</label>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<input type="radio" value="servicelizenz_komfort" id="imageanzeigentyp2" name="imageanzeigentyp" />'."\n";
+	echo '			<label for="imageanzeigentyp2">SERVICELIZENZ KOMFORT - Mit der Servicelizenz KOMFORT erhalten Sie ein effektives Recruitinginstrument mit komfortablen L&ouml;sungen f&uuml;r Ihre Bewerber. Sie k&ouml;nnen ausserdem unbegrenzt viele Stellen im Bereich Praktikum, Bachelor-/Masterarbeit, Nebenjob und Ausbildung ausschreiben.</label>'."\n";
+	echo '		</p>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit" id="next" name="next" value="Weiter" onclick="Stellenausschreibungbasis();" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<a href="firmen/angeboteliste/">Stellen&uuml;bersicht</a>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+} else {
+	$deny = 0;
+	$error = 0;
+	
+	if (isset($_POST['save'])) {
+		if (empty($_POST['ansprechpartner']) || empty($_POST['titel']) || empty($_POST['beschreibung']) || empty($_POST['zeitraum'])) {
+			$error++;
+		}
+
+		foreach ($_POST as $key => $value) {
+			if (substr_count($value,'@') > 0 || substr_count($value,'(at)') > 0 || substr_count($value,'www.') > 0) {
+				$deny++;
+			}
+		}
+	}
+
+	if (isset($_POST['save']) && $deny == 0 && $error == 0) {
+		if ($_POST['image'] == 1) {
+			$zusatz = 'Neue Stelle mit Imageanzeige ver&ouml;ffentlichen';
+		} else {
+			$zusatz = 'Neue Stelle ver&ouml;ffentlichen';
+		}
+
+		if (!isset($_POST['bewerbungpertel'])) {
+			$_POST['bewerbungpertel'] = 'false';
+		}
+		if (!isset($_POST['bewerbungperpost'])) {
+			$_POST['bewerbungperpost'] = 'false';
+		}
+		if (!isset($_POST['bewerbungperemail'])) {
+			$_POST['bewerbungperemail'] = 'false';
+		}
+		if (!isset($_POST['bewerbungperemail'])) {
+			$_POST['bewerbungperemail'] = 'false';
+		}
+		if (!isset($_POST['bewerbungperonline'])) {
+			$_POST['bewerbungperonline'] = 'false';
+		}
+		if (!isset($_POST['bewerbungperkurzm'])) {
+			$_POST['bewerbungperkurzm'] = 'false';
+		}
+
+		if (isset($_POST['bundesland']) && empty($_POST['bundesland'])) {
+			$_POST['bundesland'] = 0;
+		}
+		if (isset($_POST['grossraum']) && empty($_POST['grossraum'])) {
+			$_POST['grossraum'] = 0;
+		}
+
+		if ($_SESSION['s_firmenlevel'] < 1 &&
+			$_POST['bewerbungperpost'] == 'false' &&
+			$_POST['bewerbungperonline'] == 'false' &&
+			$_POST['bewerbungperkurzm'] == 'false') {
+
+			$_POST['bewerbungperonline'] = 'true';
+		}
+		
+		if ($_SESSION['s_firmenlevel'] > 0 &&
+			$_POST['bewerbungpertel'] == 'false' &&
+			$_POST['bewerbungperpost'] == 'false' &&
+			$_POST['bewerbungperemail'] == 'false' &&
+			$_POST['bewerbungperonline'] == 'false' &&
+			$_POST['bewerbungperkurzm'] == 'false') {
+
+			$_POST['bewerbungperonline'] = 'true';
+		}
+
+		if ($stellenid == 0) {
+			$insertstring = 'REPLACE INTO fdiplomausschreibung (
+								'.(($stellenid > 0) ? 'id,' : '').'
+								inactive,
+								firmenid,
+								bearbeiterid,
+								jobcode,
+								sprache,
+								ansprechpartner,
+								branche,
+								titel,
+								sprachkenntnisse,
+								zeitraum,
+								studienrichtung,
+								beschreibung,
+								bemerkung,
+								einsatzland,
+								einsatzbundesland,
+								einsatzgrossraum,
+								vorort,
+								bewerbungpertel,
+								bewerbungperpost,
+								bewerbungperemail,
+								bewerbungperonline,
+								bewerbungperkurzm,
+								host,
+								ip,
+								datum_eintrag,
+								modify
+							) VALUES(
+								'.(($stellenid > 0) ? intval($stellenid) : '').'
+								\'true\',
+								'.intval($_SESSION['s_firmenid']).',
+								'.(isset($_POST['ansprechpartnerid']) ? intval($_POST['ansprechpartnerid']) : '').',
+								\''.(isset($_POST['jobcode']) ? mysql_real_escape_string($_POST['jobcode']) : '').'\',
+								'.intval($_SESSION['s_sprachid']).',
+								\''.(isset($_POST['ansprechpartner']) ? mysql_real_escape_string($_POST['ansprechpartner']) : '').'\',
+								'.(isset($_POST['branche']) ? intval($_POST['branche']) : '').',
+								\''.(isset($_POST['titel']) ? mysql_real_escape_string($_POST['titel']) : '').'\',
+								'.(isset($_POST['sprachkenntnisse']) ? intval($_POST['sprachkenntnisse']) : '').',
+								\''.(isset($_POST['zeitraum']) ? mysql_real_escape_string($_POST['zeitraum']) : '').'\',
+								'.(isset($_POST['studienrichtung']) ? intval($_POST['studienrichtung']) : '').',
+								\''.(isset($_POST['beschreibung']) ? mysql_real_escape_string($_POST['beschreibung']) : '').'\',
+								\''.(isset($_POST['bemerkung']) ? mysql_real_escape_string($_POST['bemerkung']) : '').'\',
+								'.(isset($_POST['land']) ? intval($_POST['land']) : '').',
+								'.(isset($_POST['bundesland']) ? intval($_POST['bundesland']) : '').',
+								'.(isset($_POST['grossraum']) ? intval($_POST['grossraum']) : '').',
+								\''.(isset($_POST['vorort']) ? mysql_real_escape_string($_POST['vorort']) : '').'\',
+								\''.(isset($_POST['bewerbungpertel']) ? mysql_real_escape_string($_POST['bewerbungpertel']) : '').'\',
+								\''.(isset($_POST['bewerbungperpost']) ? mysql_real_escape_string($_POST['bewerbungperpost']) : '').'\',
+								\''.(isset($_POST['bewerbungperemail']) ? mysql_real_escape_string($_POST['bewerbungperemail']) : '').'\',
+								\''.(isset($_POST['bewerbungperonline']) ? mysql_real_escape_string($_POST['bewerbungperonline']) : '').'\',
+								\''.(isset($_POST['bewerbungperkurzm']) ? mysql_real_escape_string($_POST['bewerbungperkurzm']) : '').'\',
+								\''.mysql_real_escape_string($host).'\',
+								\''.mysql_real_escape_string($ip).'\',
+								NOW(),
+								NOW())';var_dump($insertstring);
+
+			/* datensatz einfuegen */
+			mysql_db_query($database_db,$insertstring,$praktdbmaster);
+
+			/* id bestimmen */
+			$insert_id = mysql_insert_id($praktdbmaster);
+			$stellenid = $insert_id;
+
+			/* Logfile eintragen */
+			$fp = fopen($logfile, 'a');
+			fputs($fp, $insertstring);
+			fputs($fp, "\n");
+			fclose($fp);
+
+			/* infomail zusammenbauen */
+			$subject = 'praktika.de Firmen-Eintrag Diplomstelle: ID: '.$stellenid;
+			$mailstring = 'FIRMENAUSSCHREIBUNG DIPLOM - EINTRAG'."\n\n";
+			$mailstring = $mailstring.'ID: '.$stellenid.''."\n\n";
+			$mailstring = $mailstring.'Jobcode: '.$_POST['jobcode']."\n";
+			$mailstring = $mailstring.'Titel: '.$_POST['titel']."\n";
+			$mailstring = $mailstring.'Studienrichtung: '.$_POST['studienrichtung']."\n";
+			$mailstring = $mailstring.'Zeitraum: '.$_POST['zeitraum']."\n";
+			$mailstring = $mailstring.'Beschreibung: '.$_POST['beschreibung'].''."\n\n";
+			$mailstring = $mailstring.'Ansprechpartner: '.$_POST['ansprechpartner']."\n";
+			$mailstring = $mailstring.'Sprache: '.$_POST['sprachkenntnisse']."\n";
+			$mailstring = $mailstring.'Bemerkung: '.$_POST['bemerkung'].''."\n\n";
+			$mailstring = $mailstring.'Bewerbung per: ';
+			
+			if (isset($_POST['bewerbungpertel'])) {
+				$mailstring = $mailstring.'per Telefon'."\n";
+			}
+			if (isset($_POST['bewerbungperpost'])) {
+				$mailstring = $mailstring.'per Post'."\n";
+			}
+			if (isset($_POST['bewerbungperemail'])) {
+				$mailstring = $mailstring.'per eMail'."\n";
+			}
+			if (isset($_POST['bewerbungperonline'])) {
+				$mailstring = $mailstring.'per Onlinebewerbung'."\n";
+			}
+			if (isset($_POST['bewerbungperkurzm'])) {
+				$mailstring = $mailstring.'per Kurzmitteilung'."\n";
+			}
+			
+			$mailstring = $mailstring."\n";
+			$mailstring = $mailstring.'Host: '.$host."\n";
+			$mailstring = $mailstring.'IP: '.$ip."\n";
+			$mailstring = $mailstring.'Datum Eintrag: '.date('d-m-Y')."\n";
+			$mailstring = $mailstring.'\n\nDATENBANKSTRING:'."\n";
+			$mailstring = $mailstring.$insertstring."\n";
+
+			/* infomail verschicken */
+			mail($infomail, $subject, $mailstring, "From: ".$infomail."\nX-Mailer: praktika.de Mailscript PHP");
+
+			// Eintrag in Stellenlaufzeit f&uuml;r die Stellenbuchung und &Uuml;bersicht der Aktualit&auml;t
+			if ($_POST['image'] == 1) {
+				$produktid = 7;
+			} else {
+				$produktid = 27;
+			}
+
+			$insertstring = 'INSERT INTO stellenlaufzeit (
+								inactive,
+								firmenid,
+								bearbeiterid,
+								stellenid,
+								spalte,
+								produktid,
+								datum_eintrag,
+								modify
+							) VALUES (
+								\'true\',
+								'.intval($_SESSION['s_firmenid']).',
+								'.intval($_SESSION['s_loginid']).',
+								'.intval($stellenid).',
+								'.intval(SECTION_DIPLOM).',
+								'.intval($produktid).',
+								NOW(),
+								DATE_FORMAT(NOW(),\'%Y%m%d%H%i%s\')
+							)';
+			
+			mysql_db_query($database_db,$insertstring,$praktdbmaster);
+		} else {
+			$updatestring = 'UPDATE fdiplomausschreibung SET
+								jobcode = \''.(isset($_POST['jobcode']) ? mysql_real_escape_string($_POST['jobcode']) : '').'\',
+								bearbeiterid = '.(isset($_POST['ansprechpartnerid']) ? intval($_POST['ansprechpartnerid']) : '').',
+								titel = \''.(isset($_POST['titel']) ? mysql_real_escape_string($_POST['titel']) : '').'\',
+								sprachkenntnisse = '.(isset($_POST['sprachkenntnisse']) ? intval($_POST['sprachkenntnisse']) : '').',
+								zeitraum = \''.(isset($_POST['zeitraum']) ? mysql_real_escape_string($_POST['zeitraum']) : '').'\',
+								ansprechpartner = \''.(isset($_POST['ansprechpartner']) ? mysql_real_escape_string($_POST['ansprechpartner']) : '').'\',
+								studienrichtung = '.(isset($_POST['studienrichtung']) ? intval($_POST['studienrichtung']) : '').',
+								beschreibung = \''.(isset($_POST['beschreibung']) ? mysql_real_escape_string($_POST['beschreibung']) : '').'\',
+								bemerkung = \''.(isset($_POST['bemerkung']) ? mysql_real_escape_string($_POST['bemerkung']) : '').'\',
+								branche = '.(isset($_POST['branche']) ? intval($_POST['branche']) : '').',
+								einsatzland = '.(isset($_POST['land']) ? intval($_POST['land']) : '').',
+								einsatzbundesland = '.(isset($_POST['bundesland']) ? intval($_POST['bundesland']) : '').',
+								einsatzgrossraum = '.(isset($_POST['grossraum']) ? intval($_POST['grossraum']) : '').',
+								vorort = \''.(isset($_POST['vorort']) ? mysql_real_escape_string($_POST['vorort']) : '').'\',
+								bewerbungpertel = \''.(isset($_POST['bewerbungpertel']) ? mysql_real_escape_string($_POST['bewerbungpertel']) : '').'\',
+								bewerbungperpost = \''.(isset($_POST['bewerbungperpost']) ? mysql_real_escape_string($_POST['bewerbungperpost']) : '').'\',
+								bewerbungperemail = \''.(isset($_POST['bewerbungperemail']) ? mysql_real_escape_string($_POST['bewerbungperemail']) : '').'\',
+								bewerbungperkurzm = \''.(isset($_POST['bewerbungperkurzm']) ? mysql_real_escape_string($_POST['bewerbungperkurzm']) : '').'\',
+								bewerbungperonline = \''.(isset($_POST['bewerbungperonline']) ? mysql_real_escape_string($_POST['bewerbungperonline']) : '').'\',
+								host = \''.mysql_real_escape_string($host).'\',
+								ip = \''.mysql_real_escape_string($ip).'\',
+								modify = NOW()
+							WHERE id = '.intval($stellenid);
+
+			mysql_db_query($database_db,$updatestring,$praktdbmaster);
+		}
+	}
+
+	if (isset($_POST['save']) && $stellenid > 0 && $error == 0 && $deny == 0) {
+		$templateda = 0;
+		
+		pageheader(array('page_title' => $zusatz));
+
+		echo '<p class="success">Ihr Stellenausschreibung wurde erfolgreich eingetragen.</p><p class="error">Diese Stelle ist derzeit noch <b>deaktiviert</b>.</p><p>Zur Aktivierung der Stelle klicken Sie bitte auf "Weiter".</p>'."\n";
+
+		if ($_POST['image'] == 1) {
+			$templatecheck = mysql_db_query($database_db,'SELECT count(*) AS anzahl FROM stellentemplates WHERE firmenid='.$_SESSION['s_firmenid'],$praktdbslave);
+			$templateda = mysql_result($templatecheck,0,'anzahl');
+
+			echo '<form method="post" name="Auswahl" action="/firmen/stelle/diplom/'.(isset($_GET['image']) ? $_GET['image'] : $_POST['image']).'/'.(isset($_GET['id']) ? $_GET['id'] : $stellenid).'">'."\n";
+			echo '	<h4>Image-Anzeige</h4>'."\n";
+			echo '	<fieldset>'."\n";
+			echo '		<p>Sie m&ouml;chten zu dieser ausgeschriebenen Stelle eine Image-Anzeige hinzuf&uuml;gen. Folgende M&ouml;glichkeiten stehen zur Verf&uuml;gung:</p>'."\n";
+			echo '		<p class="checkboxes">'."\n";
+			echo '			<input type="radio" id="imageanzeigentyp1" checked name="imageanzeigentyp" value="true" />'."\n";
+			echo '			<label for="imageanzeigentyp1">INSTANT ANZEIGE - W&auml;hlen Sie aus unseren Layoutvorlagen f&uuml;r Image-Anzeigen das passende f&uuml;r Sie und erstellen Sie Ihre Anzeige gleich selbst.</label>'."\n";
+			echo '		</p>'."\n";
+			
+			if ($templateda == 0) {
+				echo '		<p class="checkboxes">'."\n";
+				echo '			<input type="radio" id="imageanzeigentyp2" name="imageanzeigentyp" value="true" />'."\n";
+				echo '			<label for="imageanzeigentyp2">EIGENE VORLAGE - Sie liefern uns Ihre bereits gestalteten Anzeigen in HTML und wir binden diese f&uuml;r Sie ein.</label>'."\n";
+				echo '		</p>'."\n";
+				echo '		<p class="checkboxes">'."\n";
+				echo '			<input type="radio" id="imageanzeigentyp3" name="imageanzeigentyp" value="true" />'."\n";
+				echo '			<label for="imageanzeigentyp3">ERSTELLUNG - Wir gestalten Ihnen Ihre eigene Image-Anzeige im individuellen Design.</label>'."\n";
+				echo '		</p>'."\n";
+				echo '	</fieldset>'."\n";
+			}
+		}
+	
+		if ($templateda != 0) {
+			echo '<div class="control_panel">'."\n";
+			echo '	<p>'."\n";
+			echo '		<a href="/home/firmen/commerce/produktbuchung/stellenanzeigen/liste.phtml?stellenid='.$stellenid.'">Weiter</a>'."\n";
+			echo '	</p>'."\n";
+			echo '</div>'."\n";
+		} elseif ($_POST['image'] == 1) {
+			echo '		<fieldset class="control_panel">'."\n";
+			echo '			<p>'."\n";
+			echo '				<input type="hidden" id="stellenid" name="stellenid" value="'.(isset($stellenid) ? $stellenid : '').'" />'."\n";
+			echo '				<input type="submit" id="save" name="save" onclick="Stellenausschreibung(\''.$stellenid.'\',\''.$_POST['titel'].'\')" value="Weiter" />'."\n";
+			echo '			</p>'."\n";
+			echo '		</fieldset>'."\n";
+			echo '	</form>'."\n";
+		} else {
+			echo '<div class="control_panel">'."\n";
+			echo '	<p>'."\n";
+			echo '		<a href="/home/firmen/commerce/produktbuchung/stellenanzeigen/liste.phtml?stellenid='.$stellenid.'">Weiter</a>'."\n";
+			echo '	</p>'."\n";
+			echo '</div>'."\n";
+		}
+	} else {
+		pageheader(array('page_title' => $zusatz));
+
+		$bearbeiter = mysql_db_query($database_db,'SELECT id,anrede,vname,name,email FROM bearbeiter WHERE firmenid='.$_SESSION['s_firmenid'],$praktdbslave);
+		if ($bearbeiter != false) {
+			$anz_bearbeiter = mysql_num_rows($bearbeiter);
+		} else {
+			$anz_bearbeiter = 0;
+		}
+		
+		$sprachen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM sprachen WHERE inactive=\'false\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+		if ($sprachen != false) {
+			$anz_sprachen = mysql_num_rows($sprachen);
+		} else {
+			$anz_sprachen = 0;
+		}
+		
+		$studienrichtungen = mysql_db_query($database_db,'SELECT * FROM studiengaenge ORDER BY studiengang',$praktdbslave);
+		if ($studienrichtungen != false) {
+			$anz_studienrichtungen = mysql_num_rows($studienrichtungen);
+		} else {
+			$anz_studienrichtungen = 0;
+		}
+		
+		$branchen = mysql_db_query($database_db,'SELECT * FROM branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+		if ($branchen != false) {
+			$anz_branchen = mysql_num_rows($branchen);
+		} else {
+			$anz_branchen = 0;
+		}
+		
+		$landselect = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+		if ($landselect != false) {
+			$anz_land = mysql_num_rows($landselect);
+		} else {
+			$anz_land = 0;
+		}
+		
+		$waehrung2 = mysql_db_query($database_comm,'SELECT id,bezeichner FROM waehrungen ORDER BY id',$praktdbslave);
+		if ($waehrung2 != false) {
+			$anz_waehrung = mysql_num_rows($waehrung2);
+		} else {
+			$anz_waehrung = 0;
+		}
+
+		if (isset($_POST['land'])) {
+			$landid = $_POST['land'];
+		} else {
+			$landid = 68;
+		}
+	
+		$landselect = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+		$anz_land = mysql_num_rows($landselect);
+		
+		$diplstellen = mysql_db_query($database_db,'SELECT * FROM fdiplomausschreibung WHERE id = '.$stellenid.' AND firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+		/* Variablen aus der Datenbank lesen */
+		if (($diplstellen != false) && (mysql_num_rows($diplstellen) > 0) && !isset($_POST['save'])) {
+			$_POST['jobcode'] = mysql_result($diplstellen,0,'jobcode');
+			$_POST['titel'] = mysql_result($diplstellen,0,'titel');
+			$_POST['studienrichtung'] = mysql_result($diplstellen,0,'studienrichtung');
+			$_POST['branche'] = mysql_result($diplstellen,0,'branche');
+			$_POST['zeitraum'] = mysql_result($diplstellen,0,'zeitraum');
+			$content = mysql_result($diplstellen,0,'beschreibung');
+			$content2 = mysql_result($diplstellen,0,'bemerkung');
+			$_POST['sprachkenntnisse'] = mysql_result($diplstellen,0,'sprachkenntnisse');
+			$landid = mysql_result($diplstellen,0,'einsatzland');
+			$_POST['bundesland'] = mysql_result($diplstellen,0,'einsatzbundesland');
+			$_POST['grossraum'] = mysql_result($diplstellen,0,'einsatzgrossraum');
+			$_POST['vorort'] = mysql_result($diplstellen,0,'vorort');
+			$_POST['bewerbungperemail'] = mysql_result($diplstellen,0,'bewerbungperemail');
+			$_POST['bewerbungperpost'] = mysql_result($diplstellen,0,'bewerbungperpost');
+			$_POST['bewerbungpertel'] = mysql_result($diplstellen,0,'bewerbungpertel');
+			$_POST['bewerbungperonline'] = mysql_result($diplstellen,0,'bewerbungperonline');
+			$_POST['bewerbungperkurzm'] = mysql_result($diplstellen,0,'bewerbungperkurzm');
+			$_POST['ansprechpartnerid'] = mysql_result($diplstellen,0,'bearbeiterid');
+			$_POST['ansprechpartner'] = mysql_result($diplstellen,0,'ansprechpartner');
+		}
+
+		$bundeslandselect = mysql_db_query($database_db,'SELECT * FROM bundesland WHERE landid='.$landid.' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+		$anz_bundesland = mysql_num_rows($bundeslandselect);
+		
+		if ($anz_bundesland > 0) {
+			$bundeslandsel = mysql_result($bundeslandselect,0,'id');
+			
+			if (!isset($_POST['bundesland'])) {
+				$_POST['bundesland'] = $bundeslandsel;
+			}
+			
+			$grossraumselect = mysql_db_query($database_db,'SELECT grossraum,id FROM grossraum WHERE bundesland='.(isset($_POST['bundesland']) ? $_POST['bundesland'] : mysql_result($bundeslandselect,0,'id')).' ORDER BY grossraum',$praktdbslave);
+			$anz_grossraum = mysql_num_rows($grossraumselect);
+			
+			if (!isset($_POST['grossraum'])) {
+				$_POST['grossraum'] = mysql_result($grossraumselect,0,'id');;
+			}
+		}
+
+		// Fehlermeldungen
+		if (isset($_POST['save']) && $error > 0) {
+			echo '<p class="error">Leider haben Sie die Felder nicht vollst&auml;ndig ausgef&uuml;llt. Bitte korrigieren Sie Ihre Eingaben in den rot markierten Feldern.</p>'."\n";
+		}
+		if (isset($_POST['save']) && $deny > 0) {
+			echo '<p class="error">Das Hinterlegen der eMail-Adresse, Internetadresse oder der Postanschrift ist aus Datenschutzgr&uuml;nden nicht gestattet. Bitte korrigieren Sie Ihre Stellenausschreibung.</p>'."\n";
+		}
+
+		echo '<form method="post" name="Formular" action="/firmen/stelle/diplom/'.(isset($_GET['image']) ? $_GET['image'] : (isset($_POST['image']) ? $_POST['image'] : '0')).'/'.(isset($_GET['id']) ? $_GET['id'] : $stellenid).'">'."\n";
+		echo '	<h4>Beschreibung des Bachelor-/Masterthemans</h4>'."\n";
+		echo '	<fieldset>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="jobcode">Stellencode:</label>'."\n";
+		echo '			<input type="text" id="jobcode" name="jobcode" value="'.(isset($_POST['jobcode']) ? $_POST['jobcode'] : '').'" maxlength="50" />'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="titel"'.((isset($_POST['save']) && isset($_POST['titel']) && empty($_POST['titel'])) ? ' class="error"' : '').'>Titel der Bachelor-/ Masterarbeit:</label>'."\n";
+		echo '			<textarea id="titel" name="titel" cols="16" rows="2">'.(isset($_POST['titel']) ? $_POST['titel'] : '').'</textarea>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="beschreibung___Frame"'.((isset($_POST['save']) && isset($_POST['beschreibung']) && (empty($_POST['beschreibung']) || (substr_count($_POST['beschreibung'],'@') > 0 || substr_count($_POST['beschreibung'],'www') > 0))) ? ' class="error"' : '').'>Angebotsbeschreibung:</label>'."\n";
+
+		if ($_SESSION['s_firmenlevel'] < 1 && $_POST['image'] == 1) {
+			echo '			<img src="../gifs/german/rte.gif" usemap="#RteMap" />'."\n";
+			echo '			<map name="RteMap">'."\n";
+			echo '				<area shape="poly" coords="6,4,5,53,413,53,413,25,214,26,214,4" href="level.phtml?level=1" target="_blank">'."\n";
+			echo '			</map><textarea name="beschreibung" cols="68" rows="16" style="width: 420px">'.htmlspecialchars(stripslashes(stripslashes(trim($_POST['beschreibung'])))).'</textarea><br />'."\n";
+			echo '			<span class="hint">(Hinweis: hier keine Firmendaten, Bewerbungsadressen, Telefonnummern oder Produktwerbung hinterlegen)</span>'."\n";
+		} else {
+			if (!isset($content)) {
+				$content = '';
+			}
+			
+			if (isset($_POST['save']) && isset($_POST['beschreibung']) && !empty($_POST['beschreibung'])) {
+				$content = stripslashes(stripslashes(trim($_POST['beschreibung'])));
+			}
+	
+			$oFCKeditor = new FCKeditor('beschreibung');
+			$oFCKeditor->BasePath = '/scripts/fckeditor/';
+			$oFCKeditor->ToolbarSet = 'Praktika';
+			$oFCKeditor->Value = $content;
+			$oFCKeditor->Create() ;
+	
+			echo '			<br /><span class="hint">(Hinweis: hier keine Firmendaten, Bewerbungsadressen, Telefonnummern oder Produktwerbung hinterlegen)</span>'."\n";
+		}
+		
+		echo '		</p>'."\n";
+		echo '		<p style="clear: both; padding-top: 10px;">'."\n";
+		echo '			<label for="studienrichtung">im Studiengang:</label>'."\n";
+		echo '			<select id="studienrichtung" name="studienrichtung">'."\n";
+		echo '				<option value="10">BITTE AUSW&Auml;HLEN</option>'."\n";
+		
+		$i=0;
+		while ($i < $anz_studienrichtungen) {
+			$html = htmlspecialchars(mysql_result($studienrichtungen,$i,'studiengang'));
+			echo '				<option ';
+			if (isset($_POST['studienrichtung'])) {
+				if  (mysql_result($studienrichtungen,$i,'id') == $_POST['studienrichtung']) {
+					echo 'selected="selected" ';
+				}
+			}
+			echo 'value="'.mysql_result($studienrichtungen,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		};
+	
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="branche">Branche:</label>'."\n";
+		echo '			<select id="branche" name="branche">'."\n";
+		echo '				<option value="10">BITTE AUSW&Auml;HLEN</option>'."\n";
+		
+		$i=0;
+		while ($i < $anz_branchen) {
+			$html = htmlspecialchars(mysql_result($branchen,$i,$_SESSION['s_sprache']));
+			echo '				<option ';
+			if (isset($_POST['branche'])) {
+				if  (mysql_result($branchen,$i,'id') == $_POST['branche']) {
+					echo 'selected="selected" ';
+				}
+			}
+			echo 'value="'.mysql_result($branchen,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		};
+	
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+
+		if (!isset($_POST['sprachkenntnisse'])) {
+			$_POST['sprachkenntnisse'] = 2;
+		}
+		
+		echo '		<p>'."\n";
+		echo '			<label for="sprachkenntnisse">in der Sprache:</label>'."\n";
+		echo '			<select name="sprachkenntnisse" id="sprachkenntnisse">'."\n";
+	
+		$i=0;
+		while ($i < $anz_sprachen) {
+			$html = htmlspecialchars(mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+			echo '				<option ';
+			if (mysql_result($sprachen,$i,'id') == $_POST['sprachkenntnisse']) {
+				echo 'selected="selected" ';
+			}
+			echo 'value="'.mysql_result($sprachen,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		}
+		
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="land">Einsatzland:</label>'."\n";
+		echo '			<select id="land" name="land">'."\n";
+		
+		$i=0;
+		while ($i < $anz_land) {
+			$html = htmlspecialchars(mysql_result($landselect,$i,$_SESSION['s_sprache']));
+			echo '				<option '.((mysql_result($landselect,$i,'id') == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($landselect,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		}
+		
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="bundesland">Ausbildungsbundesland:</label>'."\n";
+		echo '			<select id="bundesland" name="bundesland">'."\n";
+		
+		$i=0;
+		while ($i < $anz_bundesland) {
+			$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+			echo '				<option '.((mysql_result($bundeslandselect,$i,'id') == $_POST['bundesland']) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		}
+		
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="grossraum">Ausbildungsgro&szlig;raum:</label>'."\n";
+		echo '			<select id="grossraum" name="grossraum">'."\n";
+		
+		$i=0;
+		while ($i < $anz_grossraum) {
+			$html = htmlspecialchars(mysql_result($grossraumselect,$i));
+			echo '				<option '.((mysql_result($grossraumselect,$i,'id') == $_POST['grossraum']) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		}
+		
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="vorort">Durchf&uuml;hrungsort:</label>'."\n";
+		echo '			<input type="text" id="vorort" name="vorort" value="'.(isset($_POST['vorort']) ? $_POST['vorort'] : '').'" maxlength="50" />'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="zeitraum"'.((isset($_POST['save']) && isset($_POST['zeitraum']) && empty($_POST['zeitraum'])) ? ' class="error"' : '').'>Zeitraum:</label>'."\n";
+		echo '			<input type="text" id="zeitraum" name="zeitraum" value="'.(isset($_POST['zeitraum']) ? $_POST['zeitraum'] : '').'" maxlength="50" />'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="ansprechpartnerid">Bewerbung an:</label>'."\n";
+		echo '			<select id="ansprechpartnerid" name="ansprechpartnerid">'."\n";
+		
+		$i=0;
+		while ($i < $anz_bearbeiter) {
+			$html = htmlspecialchars(mysql_result($bearbeiter,$i,'email'));
+			echo '				<option ';
+			if (isset($_POST['ansprechpartnerid'])) {
+				if  (mysql_result($bearbeiter,$i,'id') == $_POST['ansprechpartnerid']) {
+					echo 'selected="selected" ';
+				}
+			}
+			echo 'value="'.mysql_result($bearbeiter,$i,'id').'">'.$html.'</option>'."\n";
+			
+			$i++;
+		};
+	
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";		
+		echo '		<p>'."\n";
+		echo '			<label for="ansprechpartner"'.((isset($_POST['save']) && isset($_POST['ansprechpartner']) && empty($_POST['ansprechpartner'])) ? ' class="error"' : '').'>Ansprechpartner:</label>'."\n";
+		echo '			<input type="text" id="ansprechpartner" name="ansprechpartner" value="'.((isset($_POST['ansprechpartner']) && !empty($_POST['ansprechpartner'])) ? $_POST['ansprechpartner'] : '').'" maxlength="50" />'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="bemerkung___Frame"'.((isset($_POST['save']) && isset($_POST['bemerkung']) && (substr_count($_POST['bemerkung'],'@') > 0 || substr_count($_POST['bemerkung'],'www') > 0)) ? ' class="error"' : '').'>Bemerkungen:</label>'."\n";
+
+		if ($_SESSION['s_firmenlevel'] < 1 && $_POST['image'] == 1) {
+			echo '			<img src="../gifs/german/rte.gif" usemap="#RteMap" />'."\n";
+			echo '			<map name="RteMap">'."\n";
+			echo '				<area shape="poly" coords="6,4,5,53,413,53,413,25,214,26,214,4" href="level.phtml?level=1" target="_blank">'."\n";
+			echo '			</map><textarea name="bemerkung" cols="68" rows="16" style="width: 420px">'.htmlspecialchars(stripslashes(stripslashes(trim($_POST['bemerkung'])))).'</textarea><br />'."\n";
+			echo '			<span class="hint">(Hinweis: hier keine Firmendaten, Bewerbungsadressen, Telefonnummern oder Produktwerbung hinterlegen)</span>'."\n";
+		} else {
+			if (!isset($content2)) {
+				$content2 = '';
+			}
+			
+			if (isset($_POST['save']) && isset($_POST['bemerkung']) && !empty($_POST['bemerkung'])) {
+				$content2 = stripslashes(stripslashes(trim($_POST['beschreibung'])));
+			}
+	
+			$oFCKeditor = new FCKeditor('bemerkung');
+			$oFCKeditor->BasePath = '/scripts/fckeditor/';
+			$oFCKeditor->ToolbarSet = 'Praktika';
+			$oFCKeditor->Value = $content2;
+			$oFCKeditor->Create() ;
+	
+			echo '			<br /><span class="hint">(Hinweis: hier keine Firmendaten, Bewerbungsadressen, Telefonnummern oder Produktwerbung hinterlegen)</span>'."\n";
+		}
+		
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '	<h4>Wie m&ouml;chten Sie die Bewerbung erhalten?</h4>'."\n";
+		echo '	<fieldset>'."\n";
+		echo '		<p class="checkboxes">'."\n";
+		echo '			<input type="checkbox" id="bewerbungperpost" name="bewerbungperpost" value="true"'.((isset($_POST['bewerbungperpost']) && $_POST['bewerbungperpost'] == 'true') ? ' checked="checked"' : '').' />';
+		echo '			<label for="bewerbungperpost">per Post</label>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p class="checkboxes">'."\n";
+		echo '			<input type="checkbox" id="bewerbungperonline" name="bewerbungperonline" value="true"'.((isset($_POST['bewerbungperonline']) && $_POST['bewerbungperonline'] == 'true') ? ' checked="checked"' : '').' />';
+		echo '			<label for="bewerbungperonline">per Onlinebewerbung</label>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p class="checkboxes">'."\n";
+		echo '			<input type="checkbox" id="bewerbungperkurzm" name="bewerbungperkurzm" value="true"'.((isset($_POST['bewerbungperkurzm']) && $_POST['bewerbungperkurzm'] == 'true') ? ' checked="checked"' : '').' />';
+		echo '			<label for="bewerbungperkurzm">per Kurzmitteilung</label>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p class="checkboxes">'."\n";
+		echo '			<input type="checkbox" id="bewerbungperemail" name="bewerbungperemail"'.(($_SESSION['s_firmenlevel'] < 1 && $_GET['image'] != 1) ? ' disabled="disabled"' : '').' value="true"'.((isset($_POST['bewerbungperemail']) && $_POST['bewerbungperemail'] == 'true') ? ' checked="checked"' : '').' />';
+		echo '			<label for="bewerbungperemail">per Email '.(($_SESSION['s_firmenlevel'] < 1 && $_GET['image'] != 1) ? '(ab Servicelizenz "KOMFORT")' : '').'</label>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p class="checkboxes">'."\n";
+		echo '			<input type="checkbox" id="bewerbungpertel" name="bewerbungpertel"'.(($_SESSION['s_firmenlevel'] < 1 && $_GET['image'] != 1) ? ' disabled="disabled"' : '').' value="true"'.((isset($_POST['bewerbungpertel']) && $_POST['bewerbungpertel'] == 'true') ? ' checked="checked"' : '').' />';
+		echo '			<label for="bewerbungpertel">per Telefon '.(($_SESSION['s_firmenlevel'] < 1 && $_GET['image'] != 1) ? '(ab Servicelizenz "KOMFORT")' : '').'</label>'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '	<fieldset class="control_panel">'."\n";
+		echo '		<p>'."\n";
+		echo '			<input type="hidden" id="stellenid" name="stellenid" value="'.$stellenid.'" />'."\n";
+		echo '			<input type="hidden" id="image" name="image" value="'.(isset($_GET['image']) ? $_GET['image'] : (isset($_POST['image']) ? $_POST['image'] : '0')).'" />'."\n";
+		echo '			<input type="submit" id="save" name="save" value="Speichern" />'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<a href="/firmen/angeboteliste/"><span>Zur&uuml;ck zum Men&uuml;</span></a>'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '</form>'."\n";
+	}
+}
+
+bodyoff();
+?>

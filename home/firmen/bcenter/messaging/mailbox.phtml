@@ -1,0 +1,98 @@
+<?
+ob_start();
+// Datei nur einbinden, wenn Datenbankverbindung noch nicht besteht
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+
+// Wenn die Seite ohne Parameter aufgerufen wird oder direkt angewiesen wird, 
+// dann wird die letzte aufgerufene Seite geladen
+if($oldInclude === true || empty($_POST["box"])) {
+	if(!empty($_SESSION["s_firmenproparray"]["lastMailbox"]["box"])) {
+		$_POST["box"] = $_SESSION["s_firmenproparray"]["lastMailbox"]["box"];
+		$_POST["page"] = $_SESSION["s_firmenproparray"]["lastMailbox"]["page"];
+		$_POST["dir"] = $_SESSION["s_firmenproparray"]["lastMailbox"]["dir"];
+	} else {
+		$_POST["box"] = 1;
+		$_POST["page"] = 1;
+		$_POST["dir"] = 0;
+	}
+} else {
+	$_SESSION["s_firmenproparray"]["lastMailbox"]["box"] = $_POST['box'];
+	$_SESSION["s_firmenproparray"]["lastMailbox"]["page"] = $_POST['page'];
+	$_SESSION["s_firmenproparray"]["lastMailbox"]["dir"] = $_POST['dir'];
+}
+
+
+// Bearbeiterliste wird erstellt und gecached
+if(!isset($_SESSION["s_firmenproparray"]["bcenter"]["bearbeiterCache"])) {
+	$bearbeiterRST = mysql_db_query($database_db,'SELECT id, name, vname, anrede FROM bearbeiter WHERE firmenid='.$_SESSION["s_firmenid"], $praktdbslave);
+	$bearbeiter = array();
+	while ($bearbeiter_row = mysql_fetch_assoc($bearbeiterRST)) {
+		$bearbeiter[] = array("id"=>$bearbeiter_row["id"],"name"=>$bearbeiter_row["name"],"vname"=>$bearbeiter_row["vname"],"anrede"=>$bearbeiter_row["anrede"]);
+	}
+	$_SESSION["s_firmenproparray"]["bcenter"]["bearbeiterCache"] = $bearbeiter;
+}
+$bearbeiterListe = $_SESSION["s_firmenproparray"]["bcenter"]["bearbeiterCache"];
+?>
+<?
+switch ($_POST['box']) {
+    case 1:
+    	?><h4 class="folder_title">erhaltene Bewerbungen</h4><?
+
+    break;
+    case 2:
+    	?><h4 class="folder_title">Posteingang</h4><?
+
+    break;
+    case 3:
+    	?><h4 class="folder_title">Postausgang</h4><?
+
+    break;
+    case 4:
+    	?><h4 class="folder_title">Merkzettel Kandidaten</h4><?
+    break;
+}
+?>
+
+<div class="div_bearbeiterfilter">
+<label for="bearbeiterfilter">Auswahl des Bearbeiters:</label>&nbsp;
+<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="changeBearbeiter(this.value);">
+<option value="%">alle</option>
+<? for($a = 0; $a < count($bearbeiterListe);$a++) {
+	echo '<option value="'.$bearbeiterListe[$a]['id'].'"';
+	if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiterListe[$a]['id']) {
+		echo ' selected="selected"'."\n";
+	}
+				
+	echo '>'.$bearbeiterListe[$a]['anrede'].' '.$bearbeiterListe[$a]['vname'].' '.$bearbeiterListe[$a]['name'].'</option>'."\n";
+} 
+?>		
+</select>
+</div>
+<?
+$_SESSION["s_bereich"] = (int)$_POST["box"];
+$_SESSION["s_subbereich"] = (int)$_POST["dir"];
+
+switch ($_POST['box']) {
+    case 1:
+    	include_once(dirname(__FILE__)."/bewerbungen.php");
+
+    break;
+    case 2:
+    	include_once(dirname(__FILE__)."/posteingang.php");
+
+    break;
+    case 3:
+    	include_once(dirname(__FILE__)."/postausgang.php");
+
+    break;
+    case 4:
+    	include_once(dirname(__FILE__)."/kandidaten.php");
+    break;
+}

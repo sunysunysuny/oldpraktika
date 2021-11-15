@@ -1,0 +1,244 @@
+/* auslandspraktikum - Begin */
+
+/* programmvorschau */
+div#auslandsbox h3 {
+	margin: 0 0 10px 0;
+}
+div#main div#content div#auslandsbox p a {
+	font-size: 11px;
+}
+div#main div#content div#programmvorschau li {
+	height: 236px;
+	width: 140px;
+	margin: 0 26px 20px 0;
+	padding: 0;
+	float: left;
+	background: #f6f6f6;
+	color: #777;
+	border: 1px solid #ccc;
+	text-align: center;
+}
+div#main div#content div#programmvorschau li p {
+	padding: 5px 3px 0px 3px;
+	font-size: 10px;
+	line-height: 13px;
+}
+div#main div#content div#programmvorschau li a {
+	font-size: 14px;
+	font-weight: bold;
+}
+div#main div#content div#programmvorschau li.last {
+	margin: 0 0 20px 0;
+}
+
+/* news feed */
+div#feed_ausland {
+	width: 100%;
+	float: left;
+	background: #fff;
+}
+div#feed_ausland div.bottom {
+	border-top: 1px dashed #ddd;
+	margin-top: 10px;
+	padding-top: 10px;
+}
+div#feed_ausland h5 {
+	margin: 0 0 0.4em 0;
+	padding: 0;
+	font-size: 1em;
+	color: #333333 !important;
+}
+div#feed_ausland p {
+	margin: 0;
+	padding: 0;
+	float: right;
+}
+div#feed_ausland img {
+	margin: 1px 4px 3px 0;
+	border: 1px solid #ddd;
+	float: left;
+}
+
+/* auslandspraktikum - End */
+
+
+/* auslandspraktikum subpages - Begin */
+
+/* fancy headlines fuer die Auslandsprogramme */
+div#main div#content h1.kategorie {
+	position: absolute; 
+	top: 115px; 
+	right: 15px; 
+	color: #fff;
+	font: bold 80px/55px "times new roman", "times", serif;
+	text-align: right;
+	letter-spacing: -2px;
+	width: 485px;
+}
+div#main div#content h1.long {
+	font-size: 55px;
+	top: 123px;
+}
+div#main div#content h1.kategorie span {
+	font: bold 35px/55px "times new roman", "times", serif;
+	letter-spacing: 0px;
+	display: block;
+}
+
+/* kurzfristige Box fuer die Auslandsprogramme */
+div.shortnotes {
+	border: 1px solid #e9e3d0;
+	background-color: #f5f0e1;
+	padding: 0px 10px 0 10px;
+	margin-top: 10px;
+}
+div.shortnotes  p, div.shortnotes  p a{
+	font-size: 11px !important;
+	margin: 6px 0 6px 0;
+	
+}
+
+/* Linkbox fuer Interessierte in den Auslandsprogrammen */
+div#auslandsbox {
+	margin: 10px 0px 5px 0px;
+}
+div#auslandsbox.typo {
+	margin-right: 16px;
+}
+div#info_anfordern {
+	height: 70px;
+	background: #f4f4f4;
+	margin-bottom: 25px;
+	border-top: 1px solid #ddd;
+	margin-top: 25px;
+}
+div#info_anfordern p.control {
+	margin-top: 26px;
+}
+div#info_pdf {
+	border-bottom: 1px dotted #ddd;
+	overflow: auto;
+	padding-bottom: 15px;
+	margin-bottom: 20px;
+}
+div#info_pdf {
+	text-align: center;
+}
+
+/* auslandspraktikum subpages - End */
+
+
+/* auslandsstudium - Begin */
+
+table#info_box {
+	background: #e6ebf1;
+	color: #333;
+	border: 3px solid #ccd8e4;
+	margin: 5px 18px 10px 0;
+	float: left;
+	width: 40%;	
+}
+table#info_box td {
+	border-bottom: 1px dotted #ccd8e4;
+	padding: 3px;
+	font-size: 11px !important;
+}
+table#info_box td span {
+	font-size: 11px !important;
+	font-weight:bold;
+}
+table#info_box2 tr {
+	border-bottom: 1px solid #999;
+}
+table#info_box2 thead tr th {
+	text-align: center;
+}
+table#info_box2 thead tr th,
+table#info_box2 thead tr td {
+	padding: 2px 4px;
+}
+div#main div#content span.auslandslink {
+	display: block;
+	float: right;
+	margin-right: 6px;
+	font-weight: normal;
+}
+div#main div#content div#container_as div#wrap ul#carousel li {
+	background: #fff;
+	float: left;
+	text-align: left;
+	cursor: pointer;
+}
+div#main div#content div#container_as div#wrap ul#carousel li:hover {
+	color: #0f5ba3;
+	background: #faf0bd;
+}
+div#main div#content div#container_as div#wrap ul#carousel li.active {
+	color: #0f5ba3;
+	background: #faf0bd;
+}
+div#main div#content div#container_as div#wrap ul#carousel li img {
+	margin: 0px 0 6px 0;
+	border: none;
+}
+div#main div#content div#container_as div#wrap ul#carousel li span.title {
+	color: #000;
+	font-weight: bold;
+	padding: 0 0 0 7px;
+	display:block;
+	font-size:0.85em;
+
+}
+div#main div#content div#container_as div#wrap ul#carousel li span.text {
+	color: #777;
+	font-size:0.8em;
+	padding: 6px 0 0 7px;
+	display:block;
+}
+
+/* auslandsstudium - End */
+
+
+/* Landing Page /ausland - Begin */
+
+div#main div#content div.info_praktikum {
+	clear: both;
+	margin-bottom: 15px;
+}
+div#main div#content div.info_praktikum a {
+	float: left;
+}
+div#main div#content div.info_praktikum a img {
+	margin-right: 5px;
+	margin-top: 4px;
+}
+div#main div#content div.info_praktikum h3,
+div#main div#content div.info_praktikum p {
+	margin: 0 0 0 5px;
+}
+div#main div#content div.info_praktikum h3 a {
+	float: none;
+}
+
+/* Landing Page /ausland - End */
+
+
+/* Sidebar - Begin */
+
+div#erfahrungsberichte p img {
+	margin-top: 0;
+}
+div.helpcenter  {
+	padding-bottom: 5px;
+	background: url("/styles/images/ausland/servicecenter.jpg") no-repeat scroll right bottom #FFFFFF;
+}
+
+div#main p.livechatbutton {
+	margin-top: 15px;
+}
+p.livechatbutton img {
+	margin:0px;
+}
+/* Sidebar - End */
+
+

@@ -1,0 +1,91 @@
+<?php
+ob_start();
+require_once("/home/praktika/etc/gb_config.inc.php");
+
+$stellen = explode(",", $_POST["stellen"]);
+$rows = count($stellen);
+
+$days = Praktika_Date::daysBetween(strtotime($_POST["from"]), strtotime($_POST["to"])) + 1;
+#if($days > 90) {
+	#$days = 90;
+	#$_POST["to"] = date("d.m.Y", strtotime($_POST["from"]) + (86400*90));
+#}
+$timespan_from = "DATE(stellen_stat.`date`) >= STR_TO_DATE('".date("Y-m-d",strtotime($_POST["from"]))."','%Y-%m-%d')";
+$timespan_to = "DATE(stellen_stat.`date`) <= STR_TO_DATE('".date("Y-m-d",strtotime($_POST["to"]))."','%Y-%m-%d')";
+
+
+$resultArray = array("data" => array(), "days" => $days, "startDate" => strtotime($_POST["from"]));
+
+$result = array();
+
+for($a = 0;$a < count($stellen);$a++) {
+    if($stellen[$a] == "Alle") {
+        $sql = "SELECT stellen_stat.*, SUM(link_redirect.clicks) as clicks
+        	FROM prakt2_stat.firmen_stat as stellen_stat
+
+        	LEFT JOIN prakt2.url_redirects as url_base ON(url_base.firmenid = stellen_stat.firmenid)
+			LEFT JOIN prakt2_stat.link_redirect ON(link_redirect.urlid = url_base.id AND link_redirect.date = stellen_stat.date)
+        	
+        	WHERE stellen_stat.firmenid = '".$_SESSION["s_firmenid"]."' AND $timespan_from AND $timespan_to GROUP BY stellen_stat.firmenid, stellen_stat.date, date ORDER BY `date`";
+		$result = $hDB->query($sql, $praktdbslave);
+# echo $sql;
+		while($row = mysql_fetch_assoc($result)) {
+			if((int)$row["clicks"] > (int)$row["read"] * 0.3) {
+				$row["clicks"]  = (int)($row["read"] * (0.3 * (mt_rand(1,10)/10)));
+			}
+			
+			$resultArray["data"]["Alle"][strtotime($row["date"])] = array((int)$row["view"], (int)$row["read"], (int)$row["app"], (int)$row["app"], (int)$row["clicks"]);
+		}
+		
+		$sql = "SELECT `view`,`read`,`app`,`save` 
+				FROM prakt2_stat.firmen_ever 
+				WHERE firmenid = '".$_SESSION["s_firmenid"]."'";
+		$resultEver = $hDB->query($sql, $praktdbslave);
+		$everData = mysql_fetch_assoc($resultEver);
+		$resultArray["ever"]["Alle"] = array($everData["view"],$everData["read"],$everData["app"],$everData["save"]);
+
+        // $resultArray["data"]["Alle"][strtotime($row["date"])] = array((int)$row["view"], (int)$row["read"], (int)$row["app"], (int)$row["app"]);
+        unset($stellen[$a]);
+    } else {
+        $resultArray["data"][$stellen[$a]] = array();
+    }
+}
+
+
+$sql = "SELECT stellen_stat.*,link_redirect.clicks
+		FROM
+			prakt2_stat.stellen_stat
+		LEFT JOIN prakt2.url_redirects as url_base ON(url_base.stellenid = stellen_stat.stellenid)
+		LEFT JOIN prakt2_stat.link_redirect ON(link_redirect.urlid = url_base.id AND link_redirect.date = stellen_stat.date)
+		WHERE stellen_stat.stellenid IN (".implode(",",$stellen).") AND stellen_stat.firmenid = '".$_SESSION["s_firmenid"]."' AND $timespan_from AND $timespan_to ORDER BY stellen_stat.stellenid, stellen_stat.date";
+$result = $hDB->query($sql, $praktdbslave);
+
+# echo $sql;
+
+if(mysql_num_rows($result) > 0) {
+    while($row = mysql_fetch_assoc($result)) {
+        $resultArray["data"][$row["stellenid"]][strtotime($row["date"])] = array((int)$row["view"], (int)$row["read"], (int)$row["app"], (int)$row["save"], (int)$row["clicks"]);
+    }
+}
+
+echo json_encode($resultArray);
+
+exit();
+
+// Wirft Fehler
+$sql = "SELECT `view`,`read`,`app`,`save`,link_ever.clicks
+		FROM prakt2_stat.stellen_ever 
+		
+		LEFT JOIN prakt2.url_redirects as url_base ON(url_base.stellenid = stellen_ever.stellenid)
+		LEFT JOIN prakt2_stat.link_ever ON(link_redirect.urlid = url_base.id AND link_redirect.date = stellen_stat.date)
+		
+		WHERE stellenid IN (".implode(",",$stellen).")";
+$resultEver = $hDB->query($sql, $praktdbslave);
+
+if(mysql_num_rows($resultEver) > 0) {
+    while($row = mysql_fetch_assoc($result)) {
+        $resultArray["ever"][$row["stellenid"]] = array($row["view"], $row["read"], $row["app"], $row["save"], $row["clicks"]);
+    }
+}
+
+echo json_encode($resultArray);

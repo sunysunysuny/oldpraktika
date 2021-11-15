@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:widget="http://www.netvibes.com/ns/"  >
+
+<head>
+	<title>praktika.de - Suche</title>
+	<meta name="author" content="Stefan Warnat" />
+	<meta name="email" content="swarnat@praktika.de" />
+	<meta name="website" content="http://www.grace-work.de" />
+	<meta name="description" content="Suchen Sie Praktika, Nebenjobs, Bachelorarbeiten in unserer Datenbank." />
+	<meta name="keywords" content="Praktika, Praktikum, Praktikumsstellen, Nebenjob, Bachelor, Berufseinstieg, Trainee, Ausland" />
+	<meta name="screenshot" content="Bild mit Breite 280px" />
+	<meta name="thumbnail" content="120x60 Pic" />
+
+	<meta name="apiVersion" content="1.2" />
+	<meta name="debugMode" content="false" />
+	<link rel="icon" type="image/x-icon"href="http://www.praktika.de/favicon.ico" />
+	<link rel="rich-icon" type="image/png"href="http://www.praktika.de/widget/widgetRichIcon.png" />
+
+
+	<widget:preferences>
+	<preference name="defaultValue" type="text" label="Voreingestelltes Suchwort" 
+	defaultValue="" />
+	<preference name="limit" type="range" label="Number of items to display" 
+	defaultValue="5" step="1" min="1" max="25" />
+	<preference name="search" type="hidden" defaultValue="" />
+	<preference name="offset" type="hidden" defaultValue="0" />
+	</widget:preferences>
+
+	<style type="text/css">
+		input.search {
+			width:80%;
+			height:15px;
+			font-size:13px;
+		}
+		a.taetigkeit {
+			color:#0F5BA3;
+			cursor:pointer;
+		}
+		a.taetigkeit:hover {
+				border-bottom:1px solid #0F5BA3;
+		}
+	</style>
+	<script type="text/javascript">
+		praktikaWidget = {};
+		praktikaWidget.dataInit = function() {
+			document.getElementById('searchValue').value = widget.getValue("defaultValue");
+			praktikaWidget.search();
+		};
+		praktikaWidget.lastContent = {};
+		praktikaWidget.search = function() {
+			  widget.setValue('offset', 0);
+			  
+					   
+			  UWA.Data.getJson(
+				'http://lokal.praktika.de/widget/load.phtml?value=' + encodeURI(document.getElementById('searchValue').value),
+				praktikaWidget.display
+			  );			   
+
+		};
+		praktikaWidget.display = function(json) {
+			
+			if(json == undefined) {
+				json = praktikaWidget.lastContent 
+			} else {
+				praktikaWidget.lastContent = json;
+			}
+			var pager = new UWA.Controls.Pager(
+				{
+				module: widget,
+				limit: widget.getValue('limit'),
+				offset: widget.getValue('offset'),
+				dataArray: json
+				}
+			);
+			pager.onChange = function(newOffset) {
+				widget.setValue('offset', newOffset);
+				praktikaWidget.display();
+			}
+			var pagerContainer = UWA.$element(widget.body.getElementsByClassName('paging')[0] );
+			pagerContainer.setContent( pager.getContent() ); 	
+
+			html = "";
+			for (var i = widget.getValue('offset'); i < (widget.getInt('offset') + widget.getInt('limit')); i++ ) {
+				if(json[i] != undefined) html += "<div><a class='taetigkeit'>" + json[i].taetigkeit + "</a><br />&nbsp;&nbsp;"+json[i]["firma"]+" / zuletzt bearbeiter: "+json[i].modify+"</div>";
+			}
+			UWA.$element(widget.body.getElementsByClassName('content')[0] ).setHTML(html);
+		};
+
+
+
+		widget.onLoad = function() {
+			praktikaWidget.dataInit();
+		}	
+
+		function onkeyup(e) {
+			if(e.keyCode == 13) praktikaWidget.search();
+		}
+	</script>
+</head>
+
+<body>
+	<input type="text" class="search" name="searchValue" onkeyup="onkeyup" id="searchValue" />
+	<div class="content"></div>
+	<div class="paging"></div>
+</body>
+
+</html>

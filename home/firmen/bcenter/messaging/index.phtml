@@ -1,0 +1,39 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+	
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+praktikaInclude(array("db.php"));
+
+
+$hDB = new Praktika_Db();
+
+//$hDB->query();
+
+$_SESSION["s_firmenproparray"]["lastPage"] = "messaging/index";
+
+if(!empty($_POST["bearbeiter"])) {
+	$_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] = (int)$_POST["bearbeiter"];
+}
+?>
+<div class="directories">
+<? 
+include '/home/praktika/etc/navibaumfirmen.inc.php';
+?>
+</div>
+
+<div id="mailbox_container">
+<?
+
+if(isset($_SESSION["s_firmenproparray"]["lastMailbox"])) {
+	// Alte Session-Eintr�ge sollen geladen werden
+	$oldInclude = true;
+}
+include "mailbox.phtml";
+?>
+</div>

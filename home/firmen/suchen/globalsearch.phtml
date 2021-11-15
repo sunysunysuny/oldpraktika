@@ -1,0 +1,95 @@
+<?
+$sprachbasisdatei = '/home/firmen/studiengang.phtml';
+$sprachbasisdatei2 = '/home/firmen/volltext.phtml';
+
+require('/home/praktika/etc/config.inc.php');
+	
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_LOOK_FOR_CANDIDATES;
+
+pageheader(array('page_title' => 'Suchergebnis: Kandidaten Volltextsuche'));
+Praktika_Static::__("kandidatensuche");
+$content = '';
+
+if (isset($_POST['ksuchstring'])) {
+	$_SESSION['s_suchstring'] = $_POST['ksuchstring'];
+}
+?>
+
+<script type="text/javascript" src="/scripts/ajax/search_candidates.js"></script>
+<script type="text/javascript">
+	function pressKeyEnter(oEvent){
+		if ((oEvent.keyCode && oEvent.keyCode == 13) || (oEvent.which && oEvent.which == 13)) {
+			Load_SearchData('<?php echo 'categories' ?>', '<?php echo $_REQUEST['sortierung'] ?>', document.getElementById('ksuchstring').value);
+			return false;
+		}
+	}
+	function hideDetails() {
+		if (document.getElementById('vertical_slider').className == 'hide') {
+			document.getElementById('vertical_slider').className = 'show';
+		} else {
+			document.getElementById('vertical_slider').className = 'hide';
+		}
+	}
+</script>
+
+<?php
+
+$sql = 'UPDATE
+			statseinblick
+		SET
+			counter = counter + 1
+		WHERE
+			id = 20';
+mysql_db_query($database_db, $sql, $praktdbmaster);
+$_SESSION['s_suchstring'] = $_REQUEST['suche'];
+
+?>
+
+<form action="" onsubmit="Load_SearchData(<?php echo '\'categories\',\''.$_REQUEST['sortierung'].'\',document.getElementById(\'ksuchstring\').value'; ?>); return false;">
+	<fieldset>
+		<p>
+			<label for="ksuchstring">Sucheingabe &auml;ndern:</label>
+			<input name="ksuchstring" id="ksuchstring" value="<?php echo $_SESSION['s_suchstring']; ?>" size="18" />
+			<input type="hidden" name="sortierung" id="sortierung" value="<?php echo $_REQUEST['sortierung']; ?>" />
+			<input type="hidden" name="categoryids" id="categoryids" />
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="button" class="button red small" value="suchen" onclick="Load_SearchData(<?php echo '\'categories\',\''.$_REQUEST['sortierung'].'\',document.getElementById(\'ksuchstring\').value'; ?>);" />
+		</p>
+	</fieldset>
+</form>
+
+<div id="resultausgabe"><p>Bitte warten<br /><img src="/gifs/zentralelemente/wait.gif" alt="bitte warten" /></p></div>
+
+<?php
+
+$bearbeiterid = isset($_SESSION['s_loginid']) ? $_SESSION['s_loginid'] : (isset($_COOKIE['c_lid']) ? $_COOKIE['c_lid'] : 0);
+if (!empty($_SESSION['s_suchstring'])) {
+	$sql = sprintf("INSERT INTO
+						kssuchstring (bearbeiterid, suchstring)
+					VALUES
+						(%1\$d,
+						'%2\$s')",
+					$bearbeiterid,
+					$_SESSION['s_suchstring']);
+	mysql_db_query($database_comm, $sql, $praktdbmaster);
+}
+
+echo $content;
+
+?>
+	
+<script type="text/javascript">
+<!--
+	Load_SearchData(<?php echo '\'categories\',\''.$_REQUEST['sortierung'].'\',\''.urlencode($_SESSION['s_suchstring']).'\''; ?>);
+//-->
+</script>
+
+<?php
+	
+bodyoff(); ?>

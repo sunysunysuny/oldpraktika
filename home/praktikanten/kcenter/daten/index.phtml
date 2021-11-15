@@ -1,0 +1,805 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/anmeldung.phtml";
+
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+	
+}
+$email_verify_disable = $email_verify_disable || false;
+
+$_SESSION["s_sprachid"] = 2;
+#$lauf[] = "10. ".(microtime(true) - $start)." ms"; $start = microtime(true);		
+praktikaInclude(array("listen.php","db.php"));
+$hDB = new Praktika_Db();
+
+$_SESSION["s_nutzerproparray"]["lastPage"] = "daten/index";
+
+require_once("/home/praktika/etc/emailverify.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+#$lauf[] = "11. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+/*
+-----------------------------------------------------------------------------
+Verarbeitung der Formulardaten
+-----------------------------------------------------------------------------
+*/
+
+if (isset($_POST['save'])) {
+	$error = array();
+
+	$fields = array('vname', 'name', 'strasse', 'ort', 'plz');
+	foreach($fields as $field) {
+		if (strlen(trim($_POST[$field])) < 2) {
+			array_push($error, $field);
+		}
+	}
+	
+	$sql = sprintf("SELECT
+                        email,
+                        DATE_FORMAT(geburtsdatum, '%%d.%%m.%%Y') AS gebdat
+                    FROM
+                        prakt2.nutzer
+                    WHERE
+                        id = %d
+                    LIMIT
+                        1;",
+					$_SESSION['s_nutzerid']);
+
+	$result = $hDB->query($sql, $praktdbslave);
+	
+	$record = mysql_fetch_array($result, MYSQL_ASSOC);
+
+	//Wenn Email ge&auml;ndert, dann erneut verify_nutzeremail
+	if ($_POST['email'] != $record['email']) {
+		
+		$verifykey = verify_nutzeremail($_POST['email']);
+	}
+	
+	if (empty($_POST['email']) && mysql_num_rows($result) > 1) {
+		$_POST['email'] = $record['email'];
+	} else {
+		$validtext = ValidateMail($_POST['email']);
+		
+		if (empty($validtext[0])) {
+			$_POST['email'] = $record['email'];
+			$email_validate_success = false;
+		} else {
+			$email_validate_success = true;
+			$sql = sprintf("UPDATE 
+                                ".$database_db.".newsletter 
+                            SET 
+                                email = '%s', 
+                                modify =  NOW()
+                            WHERE 
+                                email = '%s';",
+							$_POST['email'],
+							$record['email']);
+			mysql_query($sql, $praktdbmaster);
+		}
+	}
+	if(substr($_POST["openid"], strlen($_POST["openid"]) - 1) == "/") {
+	  	$_POST["openid"] = substr($_POST["openid"], 0, strlen($_POST["openid"]) - 1);
+	}
+	
+
+	$sql = "SELECT id FROM nutzer WHERE id = ".$_SESSION["s_nutzerid"]." AND passwort = OLD_PASSWORD('".mysql_real_escape_string($_POST["oldpasswort"])."')";
+	$result = mysql_query($sql, $praktdbslave);
+
+	if(mysql_num_rows($result) == 0) {
+		$error = "Ihr aktuelles Passwort stimmt nicht mit ihrer Eingabe �berein!";
+	}
+	
+	
+	if (count($error) < 1 &&
+		!empty($_POST['vname']) && 
+		!empty($_POST['name']) &&
+		!empty($_POST['plz']) &&
+		!empty($_POST['ort']) &&
+		!empty($_POST['email'])) 
+	{
+		$saved = true;
+		$sql = "UPDATE 
+                           prakt2.nutzer 
+                       SET  
+                           karierrestatus = ".(int)$_POST['karierrestatus'].", 
+                           studiengang = ".(int)$_POST['studiengang'].",
+                           anrede = '".mysql_real_escape_string($_POST['anrede'])."',
+                           geschlecht = '".($_POST['anrede'] == 'Herr' ? 'm&auml;nnlich' : 'weiblich')."',
+                           titel = '".mysql_real_escape_string($_POST['titel'])."',
+                           vname = '".mysql_real_escape_string($_POST['vname'])."',
+                           name = '".mysql_real_escape_string($_POST['name'])."',
+                           strasse = '".mysql_real_escape_string($_POST['strasse'])."',
+                           plz = '".mysql_real_escape_string($_POST['plz'])."', 
+                           ort = '".mysql_real_escape_string($_POST['ort'])."',
+                           bundesland = ".(int)$_POST['bundesland'].",
+                           land = ".(int)$_POST['land'].",
+                           grossraum = ".(int)$_POST['grossraum'].",
+                           tel = '".mysql_real_escape_string($_POST['tel'])."',
+                           fax = '".mysql_real_escape_string($_POST['fax'])."',
+                           funktel = '".mysql_real_escape_string($_POST['funktel'])."',
+                           email = '".mysql_real_escape_string($_POST['email'])."',
+                           homepage = '".mysql_real_escape_string(!empty($_POST['homepage']) && $_POST['homepage'] != 'http://' ?$_POST['homepage'] : 'NULL')."',
+                           hochschule = '".$_POST['hochschule']."',
+                           start_praktikum_m = ".(int)$_POST['start_praktikum_m'].",
+                           start_praktikum_y = ".(int)$_POST['start_praktikum_y'].",
+                           start_job_m = ".(int)$_POST['start_job_m'].",
+                           start_job_y = ".(int)$_POST['start_job_y'].",
+                           semester = ".(int)$_POST['semester'].",
+                           gebort = '".mysql_real_escape_string($_POST['gebort'])."',
+                           famstand = '".mysql_real_escape_string($_POST['famstand'])."',
+                           host = '".mysql_real_escape_string($host)."',
+                           ip = '".mysql_real_escape_string($ip)."',
+						   profile_1_site = '".(int)$_POST["profile_1_site"]."',
+						   profile_1 = '".mysql_real_escape_string($_POST["profile_1"])."',
+						   profile_2_site = '".(int)$_POST["profile_2_site"]."',
+						   profile_2 = '".mysql_real_escape_string($_POST["profile_2"])."',						   
+						   profile_3_site = '".(int)$_POST["profile_3_site"]."',
+						   profile_3 = '".mysql_real_escape_string($_POST["profile_3"])."',						   
+                           modify = NOW(),
+                           modifyunix = UNIX_TIMESTAMP(modify),
+                           predelete = 'false',
+                           openid = '".mysql_real_escape_string($_POST["openid"])."'
+                           ".(isset($_SESSION['s_preregister']) && $_SESSION['s_preregister'] == true ? ",\n preregister = 'false'" : '')." 
+						   ,geburtsdatum = '".$_POST['birthdate']."'
+							".(!empty($verify_sql) ? $verify_sql : '')."
+                       WHERE 
+                           id = ".$_SESSION['s_nutzerid'];
+						
+						#echo $sql;
+		/* datensatz einfuegen */
+		mysql_query($sql, $praktdbslave) or die(mysql_error());
+
+		if(defined("FORUM_MODE") && constant("FORUM_MODE") == true) {
+			$sql = "SELECT f_userid, f_username FROM prakt2.nutzer WHERE id= ".(int)$_SESSION['s_nutzerid']."";
+			$forenData = $hDB->query($sql, $praktdbslave);
+
+			$data = mysql_fetch_assoc($forenData);
+			
+			if($data["f_userid"] == "0") {
+				$data["f_userid"] = Praktika_Forum::createBewerber($_SESSION['s_nutzerid']);
+			}
+
+			Praktika_Forum::renameForumMember($_SESSION['s_nutzerid'], intval($data["f_userid"]), $_POST["f_username"]);
+			Praktika_Forum::setUserOption(intval($data["f_userid"]), "aboutMe", $_POST["f_aboutme"]);
+			Praktika_Forum::setUserSignature(intval($data["f_userid"]), $_POST["f_signatur"]);
+			
+			if(!empty($_FILES["f_avatar"])) {
+				Praktika_Forum::uploadAvatar($_FILES["f_avatar"], $data["f_userid"]);
+			}
+		}
+
+
+		$_SESSION['s_name'] = $_POST['name'];
+		$_SESSION['s_vname'] = $_POST['vname'];
+		
+		if (isset($_SESSION['s_preregister']) && $_SESSION['s_preregister']) {
+			$_SESSION['s_preregister'] = false;
+			$aktiviert = false;
+		}
+	}
+	
+	if (!empty($_POST['geb_tag']) && !empty($_POST['geb_monat']) && !empty($_POST['geb_jahr'])) {
+		$geburtsdate = $_POST['geb_tag'].".".$_POST['geb_monat'].".".$_POST['geb_jahr'];
+	} else {
+		$geburtsdate = $record['gebdat'];
+	}
+	
+	// infomail zusammenbauen
+	$emailobj = new emailtemplate(35);
+	$emailobj->replace("{id}", $_SESSION['s_nutzerid']);
+	$emailobj->replace("{vname}", $_POST['vname']);
+	$emailobj->replace("{name}", $_POST['name']);
+	$emailobj->replace("{strasse}", $_POST['strasse']);
+	$emailobj->replace("{plz}", $_POST['plz']);
+	$emailobj->replace("{ort}", $_POST['ort']);
+	$emailobj->replace("{land}", $_POST['land']);
+	$emailobj->replace("{bundesland}", $_POST['bundesland']);
+	$emailobj->replace("{grossraum}", $_POST['grossraum']);
+	$emailobj->replace("{tel}", $_POST['tel']);
+	$emailobj->replace("{fax}", $_POST['fax']);
+	$emailobj->replace("{funktel}", $_POST['funktel']);
+	$emailobj->replace("{email}", $_POST['email']);
+	$emailobj->replace("{homepage}", $_POST['homepage']);
+	$emailobj->replace("{geburtsdate}", $geburtsdate);
+	$emailobj->replace("{passwort}", $_POST['passwort']);
+	//$emailobj->replace("{passwort_plain}", $passwort_plain']);
+	$emailobj->replace("{host}", $host);
+	$emailobj->replace("{ip}", $ip);
+	$emailobj->replace("{updatestring}", $sql);
+	$emailobj->send_email();
+	unset($emailobj);
+
+	/* Logfile eintragen */
+	if ($fp = @fopen($logfile, "a"))
+	{
+		fputs($fp, $sql);
+		fputs($fp, "\n");
+		fclose($fp);
+	}
+
+	if (!empty($_POST['passwort2']) && !empty($_POST["oldpasswort"]) && $_POST['passwort'] === $_POST['passwort2'])
+	{
+		$sql = "SELECT id FROM nutzer WHERE id = ".$_SESSION["s_nutzerid"]." AND passwort = OLD_PASSWORD('".mysql_real_escape_string($_POST["oldpasswort"])."')";
+		$result = mysql_query($sql, $praktdbslave);
+
+		if(mysql_num_rows($result) > 0) {
+
+			$sql = sprintf("UPDATE 
+	                            ".$database_db.".nutzer 
+	                        SET 
+	                            passwort = OLD_PASSWORD('%2\$s'),
+	                            passwort_plain = '%2\$s' 
+	                        WHERE 
+	                            id =  %1\$d;",
+							$_SESSION['s_nutzerid'],
+							$_POST['passwort']);
+			mysql_query($sql, $praktdbmaster);
+			
+		} else {
+			$error = "Das Passwort wurde nicht ge�ndert, da das eingegebene bestehende Passwort nicht korrekt war.";
+		}
+	}
+
+	recalc_profilquali();
+}
+
+/*
+-----------------------------------------------------------------------------
+&Auml;nderung der Stammdaten
+-----------------------------------------------------------------------------
+*/
+
+$sql = sprintf("SELECT
+                    nutzer.name,
+                    nutzer.vname,
+                    nutzer.anrede,
+                    nutzer.email,
+                    nutzer.homepage,
+                    nutzer.titel,
+                    nutzer.strasse,
+                    nutzer.plz,
+                    nutzer.ort,
+                    nutzer.tel,
+                    nutzer.funktel,
+					nutzer.profile_1_site,
+					nutzer.profile_1,
+					nutzer.profile_2_site,
+					nutzer.profile_2,
+					nutzer.profile_3_site,
+					nutzer.profile_3,
+                    nutzer.fax,
+                    nutzer.land,
+                    nutzer.bundesland,
+                    nutzer.grossraum,
+                    DATE_FORMAT(nutzer.geburtsdatum, '%%d.%%m.%%Y') AS gebdat,
+                    DATE_FORMAT(nutzer.geburtsdatum, '%%d') AS geb_tag,
+                    DATE_FORMAT(nutzer.geburtsdatum, '%%m') AS geb_monat,
+                    DATE_FORMAT(nutzer.geburtsdatum, '%%Y') AS geb_jahr,
+                    nutzer.gebort,
+                    nutzer.famstand,
+                    nutzer.karierrestatus,
+                    nutzer.studiengang,
+                    nutzer.hochschule,
+                    nutzer.semester,
+				    nutzer.start_praktikum_m,
+				    nutzer.start_praktikum_y,
+				    nutzer.start_job_m,
+				    nutzer.start_job_y,
+					nutzer.f_userid,
+					nutzer.f_username,
+				    nutzer.openid
+                FROM
+                    ".$database_db.".nutzer
+                WHERE
+                    id = %d
+                LIMIT 
+                    1;",
+				$_SESSION['s_nutzerid']);
+
+$result = $hDB->query($sql, $praktdbslave);
+$record = mysql_fetch_assoc($result);
+$nutzerDaten = $record;
+
+if(!empty($nutzerDaten["f_userid"])) {
+	$sql = "SELECT userOption6 FROM prakt2_forum.wcf1_user_option_value WHERE userID = ".intval($nutzerDaten["f_userid"]);
+	$forenOptions = mysql_fetch_assoc(mysql_query($sql, $praktdbslave));	
+	
+	$sql = "SELECT signature FROM prakt2_forum.wcf1_user WHERE userID = ".intval($nutzerDaten["f_userid"]);
+	$forenOptions2 = mysql_fetch_assoc(mysql_query($sql, $praktdbslave));
+	
+	$forenOptions["f_signatur"] = $forenOptions2["signature"];
+}
+#$lauf[] = "12. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+#echo mysql_error($praktdbslave)."<br />";
+#echo $sql;
+#echo "<br />";
+$keys = array(
+				'anrede', 
+				'name', 
+				'profile_1_site',
+				'profile_1',
+				'profile_2_site',
+				'profile_2',
+				'profile_3_site',
+				'profile_3',
+				'vname',
+				'email',
+				'homepage', 
+				'titel', 
+				'strasse', 
+				'plz', 
+				'ort', 
+				'land', 
+				'bundesland', 
+				'grossraum',
+				'tel',
+				'funktel',
+				'fax', 
+				'gebdat',
+				'gebort',
+				'geb_tag', 
+				'geb_monat', 
+				'geb_jahr',
+				'famstand',
+				'karierrestatus',
+				'studiengang',
+				'hochschule',
+				'semester',
+				'start_praktikum_m',
+				'start_praktikum_y',
+				'start_job_m',
+				'start_job_y',
+				'f_username',
+				'openid');
+
+foreach ($keys as $key) {
+	$$key = (!empty($_POST[$key])) ? $_POST[$key] : $record[$key];
+}
+
+$homepage = (empty($homepage)) ? "http://" : $homepage;
+
+#if ($_SESSION['s_preregister'] == true) {
+	#echo '<p>Sehr geehrter Nutzer,<br /><br />Sie melden sich heute das erste Mal bei praktika.de an.<br />Um mit praktika.de arbeiten zu k&ouml;nnen, ben&ouml;tigen wir noch einige Angaben von Ihnen. Wir bitten Sie nun, diese jetzt nachzutragen.</p>'."\n";
+#}
+
+if (isset($aktiviert) && $aktiviert == true) {
+	echo '<p class="hint success"><strong>Sie haben Ihren Account nun aktiviert.</strong></p>'."\n";
+	echo '<p class="hint success">Ab sofort k&ouml;nnen Sie sich auf Stellen bewerben, Ihr Profil hinterlegen, JobMAIL konfigurieren und vieles mehr.</p>'."\n";
+}
+
+if (isset($_POST['save'])) {
+	$sql = sprintf("SELECT
+                        COUNT(email) as count
+                    FROM
+                        ".$database_db.".nutzer
+                    WHERE
+                       id <> %d AND
+                       email LIKE '%s';",
+					$_SESSION['s_nutzerid'],
+					$_POST['email']);
+	$result = mysql_query($sql, $praktdbslave);
+	$record = mysql_fetch_array($result, MYSQL_ASSOC);
+
+	if ($record['count'] > 0) { 
+		echo '<p class="hint error">Die von Ihnen eingegebene eMail-Adresse existiert bereits! Bitte pr&uuml;fen Sie Ihre Eingabe! Die Stammdaten wurden bis auf Ihre eMail-Adresse ge&auml;ndert.</p>'."\n";
+	} elseif($email_validate_success == false) {
+		echo '<p class="hint success">Die &Auml;nderungen an Ihren Stammdaten wurden gespeichert.<br /><p class="hint error">Ihre neue E-Mail Adresse konnte leider nicht als echt erkannt werden und wurde daher nicht mit gespeichert.</p></p>'."\n";
+	} elseif ($email_verify_disable == true) {
+		echo '<p class="hint success">Die &Auml;nderungen an Ihren Stammdaten wurden gespeichert. Da Sie Ihre eMail-Adresse ge&auml;ndert haben, ist es notwendig, das Sie diese erneut best&auml;tigen - aus diesem Grund wurden Sie vom System ausgeloggt. Sie finden eine eMail in Ihrem Postfach - bitte klicken Sie auf den darin enthaltenen Link.</p>'."\n";
+	} else if($saved == true) {
+		echo '<p class="hint success">Ihre Stammdaten wurden erfolgreich ge&auml;ndert.</p>'."\n";
+	}
+}
+if(!empty($error)) echo "<p class='hint error'>Die &Auml;nderungen wurden nicht gespeichert. Bitte f&uuml;llen Sie das Formular korrekt aus.</p>";
+
+if (isset($_POST['save']) && !empty($_POST['passwort2']) && $_POST['passwort'] != $_POST['passwort2']) {
+	echo '<p class="hint error">Das eingegebenen Passwort und das Kontrollpasswort stimmen nicht &uuml;berein. Das Passwort wurde nicht ge&auml;ndert.<p class="error">'."\n";
+}
+
+if (isset($_POST['save']) && empty($_POST["oldpasswort"])) {
+	echo '<p class="hint error">Um Ihre Daten zu &auml;ndern, m&uuml;ssen Sie Ihr aktuelles Passwort angeben.</p>'."\n";
+}
+	
+?>
+<script type="text/javascript">
+	$('kCenterTitle').innerHTML = " - Pers&ouml;nliche Daten";	
+</script>
+
+<form action="/Karriere_Center/daten" enctype="multipart/form-data" method="post">
+	<h4>Pers&ouml;nliche Daten</h4>
+  <fieldset>
+    <p><label for="anrede">Anrede:</label>
+       <select id="anrede" name="anrede">
+         <option value="Herr"<?php echo (isset($anrede) && $anrede == 'Herr') ? ' selected="selected"' : ''; ?>>Herr</option>
+         <option value="Frau"<?php echo (isset($anrede) && $anrede == 'Frau') ? ' selected="selected"' : ''; ?>>Frau</option>
+       </select></p>
+  
+<?=LineInput("Titel","titel",'',50); ?>
+<?=LineInput("Nachname","name",'',50); ?>
+<?=LineInput("Vorname","vname",'',50); ?>
+<?=LineInput("Stra&szlig;e","strasse",'',50); ?>
+
+    <p><label for="plz">PLZ / Ort:</label>
+       <input type="text" id="plz" name="plz" value="<?php echo $plz; ?>" />
+       <input type="text" id="ort"  autocomplete="off" onkeyup="autoCompleter.get();" name="ort" value="<?php echo $ort; ?>" /></p>
+  
+    <p><label for="land">Land:</label>
+       <select id="land" name="land">
+<?php
+$landCollection = Praktika_Listen::getLand();
+
+for($a = 0;$a < count($landCollection);$a++) {?>
+         <option value="<?php echo $landCollection[$a]['id']; ?>"<?php echo (isset($land) && $landCollection[$a]['id'] == $land) ? ' selected="selected"' : null; ?>><?=$landCollection[$a]['title']; ?></option>
+<?php } ?>
+       </select></p>
+  
+    <p><label for="bundesland">Bundesland:</label>
+       <select id="bundesland" name="bundesland">
+<?php
+$blandCollection = Praktika_Listen::getBundesland((!empty($land)) ? $land : 68);
+#$lauf[] = "13. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+for($a = 0;$a < count($blandCollection);$a++) { ?>
+         <option value="<?php echo $blandCollection[$a]['id']; ?>"<?php echo (isset($bundesland) && $blandCollection[$a]['id'] == $bundesland) ? ' selected="selected"' : null; ?>><?=$blandCollection[$a]['title']; ?></option>
+<?php } ?>
+       </select></p>
+
+    <p><label for="grossraum">Gro&szlig;raum:</label>
+<?php
+#$lauf[] = "130. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+$grossraumCollection = Praktika_Listen::getGrossraum((!empty($nutzerDaten["bundesland"])) ? $nutzerDaten["bundesland"] : 1);
+#$lauf[] = "131. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+?>
+    <select id="grossraum" name="grossraum">
+<?php
+for($a = 0;$a < count($grossraumCollection);$a++) { ?>
+         <option value="<?php echo $grossraumCollection[$a]['id']; ?>"<?php echo (isset($nutzerDaten["grossraum"]) && $grossraumCollection[$a]['id'] == $nutzerDaten["grossraum"]) ? ' selected="selected"' : ''; ?>><?=$grossraumCollection[$a]['title']; ?></option>
+<?php }?>
+       </select></p>
+<?=LineInput("eMail-Adresse","email",'', 50); ?>
+<?=LineInput("Telefonnummer","tel",'', 50); ?>    
+<?=LineInput("Mobilfunknummer","funktel",'', 50); ?>
+<?=LineInput("Faxnummer","fax",'', 50); ?>    
+<?=LineInput("Homepage","homepage",'', 50, "http://"); ?>   
+
+  </fieldset>
+  <fieldset>
+    <p><label for="gebdat">Geburtsdatum:</label>
+		<input type="hidden" id="birthdate" name="birthdate" value="<? echo (isset($_REQUEST['birthdate']) && !empty($_REQUEST['birthdate'])) ? $_REQUEST['birthdate'] : ''; ?>" />
+      <input type="text" id="gebdat" name="gebdat" value="<?php echo $gebdat; ?>" /></p>
+
+<?=LineInput("Geburtsort","gebort",'', 50); ?>    
+
+	<p><label for="famstand">Familienstand:</label>
+       <select id="famstand" name="famstand">
+         <option value="-1"<?php echo ((int) $famstand == -1) ? ' selected="selected"' : null; ?>><?php echo 'keine Angabe'; ?></option>
+<?php $familienstand = array('ledig', 'verheiratet', 'geschieden', 'verwitwet', 'anderer');
+      foreach($familienstand as $stand): ?>
+         <option value="<?php echo $stand; ?>"<?php echo ($famstand == $stand) ? ' selected="selected"' : null; ?>><?php echo $stand; ?></option>
+<?php endforeach; ?>
+       </select></p>
+
+  </fieldset>
+  
+   <h4>Zugang per OpenID <span class="wasIstDas"><a href='http://de.wikipedia.org/wiki/OpenID' target="_blank">(Erkl&auml;rung auf Wikipedia)</a></span></h4>  
+  <fieldset>
+  <p><label for="openid">Verkn&uuml;pftes OpenID-Konto:</label>
+       <input type="text" id="openid" name="openid" value="<?=$openid ?>" /></p>  
+  </fieldset>
+       
+  <h4>weitere Angaben f&uuml;r Ihre Bewerbung</h4>
+  <fieldset>
+    <p><label for="karierrestatus">Karierrestatus:</label>
+       <select id="karierrestatus" name="karierrestatus">
+<?php
+
+	$sql = sprintf("SELECT 
+                        id,
+                        german
+                    FROM 
+                        ".$database_db.".karierrestatus 
+                    ORDER BY 
+                        anzeigeorder ASC;");
+	$result = $hDB->query($sql, $praktdbslave);
+	while ($record = mysql_fetch_array($result)) 
+	{?>
+
+         <option value="<?php echo $record['id']; ?>"<?php echo ((int) $karierrestatus == $record['id']) ? ' selected="selected"' : null; ?>><?php echo $record["german"]; ?></option>
+<?php } ?>
+
+       </select></p>
+
+    <p><label for="studiengang">Studiengang:</label>
+       <select id="studiengang" name="studiengang">
+<?php
+	$sql = sprintf("SELECT 
+                        id,
+                        studiengang
+                    FROM 
+                        ".$database_db.".studiengaenge 
+                    ORDER BY 
+                        studiengang ASC;");
+	$result = $hDB->query($sql, $praktdbslave);
+#$lauf[] = "14. ".(microtime(true) - $start)." ms"; $start = microtime(true);	
+	while ($record = mysql_fetch_array($result)) 
+	{?>
+         <option value="<?php echo $record['id']; ?>"<?php echo ((int) $studiengang == $record['id']) ? ' selected="selected"' : null; ?>><?php echo $record['studiengang']; ?></option>
+<?php } ?>
+       </select></p>
+
+<?php
+if ($_SESSION['s_sprachid'] == 1) 
+{
+	switch ($semester)
+	{
+	case 1:
+		$suffix = 'st';
+		break;
+	case 2:
+		$suffix = 'nd';
+		break;
+	case 3:
+		$suffix = 'rd';
+		break;
+	default:
+		$suffix = 'th';
+		break;
+	}
+}
+else 
+{
+	$suffix = '.';
+}
+?>
+    <p><label for="semester">aktuelles Semester:</label>
+       <input type="text" id="semester" name="semester" maxlength="2" class="html_controlled" size="2" value="<?php echo $semester; ?>" /><?php echo $suffix; ?> <?php echo ' Semester'; ?></p>
+
+    <p><label for="hochschule">Uni / Bildungseinrichtung*:</label>
+       <input type="text" id="hochschule" name="hochschule" value="<?php echo $hochschule; ?>" /></p>
+
+    <p><label for="start_praktikum_m">n&auml;chstes Praktikum ab*:</label>
+       <select id="start_praktikum_m" name="start_praktikum_m" class="html_controlled">
+<?php
+	$start_praktikum_m = (!empty($start_praktikum_m)) ? $start_praktikum_m : date('m');
+	for($i = 1; $i <= 12; $i++) 
+	{?>
+         <option value="<?php echo $i; ?>"<?php echo ((int) $start_praktikum_m == $i) ? ' selected="selected"' : null; ?>><?php echo sprintf("%01.0f", $i); ?></option>
+<?php } ?>
+         <option value="-1">--</option>
+       </select> /
+       <select id="start_praktikum_y" name="start_praktikum_y" class="html_controlled">
+<?php
+	$start_praktikum_y = (!empty($start_praktikum_y)) ? $start_praktikum_y : date('Y');
+	for($i = date('Y'); $i <= date('Y') + 3; $i++) 
+	{?>
+         <option value="<?php echo $i; ?>"<?php echo ((int) $start_praktikum_y == $i) ? ' selected="selected"' : null; ?>><?php echo sprintf("%01.0f", $i); ?></option>
+<?php } ?>
+         <option value="-1">----</option>
+       </select></p>
+
+    <p><label for="start_job_m">Berufsstart ca. ab*:</label>
+       <select id="start_job_m" name="start_job_m" class="html_controlled">
+<?php
+	$start_job_m = (!empty($start_job_m)) ? $start_job_m : date('m');
+	for($i = 1; $i <= 12; $i++) 
+	{?>
+         <option value="<?php echo $i; ?>"<?php echo ((int) $start_job_m == $i) ? ' selected="selected"' : null; ?>><?php echo sprintf("%01.0f", $i); ?></option>
+<?php } ?>
+         <option value="-1">--</option>
+       </select> /
+       <select id="start_job_y" name="start_job_y" class="html_controlled">
+<?php
+	$start_job_y = (!empty($start_job_y)) ? $start_job_y : date('Y');
+	for($i = date('Y'); $i <= date('Y') + 3; $i++) 
+	{?>
+         <option value="<?php echo $i; ?>"<?php echo ((int) $start_job_y == $i) ? ' selected="selected"' : null; ?>><?php echo sprintf("%01.0f", $i); ?></option>
+<?php } ?>
+         <option value="-1">----</option>
+       </select></p>
+
+  </fieldset>
+  <h4>Weitere Profile von Ihnen im Web <span style="font-size:10px;color:#aaa;">(Angaben nicht &ouml;ffentlich zug&auml;nglich)</span></a></h4>  
+  <fieldset>
+  	<?
+		$instantMessenger = "SELECT * FROM prakt2.other_profiles WHERE instantMess = 1 ORDER BY sort";
+		$iM = mysql_query($instantMessenger);
+
+	?>
+  <p>
+  	<select name="profile_1_site">
+  	<option value="">W&Auml;HLEN</option>
+  	<?
+	while($row = mysql_fetch_Assoc($iM)) {
+		echo "<option value='".(int)$row["id"]."' ".($row["id"]==$profile_1_site?"selected='selected'":"")." >".($row["titel"])."</option>";
+	}
+	?>
+	</select>
+  <input type="text" name="profile_1" value="<?=$profile_1 ?>" />
+  </p>  
+ 	<?
+		$instantMessenger = "SELECT * FROM prakt2.other_profiles WHERE instantMess = 0 ORDER BY sort";
+		$social = mysql_query($instantMessenger);
+
+	?>
+  <p>
+  	<select name="profile_2_site">
+  	<option value="">W&Auml;HLEN</option>
+  	<?
+	while($row = mysql_fetch_Assoc($social)) {
+		echo "<option value='".(int)$row["id"]."' ".($row["id"]==$profile_2_site?"selected='selected'":"")." >".($row["titel"])."</option>";
+	}
+	?>
+	</select>
+  <input type="text" name="profile_2" value="<?=$profile_2 ?>" />
+  </p>   
+  <p>
+  	<select name="profile_3_site">
+  	<option value="">W&Auml;HLEN</option>
+  	<?
+	mysql_data_seek($social, 0);
+	while($row = mysql_fetch_Assoc($social)) {
+		echo "<option value='".(int)$row["id"]."' ".($row["id"]==$profile_3_site?"selected='selected'":"")." >".($row["titel"])."</option>";
+	}
+	?>
+	</select>
+  <input type="text" name="profile_3" value="<?=$profile_3 ?>" />
+  </p>  
+  </p>  
+  
+  </fieldset>
+  <a name="forum">&nbsp;</a>
+ <h4>Forums - Optionen</h4> 
+    <fieldset>
+  	<p><label for="f_deactivated">Nutzung des Forums:</label>
+       <select name="f_deactivated" id="f_deactivated">
+			<option value="false">Aktiviert</option>
+			<option value="true">Deaktivieren</option>
+		</select>
+	</p>	
+  	<p><label for="f_username">Nutzername im Forum:</label>
+       <input type="text" id="f_username" name="f_username" value="<?=$f_username ?>" /></p>	
+
+  	<p><label for="f_avatar">Avatar im Forum:</label>
+       <input type="file" id="f_avatar" name="f_avatar" value="" /></p>	  	
+	   
+	<p><label for="f_aboutme">Persönliche Beschreibung<br>(Im Forum):</label>
+       <textarea name="f_aboutme" id="f_aboutme" style="height:100px;width:400px;"><?=$forenOptions["userOption6"] ?></textarea></p>	   
+	
+	<p><label for="f_signatur">Signatur<br>(Im Forum):</label>
+       <textarea name="f_signatur" id="f_signatur" style="height:100px;width:400px;"><?=$forenOptions["f_signatur"] ?></textarea></p>		   
+	   
+	</fieldset>
+ <h4>Passwort</h4>
+   <fieldset>
+  	<p><label for="passwort">neues Passwort:</label>
+       <input type="password" id="passwort" name="passwort" /></p>
+
+    <p><label for="passwort2">neues Passwort wiederholen:</label>
+       <input type="password" id="passwort2" name="passwort2" /></p>
+	   <br />
+  <p>
+	  <i>F&uuml;r eine &Auml;nderungen der pers&ouml;nlichen Daten wird das aktuelle Passwort ben&ouml;tigt.</i><br /><br />
+</p>
+  	<p><label for="oldpasswort">aktuelles Passwort:</label>
+       <input type="password" id="oldpasswort" name="oldpasswort" /></p>
+  	<br />
+
+    
+  </fieldset>
+ <fieldset class="control_panel">
+   <p><input type="submit" class="button small" name="save" value="Daten speichern"></p>
+  </fieldset>
+</form>
+<br />
+
+<form action="/Karriere_Center/daten/delete" method="post">
+<?php
+
+echo "<h4>Mitgliedschaft beenden</h4>\n";
+echo "<p>Sie k&ouml;nnen jederzeit die Mitgliedschaft bei praktika.de beenden.<br>Es werden alle Eintr&auml;ge und hinterlegten Daten und Dateien unwiderruflich gel&ouml;scht. Alle kostenpflichtigen Buchungen bzw. Freischaltungen gehen verloren und k&ouml;nnen nicht &uuml;bertragen werden. Sie k&ouml;nnen sich nach Beendigung der Mitgliedschaft jederzeit neu anmelden.</p>\n";
+//echo "<fieldset class=\"control_panel\"><button class=\"button\" onclick='loadContentUrl(\"daten/delete\");'><span><span><span>Mitgliedschaft beenden</span></span></span></button></fieldset></form>";
+echo "<a onclick='loadContentUrl(\"daten/delete\");' style='cursor:pointer;'>Mitgliedschaft beenden</a></form>";
+
+if ($email_verify_disable == true) {
+	session_destroy();
+}
+
+function LineInput($Label, $InputName, $Size, $MaxLen = '', $default = '') {   	
+   	global $nutzerDaten;
+   	
+   	$tline = '	<p style="clear: both;">'."\n";
+   	$tline .= '		<label for="'.$InputName.'">'.$Label.':</label>'."\n";
+   	$tline .= '		<input id="'.$InputName.'" name="'.$InputName.'" style="width: '.$Size.'px;" ';
+
+   	if ($MaxLen) {
+   		$tline .= 'maxlength="'.$MaxLen.'" ';
+   	}
+   	
+   	if (!empty($nutzerDaten[$InputName])) {
+   		$tline .= 'value="'.$nutzerDaten[$InputName].'" ';
+   	} else {
+   		$tline .= 'value="'.$default.'" ';
+   	}
+   	
+   	$tline .= '/>'."\n";
+   	$tline .= '	</p>'."\n";
+   	
+	return($tline);	
+}
+
+?>
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<script type="text/javascript">
+       // Initialize event depending on browser
+      function initReady(fn)  {
+      	//W3C-compliant browser
+      	if(document.addEventListener) {
+          document.addEventListener("DOMContentLoaded", fn, false);
+        }
+      	//IE
+      	else {
+          document.onreadystatechange = function(){readyState(fn)}
+        }
+      }
+
+      window.onDomReady = initReady;
+
+ 
+
+ 
+      //IE execute function
+      function readyState(func)
+      {
+      	// DOM is ready
+      	if(document.readyState == "interactive" || document.readyState == "complete")
+      	{
+      		func();      		
+      		
+      	}
+      }
+      
+		//execute as soon as DOM is loaded
+		window.onDomReady(initFunction);
+		 
+    
+      function initFunction(e) {
+			autoCompleter.initAutoComplete($('ort'),"/admin/ajax/einsatzort.phtml", function(value) { 
+				parts = value.split("-"); 
+				
+				xhr("/admin/ajax/einsatzort_info.phtml","plz=" + trim(parts[0]) + "&ort=" + "&ort="+ encodeURI(trim(parts[1].split(",")[0])) ,function(text) {
+					data = JSON.parse(text);
+					$('land').value = data["land"];
+					$('bundesland').value = data["bundesland"];
+		
+					$('ort').value = data["ort"]; 
+					$('plz').value = data["plz"]; 
+					event = new Object();
+					event.type = "change";
+					event.target = new Object();
+					event.target.value = data["bundesland"];
+					
+					bundesland.handleEvent(event);
+				});      	
+      });
+      }
+
+</script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#gebdat').datepicker({
+			dateFormat: 'dd.mm.yy',
+			altField: '#birthdate',
+			altFormat: 'yy-mm-dd',
+			changeMonth: true,
+			changeYear: true,
+			minDate: '-70y',
+			defaultDate: '-20y',
+			yearRange: '-70:-1'
+		});
+	});
+</script>

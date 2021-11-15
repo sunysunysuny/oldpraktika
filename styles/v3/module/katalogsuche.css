@@ -1,0 +1,18 @@
+div#main form fieldset a.button {
+	margin-left:0px;
+}
+
+div#main div#katalogsuche-result a {
+	font-weight:bold;
+}
+div#main div#katalogsuche-result li.katalogLetter {
+	list-style:none;
+	font-weight:bold;
+	margin:10px 0px;
+	padding:0px;
+	text-transform: uppercase;
+}
+
+div#main div#katalogsuche-result li {
+	margin-left:25px;
+}

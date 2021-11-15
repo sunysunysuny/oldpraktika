@@ -1,0 +1,45 @@
+<?php
+$sprachbasisdatei = '/absolventen/praktikanten/einblick.phtml';
+$sprachbasisdatei2 = '/home/firmen/einblick.phtml';
+
+require('/home/praktika/etc/config.inc.php');
+	
+$_SESSION['sidebar'] = "companies";
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_LOOK_FOR_CANDIDATES;
+
+pageheader(array('page_title' => 'Suche nach Kandidaten'));
+Praktika_Static::__("kandidatensuche");
+?>
+<p>Bitte geben Sie nun Ihre Suchkriterien ein:</p>
+<div class="box_gray ie_ks_height">
+	<form id="kanditatensuche" action="/kandidatenergebnisse/" name="volltextsuche" method="post">
+		<fieldset>
+			<p>
+				<label for="suche"><strong>Wonach suchen Sie?</strong></label>
+				<input id="suche" name="suche" value="" />
+			</p>
+			<p><p>Sortierung:</p>
+				<label for="sortierung"><input type="radio" id="sortierung" name="sortierung" class="radio" value="keine" checked="checked" /> keine Sortierung</label>
+				<label for="sortierung2"><input type="radio" id="sortierung2" name="sortierung" class="radio" value="einsatzgebiet" /> Berufsfeld</label>
+				<label for="sortierung3"><input type="radio" id="sortierung3" name="sortierung" class="radio" value="studienrichtung" /> Studienrichtung</label>
+				<label for="sortierung4"><input type="radio" id="sortierung4" name="sortierung" class="radio" value="semester" /> aktuelles Semester</label>
+				<label for="sortierung5"><input type="radio" id="sortierung5" name="sortierung" class="radio" value="karierrestatus" /> Karierrestatus</label>
+				<label for="sortierung6"><input type="radio" id="sortierung6" name="sortierung" class="radio" value="alter" /> Alter</label>
+				<label for="sortierung7"><input type="radio" id="sortierung7" name="sortierung" class="radio" value="bundesland" /> Bundesland</label>
+				<label for="sortierung8"><input type="radio" id="sortierung8" name="sortierung" class="radio" value="land" /> Land</label>
+			</p>
+		</fieldset>
+		<fieldset class="control_panel">
+			<p>
+				<input type="submit" class="button red small" name="ksuche" value="Suchen" />
+			</p>
+			<br /><br /><br />
+			<h6>Tipp: F&uuml;hren Sie die Suche in einem bestimmten Gebiet mit unterschiedlichen Schlagw&ouml;rtern durch (z.B. &quot;Marketing&quot; oder &quot;Vertrieb&quot; oder &quot;Absatz&quot;).</h6>
+		</fieldset>
+	</form>
+</div>
+<p>Falls zu Ihrem Suchbegriff kein Eintrag in praktika.de vorhanden ist, dann helfen Sie mit, diesen Service weiter auszubauen.</p>
+
+<?php bodyoff(); ?>

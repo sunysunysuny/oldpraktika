@@ -1,0 +1,179 @@
+<?
+include_once("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+if(is_array($_POST["ids"])) {
+	$ids = $_POST["ids"];
+} else {
+	$ids = explode(",", $_POST["ids"]);
+}
+
+for($a = 0; $a < count($ids); $a++) {
+	$ids[$a] = (int)$ids[$a];
+}
+
+for($a = 0;$a < count($ids);$a++) {
+	$bewerbname = 'bewerb'.$i;
+ 	$bewerbid = $ids[$a];
+
+ 	if (!empty($bewerbid)) {
+		$firmensel = mysql_db_query($database_db,'SELECT * FROM ext_firmen WHERE id = '.$bewerbid.' AND nutzerid = '.$_SESSION['s_nutzerid'].' AND inactive = \'false\'',$praktdbslave);
+		$firmenid = mysql_result($firmensel, 0, 'id');
+		$spalte = mysql_result($firmensel,0,'spalte');
+
+		$eintrag = mysql_db_query($database_bprofil,'SELECT * FROM anschreiben WHERE firmenid = '.$firmenid.' AND spalte = '.$spalte.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+
+		$firma = mysql_db_query($database_db,'SELECT * FROM ext_firmen WHERE id = '.$firmenid,$praktdbslave);
+		$firmenfetch = mysql_fetch_array($firma);
+		$eintragfetch = mysql_fetch_array($eintrag);
+
+		if (mysql_result($firmensel, 0, 'versendet') == 'false') {
+			/* Infomail an Firma basteln*/
+			$mailtoaddr = mysql_result($firmensel, 0, 'email');
+			$mailsender = 'IhreBewerbung@praktika.de';
+
+			$extbewerb = 'yes';
+			$mail = 'yes';
+			include('../../profil/lebenslauf_pdf_new.phtml');
+
+			$querystring = 'SELECT * FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'];
+
+			// datensatz abfragen //
+			$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+			// array erzeugen //
+			$fetch = mysql_fetch_array($result);
+
+			$mailstring = '';
+			
+			if (!empty($fetch['titel'])) {
+				$mailstring .= $fetch['titel'].' ';
+			}
+			
+			$mailstring .= $fetch['vname'].' '.$fetch['name']."\n";
+			$mailstring .= $fetch['strasse']."\n";
+			$mailstring .= $fetch['plz'].' '.$fetch['ort']."\n";
+			$mailstring .= $fetch['tel']."\n";
+			$mailstring .= $fetch['email']."\n\n\n\n";
+			
+			$mailstring .= $firmenfetch['firma']."\n".$firmenfetch['ansprechpartner']."\n";
+			$mailstring .= $firmenfetch['strasse']."\n".$firmenfetch['plz'].' '.$firmenfetch['ort']."\n\n\n";
+
+			if ($eintragfetch['spalte'] == SECTION_PRAKTIKUM) {
+				$betreff = 'Praktikumplatz';
+			} elseif ($eintragfetch['spalte'] == SECTION_DIPLOM) {
+				$betreff = 'Diplomthema';
+			} elseif ($eintragfetch['spalte'] == SECTION_NEBENJOB) {
+				$betreff = 'Nebenjob';
+			} elseif ($eintragfetchy['spalte'] == SECTION_AUSBILDUNG) {
+				$betreff = 'Ausbildungsplatz';
+			} elseif ($eintragfetchy['spalte'] == SECTION_BERUFSEINSTIEG) {
+				$betreff = 'Berufseinstieg/Jobs';
+			} elseif ($eintragfetchy['spalte'] == SECTION_PROJEKT) {
+				$betreff = 'Projekt';
+			} elseif ($eintragfetchy['spalte'] == SECTION_TRAINEE) {
+				$betreff = 'Traineestelle';
+			}
+
+			$betreffSQL = mysql_result($eintrag, 0, 'betreff');
+			
+			if (!empty($betreffSQL)) {
+				$subject = mysql_result($eintrag, 0, 'betreff');
+			} else {
+				$subject = 'Bewerbung um einen '.$betreff.' von praktika.de';
+			}
+
+			$mailstring .= $subject."\n\n\n";
+			
+			$mailstring .= mysql_result($eintrag, 0, 'anschreiben');
+			
+			$message = $mailstring;
+
+			$querystring = 'SELECT * FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'];
+
+			// datensatz abfragen //
+			$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+			// array erzeugen //
+			$queryresult = mysql_fetch_array($result);
+
+			$from_name = $queryresult['vname'].' '.$queryresult['name'];
+			$to_name = $firmenfetch['firma'];
+			
+			$to = $firmenfetch['email'];
+			$from = $queryresult['email'];
+
+			include('../../../email/mimemail.inc.php');
+
+			$mailhinweis = '--- wichtiger Hinweis ----------------------------
+
+praktika.de - die Karriereplattform für den Berufseinstieg
+Wir halten Unternehmen jung!
+
+Der Bewerber nutzt das System von praktika.de, um diese Bewerbung zu erstellen.
+Sie k&ouml;nnen dem Bewerber direkt antworten bzw. kontaktieren. 
+praktika.de empfiehlt, dem Bewerber innerhalb von 2 Tagen einen Zwischenbescheid zu senden. 
+
+Kennen Sie schon praktika.de?
+
+- praktika.de ist mit &uuml;ber 10000 täglichen Nutzer die ideale Plattform um zukünftige Fach- und Führungskräfte zu kontaktieren.
+- Schreiben auch Sie Ihre Praktikumangebote, Bachelorarbeiten, Nebenjobs, Ausbildugsplätze auf http://praktika.de aus!
+- Offerieren Sie auch Ihre Stellen für Berufseinsteiger!
+- Präsentieren Sie Ihr Unternehmen kostenfrei!
+- Lernen Sie die Vorteile und die bequeme Arbeitsweise kennen und erledigen Sie Ihr komplettes Praktikantenmanagement mit http://praktika.de
+- praktika.de wurde 1997 gegründet und gehört zu den führenden Portalen im deutschen Praktikanten- und Berufseinsteigermarkt für die Praktikumssuche und den Berufseinstieg.
+- Jeder zweite deutsche Student hat im vergangenen Jahr praktika.de besucht.
+- Auf praktika.de finden Sie aktuelle nationale und internationale Praktikumsstellen, Diplomarbeitsthemen, Berufseinstiegschancen und Nebenjobangebote.
+- Bewerber können aus über 4000 aktuellen Praktikumsstellen ihre Favoriten auf einen Merkzettel setzten.
+- In Sekunden können Sie sich mit Hilfe des Bewerbungsgenerators professionell bewerben und ein Zukunftsprofil über Ihre Berufseinstiegswünsche hinterlegen.
+- praktika.de unterstützt junge Menschen bei der Umsetzung ihrer individuellen Berufseinstiegsstrategie von Praktikum zu Praktikum.
+
+https://www.praktika.de
+
+
+praktika.de einen Freund empfehlen: http://praktika.de/home/sendtofriend/
+Newsletter abonnieren:              http://praktika.de/home/newsletter/
+Hinweise und Anregungen schreiben:  http://praktika.de/home/feedback/
+Firmenhotline: 0341-2252029
+';
+
+			$m = new CMIMEMail($to_name.' <'.$to.'>',$from_name.' <'.$from.'>',$subject);
+			$m->mailbody($message."\n\n".$mailhinweis."\n");
+
+			$modify = date("YmdHis");
+
+			$m->attachFile_raw($pdfname,'Lebenslauf.pdf','application/pdf');
+
+			$m->send();
+
+			unlink($pdfname);
+
+			/* Infomail an Nutzer */
+			$nutzer = mysql_db_query($database_db,'SELECT id,anrede,vname,name,email FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+			$nutzerfetch = mysql_fetch_array($nutzer);
+			$mailtoaddrnutzer = $nutzerfetch['email'];
+
+			$emailobj = new emailtemplate(15);
+			$emailobj->replace('{anrede}',$nutzerfetch['anrede']);
+			$emailobj->replace('{name}',$nutzerfetch['name']);
+			$emailobj->replace('{vname}',$nutzerfetch['vname']);
+			$emailobj->replace('{firma}',$firmenfetch['firma']);
+			$emailobj->send_email($mailtoaddrnutzer);
+			unset($emailobj);
+
+			$updatestring = 'UPDATE ext_firmen SET versendet = \'true\' WHERE id = '.$firmenid.' AND spalte = '.$spalte.' AND nutzerid = '.$_SESSION['s_nutzerid'].' AND inactive = \'false\'';
+			mysql_db_query($database_db,$updatestring,$praktdbmaster);
+		}
+ 	}
+	$i++;
+}
+
+//header('Location: /karriere/?senden=1');
+?>

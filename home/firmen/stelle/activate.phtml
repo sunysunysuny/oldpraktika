@@ -1,0 +1,167 @@
+<?php
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+if (!isset($_SESSION['jobAd']['stellenid'])) {
+	header('Location: /firmen/angeboteliste/');
+	exit();
+}
+
+if (isset($_POST['button_activate'])) {
+	$firma = new Praktika_Firma($_SESSION['s_firmenid']);
+	
+	if ($_SESSION['s_firmenlevel'] == 0) {
+		$sql = 'UPDATE prakt2.stellen SET pending_status_free = \'waiting\' WHERE id = '.intval($_SESSION['jobAd']['stellenid']);
+
+		$query = mysql_query($sql, $praktdbmaster);
+
+		if (mysql_affected_rows($praktdbmaster) > 0) {
+			$_SESSION['show_hint_free'] = true;
+		} else {
+			$_SESSION['show_hint_free'] = false;
+		}
+		
+	} else {
+		$expirationDate = $firma->licenseExpirationDate(2);
+		
+		$sql = 'UPDATE prakt2.stellen SET inactive = \'false\', datum_verfall = '.($expirationDate == false ? 'DATE_ADD(NOW(), INTERVAL 1 MONTH)' : '\''.$expirationDate.'\'').' WHERE id = '.$_SESSION['jobAd']['stellenid'];
+
+        Praktika_Stream::log(7, $_SESSION['s_anrede']." ".$_SESSION['s_name'], $_SESSION['s_firma'], $_SESSION['jobAd']['stellenid']);
+
+		$result = mysql_query($sql, $praktdbmaster);
+	}
+
+
+	$sql = 'INSERT INTO prakt2.stellen_log SET stellenid = '.$_SESSION['jobAd']['stellenid'].', bearbeiterid = '.$_SESSION['s_loginid'].', mode = 1, value = 1';
+	
+	$result = mysql_query($sql, $praktdbmaster);
+
+	$_SESSION['jobAd_sidebar']['active'] = true;
+	
+	// Stelle einer Agentur?
+	if (isset($_SESSION['unternehmens_id'])) {
+		$link = '/firmen/angeboteliste_agentur/';
+	} else {
+		$link = '/firmen/angeboteliste/';
+	}
+
+	header('Location: ' . $link);
+	exit();
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+pageheader(array('page_title' => 'Stelle freischalten'));
+
+Praktika_Static::__('job_ad');
+
+$stelle_rst = mysql_db_query($database_db, 'SELECT inactive, taetigkeit, templateid FROM stellen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND id = '.$_SESSION['jobAd']['stellenid'], $praktdbslave);
+$stelle = mysql_fetch_array($stelle_rst);
+
+echo '<div id="activate">'."\n";
+echo '	<p class="control"><a href="/PREVIEW/PREVIEW-'.intval($_SESSION['jobAd']['stellenid']).'.html?h='.md5($_SESSION['s_firmenid']."#".$_SESSION['jobAd']['stellenid']).'" class="button red" target="_blank" title="Vorschau ansehen">Vorschau zu dieser Stelle ansehen.</a></p>'."\n";
+
+if (intval($_SESSION['s_firmenlevel']) == 0) {
+	$license = 'FREE';
+} elseif (intval($_SESSION['s_firmenlevel']) == 1) {
+	$license = 'BASIS';
+} elseif (intval($_SESSION['s_firmenlevel']) == 2) {
+	$license = 'KOMFORT';
+}
+
+if (isset($_SESSION['jobAds_aktivierbar']) && in_array($_SESSION['jobAd']['stellenid'], $_SESSION['jobAds_aktivierbar']) == true) {
+	$_SESSION['nextJobAdLocked'] = false;
+}
+
+$sql = '
+			SELECT
+				templateid
+			FROM
+				'.$database_db.'.stellen 
+			WHERE
+				id = '.$_SESSION['jobAd']['stellenid'];
+
+$templateid = $hDB->query($sql, $praktdbslave);
+
+if (($templateid != false) && (mysql_num_rows($templateid) > 0)) {
+	$row = mysql_fetch_row($templateid);
+
+	if (isset($row[0]) && (($_SESSION['s_firmenlevel'] == 0 && intval($row[0]) != 109) || ($_SESSION['s_firmenlevel'] == 1 && intval($row[0]) != 109 && in_array(intval($row[0]), range(2, 101))))) {
+		echo '	<form action="/firmen/stelle/paket/" method="post" class="hint error">'."\n";
+		echo '		<fieldset>'."\n";
+		echo '			<p>Das Template f&uuml;r diese Stelle ist nicht f&uuml;r Ihre Lizenz freigeschalten. Sie m&uuml;ssen zuerst ein neues Template ausw&auml;hlen, damit Sie diese Stelle bearbeiten k&ouml;nnen.<br /><br />M&ouml;chten Sie dieses Template beibehalten?</p>'."\n";
+		echo '			<p>'."\n";
+		echo '				<input type="submit" name="confirm" class="button red small" value="JA" />'."\n";
+		echo '				<a href="/firmen/stelle/'.$_SESSION['jobAd']['stellenid'].'/layout.html" class="button alternative small">Nein, Template &auml;ndern</a>'."\n";
+		echo '			</p>'."\n";
+		echo '		</fieldset>'."\n";
+		echo '	</form>'."\n";
+	} elseif ($stelle['inactive'] == 'true') {
+		if (isset($_SESSION['nextJobAdLocked']) && $_SESSION['nextJobAdLocked'] == true) {
+			echo '	<form action="/firmen/stelle/paket/" method="post" class="hint error">'."\n";
+			echo '		<fieldset class="control_panel">'."\n";
+			echo '			<p>Diese Stelle kann mit dem Stellenpaket '.$license.' <strong>nicht ver&ouml;ffentlicht</strong> werden, weil das Limit Ihrer Anzeigenstellpl&auml;tze erreicht wurde.<br /><br />Wollen Sie diese Stelle jetzt ver&ouml;ffentlichen?</p>'."\n";
+			echo '			<p class="center">'."\n";
+			echo '				<input type="submit" name="confirm" value="Ja" class="button red small" />'."\n";
+			echo '				<a href="/firmen/angeboteliste/" class="button alternative small">Nein, nur speichern</a>'."\n";
+			echo '			</p>'."\n";
+			echo '		</fieldset>'."\n";
+			echo '	</form>'."\n";
+			
+			$_SESSION['buchungsseite'] = 'activate';
+		} else {
+			echo '	<form action="/firmen/stelle/'.$_SESSION['jobAd']['stellenid'].'/activate.html" method="post">'."\n";
+			echo '		<fieldset class="control_panel">'."\n";
+			echo '			<p>M&ouml;chten Sie diese Stelle f&uuml;r Bewerber freischalten? Dann klicken Sie auf &quot;<strong>Stelle ver&ouml;ffentlichen</strong>&quot;.<br /><br /><strong>Ihre Stelle erscheint dann innerhalb der n&auml;chsten Stunde in den Suchergebnissen</strong>.</p>'."\n";
+			echo '			<p class="center">'."\n";
+			echo '				<input type="submit" id="button_activate" name="button_activate" value="Stelle ver&ouml;ffentlichen" class="button green small" />'."\n";
+			echo '				<a href="/firmen/angeboteliste/" class="button alternative small">Nein, nur speichern</a>'."\n";
+			echo '			</p>'."\n";
+			echo '		</fieldset>'."\n";
+			echo '	</form>'."\n";
+		}
+	} else {
+		echo '	<p class="hint success">Diese Stelle wurde aktualisiert.<br />Diese Stelle ist bereits aktiviert worden.</p>'."\n";
+		echo '	<p class="control_panel"><a href="/firmen/angeboteliste/">weiter zur Stellen&uuml;bersicht &raquo;</a></p>'."\n";
+	}
+} else {
+	if ($stelle['inactive'] == 'true') {
+		if (isset($_SESSION['nextJobAdLocked']) && $_SESSION['nextJobAdLocked'] == true) {
+			echo '	<form action="/firmen/stelle/paket/" method="post" class="hint error">'."\n";
+			echo '		<fieldset class="control_panel">'."\n";
+			echo '			<p>Diese Stelle kann mit dem Stellenpaket '.$license.' <strong>nicht ver&ouml;ffentlicht</strong> werden, weil das Limit Ihrer Anzeigenstellpl&auml;tze erreicht wurde.<br /><br />Wollen Sie diese Stelle jetzt ver&ouml;ffentlichen?</p>'."\n";
+			echo '			<p class="center">'."\n";
+			echo '				<input type="submit" name="confirm" value="Ja" class="button red small" />'."\n";
+			echo '				<a href="/firmen/angeboteliste/" class="button alternative small">Nein, nur speichern</a>'."\n";
+			echo '			</p>'."\n";
+			echo '		</fieldset>'."\n";
+			echo '	</form>'."\n";
+			
+			$_SESSION['buchungsseite'] = 'activate';
+		} else {
+			echo '	<form action="/firmen/stelle/'.$_SESSION['jobAd']['stellenid'].'/activate.html" method="post">'."\n";
+			echo '		<fieldset class="control_panel">'."\n";
+			echo '			<p>M&ouml;chten Sie diese Stelle f&uuml;r Bewerber freischalten? Dann klicken Sie auf &quot;<strong>Stelle ver&ouml;ffentlichen</strong>&quot;.<br /><br /><strong>Ihre Stelle erscheint dann innerhalb der n&auml;chsten Stunde in den Suchergebnissen</strong>.</p>'."\n";
+			echo '			<p class="center">'."\n";
+			echo '				<input type="submit" id="button_activate" name="button_activate" value="Stelle ver&ouml;ffentlichen" class="button green small" />'."\n";
+			echo '				<a href="/firmen/angeboteliste/" class="button alternative small">Nein, nur speichern</a>'."\n";
+			echo '			</p>'."\n";
+			echo '		</fieldset>'."\n";
+			echo '	</form>'."\n";
+		}
+	} else {
+		echo '	<p class="hint success">Diese Stelle wurde aktualisiert.<br />Diese Stelle ist bereits aktiviert worden.</p>'."\n";
+		echo '	<p class="control_panel"><a href="/firmen/angeboteliste/">weiter zur Stellen&uuml;bersicht &raquo;</a></p>'."\n";
+	}
+}
+
+echo '</div>'."\n";
+
+bodyoff(); ?>

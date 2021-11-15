@@ -1,0 +1,193 @@
+<?php
+$sprachbasisdatei = '/home/praktikanten/firmendetail.phtml';
+#echo "<pre>";
+#var_dump($_SERVER);
+if(substr($_SERVER["REQUEST_URI"],0,13) == "/firmenprofil") {
+	$greybox = true;
+}
+
+if($_SERVER["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest" || $popup == true) {
+	$ajax = true;
+	
+	include("../../../etc/gb_config.inc.php");	
+
+} else {
+	$ajax = false;
+	
+	if($greybox === true) {
+		
+		include("../../../etc/gb_config.inc.php");
+
+	} else {
+		
+		include("../../../etc/config.inc.php");		
+
+	}
+}
+
+if(!isset($zView)) {
+	$zView = new Praktika_Template();
+}
+
+if (isset($_GET['firmenid'])) {
+	$firmenid = intval($_GET['firmenid']);
+} else {
+	$firmenid = intval($_GET['id']);;
+}
+
+$_SESSION['current_page'] = PAGE_PLACEMENT;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = 'none';
+
+// datensatz abfragen //
+$querystring = mysql_db_query($database_db,'SELECT * FROM firmen,branchen,firmen_prop_assign WHERE firmen.id = '.$firmenid.' AND firmen.inactive = "false" AND  branchen.id = firmen.branche AND firmen.id = firmen_prop_assign.firmenid',$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($querystring);
+
+
+if($eintrag == false) exit();
+
+// datensatz abfragen //
+$firmenprofilstring = mysql_db_query($database_db,'SELECT * FROM firmenprofil WHERE firmenid = '.$firmenid,$praktdbslave);
+
+// array erzeugen //
+$firmenprofil = mysql_fetch_array($firmenprofilstring);
+
+if ($firmenprofil != false) {
+	# $page_start_tags = '';
+	$firmenprofil["firma_name"] = $eintrag['firma'];
+	
+#	if (!empty($firmenprofil['bild1'])) {
+#		$uebergabebildid = $firmenprofil['bild1'];
+		
+		if (Praktika_Firma::hasLogo($firmenid)) {
+			
+			$logoSize = Praktika_Firma::getLogoSize($firmenid);
+			$firmenprofil["firma_logo"] = Praktika_Firma::getLogoUrl($firmenid);#  mysql_result($bildwerte,0,'uri');
+			$firmenprofil["firma_logo_height"] = $logoSize["height"];
+			# $firmenprofil["header"] = '<p><img src="'.mysql_result($bildwerte,0,'uri').'" width="'.mysql_result($bildwerte,0,'width').'" height="'.mysql_result($bildwerte,0,'height').'" align="right" alt="Firmenlogo '.$eintrag['firma'].'" class="logo_image" /></p>'."\n";
+		}
+#	}
+
+	// ALLGEMEINE FIRMENDATEN
+	
+	$branchenid = $eintrag['branche'];
+	$branche = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM branchen WHERE id = '.$branchenid,$praktdbslave);
+	$num = mysql_num_rows($branche);
+	
+	if ($num != 0) {
+		$branchewahl = mysql_result($branche,0,$_SESSION['s_sprache']);
+	}
+	
+	if ($firmenprofil['startup'] == 'true') {
+		$startup = 'Ja';
+	} else {
+		$startup = 'Nein';
+	}
+	
+	// Leer-Felder mit "-" f&uuml;llen
+	if ($firmenprofil != false) {
+		foreach ($firmenprofil as $key => $value) {
+			if ($key == 'praktikanten' || $key == 'praktikantennjahr' || $key == 'absolventen' || $key == 'absolventennjahr') {
+				if (empty($value)) {
+					$firmenprofil[$key] = '0';
+				}
+			} else {
+				if (empty($value)) {
+					$firmenprofil[$key] = '-';
+				}
+			}
+		}
+	}
+
+	$metatags['TITLE'] = 'Praktikum bei '.$eintrag['firma'];
+	$metatags['KEYWORDS'] = $eintrag['firma'].", ".$branchewahl.", Firmenprofil, Profil, Firmendaten, Kriterien,Praktikum, Diplomarbeit, Werksstudent, Trainee, Projektarbeit, Dissertation, Auslandseinsatz";
+	$metatags['DESCRIPTION'] = $eintrag['ort'];
+	$metatags['AUTHOR'] = $language['strMetatags_Author'];
+	$metatags["COPYRIGHT"] = $language['strMetatags_Author'];
+
+	if($ajax == false) {
+		pageheader(array('page_title' =>  isset($eintrag['firma']) ? $eintrag['firma'] : 'Unternehmensprofil', 'noCSS' => ($greybox!=true?true:$ajax==true?true:false), 'noHtmlBody'=>($greybox!=true?true:false), "page_hideHeader" => true, 'page_start_tags' => $page_start_tags));
+	}
+	Praktika_Static::__("stellenanzeige");
+
+	$angebotsanzahl = mysql_fetch_all($database_db,'SELECT spalte, COUNT(*) AS anzahl FROM stellen WHERE firmenid = '.$firmenid.' AND inactive = \'false\' GROUP BY spalte ORDER BY spalte',$praktdbslave);
+	
+	$links = array();
+	if (is_array($angebotsanzahl)) {
+		foreach ($angebotsanzahl as $key => $value) {
+			switch ($key) {
+				case 1:
+					$links[] = $value.' <a href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Praktika</a><br />'."\n";
+					break;
+				case 2:
+					$links[] = $value.' <a  href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Bachelor-/Masterangebote</a><br />'."\n";
+					break;
+				case 3:
+					$links[] = $value.' <a  href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Nebenjob</a><br />'."\n";
+					break;
+				case 4:
+					$links[] = $value.' <a href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Ausbildungspl&auml;tze</a><br />'."\n";
+					break;
+				case 5:
+					$links[] = $value.' <a href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Berufseinsteiger</a><br />'."\n";
+					break;
+				case 6:
+					$links[] = $value.' <a href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Projektangebote</a><br />'."\n";
+					break;
+				case 7:
+					$links[] = $value.' <a href="/praktikum/'.Praktika_String::toUrl($firmenprofil["firma_name"]).'/stellen/'.$firmenid.'.html">Traineeangebote</a><br />'."\n";
+					break;
+			}
+		}
+	}
+
+	$links[] = intval($firmenprofil['projektstellen']).' Projekte<br />'."\n";
+	$links[] = intval($firmenprofil['seminarstellen']).' Seminare/Veranstaltungen'."\n";
+	
+	$zView->assign(array(
+		"firma_id" => (int)$_GET["firmenid"],
+		"stellenLinks" => $links,
+		"firmenprofil" => $firmenprofil,
+		"branchewahl" => $branchewahl,
+		"startup" => $startup
+	));
+		
+	if($ajax == true || $greybox === true) {
+		echo $zView->render("firmenprofil.php");
+	} else {
+
+		$query = "SELECT stellenid, spalte, firma, taetigkeit FROM prakt2_temp.tmp_stellensuche WHERE firmenid = ".$_GET["firmenid"]." LIMIT 1";
+		$stelleResult = $hDB->query($query,$praktdbslave);
+		
+		if(mysql_num_rows($stelleResult) > 0) {
+			$stelle = mysql_fetch_assoc($stelleResult);
+			$stellenid = $stelle["stellenid"];
+		} else {
+			$stellenid = 0;
+		}
+		
+		$zView->assign(array(
+			"firma_id" => (int)$_GET["firmenid"],
+			"firma_name" => $firmenprofil["firma_name"],
+			"stelle_id" => $stellenid,
+			"show_profil" => true,
+			"url" => Praktika_Stelle::getURL($stelle),
+			"stellenLinks" => $links,
+			"firmenprofil" => $firmenprofil,
+			"branchewahl" => $branchewahl,
+			"startup" => $startup));
+
+		$zView->assign(array(
+			"stellenBody" => $zView->render("firmenprofil.php")
+		));
+	
+		echo $zView->render("stellenanzeige.php");		
+	}
+	
+} else {
+	echo "<html><body><div style='font-weight:bold; font-size:13px; font-family:Arial;color:darkred; text-align:center;'>Es existiert kein Firmenprofil.</div></body></html>"."\n";
+}
+
+bodyoff();

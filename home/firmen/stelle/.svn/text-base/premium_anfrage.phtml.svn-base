@@ -1,0 +1,45 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['sidebar'] = 'service';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+$mailstring = $_SESSION['anrede'].' '.$_SESSION['s_vname'].' '.$_SESSION['s_name'].' hat eine Premium-Anfrage gestellt.'."\n\n";
+$mailstring .= 'Firmen-ID:                  '.$_SESSION['s_firmenid']."\n";
+$mailstring .= 'Bearbeiter-ID:              '.$_SESSION['s_loginid']."\n";
+$mailstring .= 'derzeitiges Firmen-Paket:   '.($_SESSION['s_firmenlevel'] == 1 ? 'BASIS' : ($_SESSION['s_firmenlevel'] == 2 ? 'KOMFORT' : ($_SESSION['s_firmenlevel'] == 3 ? 'PREMIUM' : '')))."\n\n";
+
+$bearbeiter = mysql_db_query($database_db,'SELECT tel, email FROM bearbeiter WHERE firmenid = '.$_SESSION['s_firmenid'],$praktdbmaster);
+
+if (($bearbeiter != false) && (mysql_num_rows($bearbeiter) > 0)) {
+	$bearbeiterDaten = mysql_fetch_array($bearbeiter);
+}
+
+$mailstring .= 'Telefon des Bearbeiter:     '.$bearbeiterDaten['tel']."\n";
+$mailstring .= 'eMail des Bearbeiter:       '.$bearbeiterDaten['email']."\n\n";
+
+$firma = mysql_db_query($database_db,'SELECT firma, strasse, plz, ort FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbmaster);
+
+if (($firma != false) && (mysql_num_rows($firma) > 0)) {
+	$anschrift = mysql_fetch_array($firma);
+}
+
+$mailstring .= 'Anschrift des Unternehmens: '.$anschrift['firma']."\n";
+$mailstring .= '                            '.$anschrift['strasse']."\n";
+$mailstring .= '                            '.$anschrift['plz'].' '.$anschrift['ort'];
+
+$mailSend = mail('support@praktika.de','Eine neue Premium-Anfrage! Unbedingt kontaktieren!!!',$mailstring,'From: '.$bearbeiterDaten['email']."\n");
+
+if ($mailSend == true) {
+	header('Location: /cms/Premium-Anfrage-erfolgreich.1512.0.html');
+} else {
+	header('Location: /cms/Premium-Anfrage-Fehler.1513.0.html');
+}
+
+?>

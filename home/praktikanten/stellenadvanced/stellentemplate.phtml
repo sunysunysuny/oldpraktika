@@ -1,0 +1,125 @@
+<?
+$gruppe = "praktikanten";
+require("/home/praktika/etc/config.inc.php");
+
+if ($id == 0) { $spalte=0; } else { $spalte=$s_spalte; }
+$sql = "SELECT *,UNIX_TIMESTAMP(modify) as modifyunix FROM stellenadvanced WHERE stellenid=$id AND spalte=$spalte AND inactive='false'";
+$stellenad = mysql_db_query($database_db,$sql,$praktdbslave);
+
+$stellenfetch = mysql_fetch_array($stellenad);
+
+if (empty($firmenid))  $firmenid = $stellenfetch["firmenid"];
+
+if (isset($templateid) && $templateid != 0) {
+	$templateseladv = "id=".$templateid;
+} elseif ($stellenfetch["templateid"] == 0) {
+	$templateseladv = "id=1";
+} else {
+	if ($stellenfetch["templateid"] > 0 && $stellenfetch["templateid"] < 12) {
+		$templateseladv = "firmenid=0 AND id=".$stellenfetch["templateid"];
+	} else {
+		$templateseladv = "firmenid=$firmenid AND id=".$stellenfetch["templateid"];
+	}
+}
+$templatesel = mysql_db_query($database_db,"SELECT * FROM stellentemplates WHERE $templateseladv AND inactive='false'",$praktdbslave);
+
+if ($templatesel != false && mysql_num_rows($templatesel)>0) {
+	$template = mysql_result($templatesel,0,"template");
+}
+
+if ($firmenid > 0) {
+	$firmasel = mysql_db_query($database_db,"SELECT firma FROM firmen WHERE id=$firmenid",$praktdbslave);
+	$firma=mysql_result($firmasel,0,"firma");
+}
+$bewerbinturi = "../onlinebewerbung.phtml?firmenid=" . $firmenid . "&stellenid=" . $id . " target=PraktikaMainWindow";
+
+// spezieller PHO Code f&uuml;r Templates
+if (mysql_result($templatesel,0,"phpcode") != "") eval(mysql_result($templatesel,0,"phpcode"));
+if ($linkprop) $linkprop=" ".$linkprop;
+if (!$linkvalue) $linkvalue="Kontaktaufnahme / Onlinebewerbung";
+// spezieller PHO Code f&uuml;r Templates ENDE
+
+
+$template = ereg_replace("<!--BGCOLOR-->",$praktikafarbe,$template);
+
+if (!empty($stellenfetch["title"]))
+$template = ereg_replace("<!--Title-->",$stellenfetch["title"],$template);
+
+if (!empty($stellenfetch["subtitle"]))
+$template = ereg_replace("<!--SubTitle-->",$stellenfetch["subtitle"],$template);
+
+if (!empty($stellenfetch["uinfoshead"]))
+$template = ereg_replace("<!--UnternehmenInfoshead-->",stripcslashes($stellenfetch["uinfoshead"]),$template);
+
+if (!empty($stellenfetch["uinfos"]))
+$template = ereg_replace("<!--UnternehmenInfos-->",stripcslashes($stellenfetch["uinfos"]),$template);
+
+if (!empty($stellenfetch["block1head"]))
+$template = ereg_replace("<!--Block1head-->",($stellenfetch["block1head"]),$template);
+
+if (!empty($stellenfetch["block1text"]))
+$template = ereg_replace("<!--Block1text-->",nl2br(stripcslashes($stellenfetch["block1text"])),$template);
+
+if (!empty($stellenfetch["block2head"]))
+$template = ereg_replace("<!--Block2head-->",stripcslashes($stellenfetch["block2head"]),$template);
+
+if (!empty($stellenfetch["block2text"]))
+$template = ereg_replace("<!--Block2text-->",nl2br(stripcslashes($stellenfetch["block2text"])),$template);
+
+if (!empty($stellenfetch["block3head"]))
+$template = ereg_replace("<!--Block3head-->",stripcslashes($stellenfetch["block3head"]),$template);
+
+if (!empty($stellenfetch["block3text"]))
+$template = ereg_replace("<!--Block3text-->",nl2br(stripcslashes($stellenfetch["block3text"])),$template);
+
+if (!empty($stellenfetch["block4head"]))
+$template = ereg_replace("<!--Block4head-->",stripcslashes($stellenfetch["block4head"]),$template);
+
+if (!empty($stellenfetch["block4text"]))
+$template = ereg_replace("<!--Block4text-->",nl2br(stripcslashes($stellenfetch["block4text"])),$template);
+
+if (!empty($stellenfetch["block5head"]))
+$template = ereg_replace("<!--Block5head-->",stripcslashes($stellenfetch["block5head"]),$template);
+
+if (!empty($stellenfetch["block5text"]))
+$template = ereg_replace("<!--Block5text-->",nl2br(stripcslashes($stellenfetch["block5text"])),$template);
+
+$template = ereg_replace("<!--Firmenid-->",$firmenid,$template);
+
+$template = ereg_replace("<!--Firmenname-->",$firma,$template);
+
+if (!empty($stellenfetch["jobcode"]))
+$template = ereg_replace("<!--Jobcode-->",$stellenfetch["jobcode"],$template);
+
+if (!empty($stellenfetch["modify"]))
+$template = ereg_replace("<!--Datum-->",strftime("%x",$stellenfetch["modifyunix"]),$template);
+
+switch ($stellenfetch["bewerbint"]) {
+	case "true":
+	if ($s_loggedinnutzer == true) {
+		$template = ereg_replace("<!--BewerbURL-->","<a target=\"PraktikaMainWindow\" href=\"".$bewerbinturi."\"".$linkprop.">".$linkvalue."</a>",$template);
+	} else {
+		$template = ereg_replace("<!--BewerbURL-->","<a href=\"".$PHP_SELF."?".$QUERY_STRING."\" onClick=windowanm=window.open('/home/quicklogin/minilogin.phtml?loginwer=Bewerber','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=300,height=250'); return false;\"".$linkprop.">".$linkvalue."</a>",$template);
+	}
+	break;
+	default:
+	$template = ereg_replace("<!--BewerbURL-->","<a href=\"activebewerbung.phtml?status=".$stellenfetch["bewerbint"]."&stellenid=" . $stellenfetch["stellenid"] . "\" target=\"_blank\"".$linkprop.">".$linkvalue."</a>",$template);
+	break;
+}
+
+$logosel=mysql_db_query($database_db,"select * from bilddateien where firmenid=$firmenid and width>0 and filesize >0 and id='".$stellenfetch["logo"]."'",$praktdbslave);
+
+if ($logosel != false && mysql_num_rows($logosel) >0) {
+	$logo="<img src=\"".mysql_result($logosel,0,"uri")."\" width=\"".mysql_result($logosel,0,"width")."\" height=\"".mysql_result($logosel,0,"height")."\" border=\"0\" alt=\"".$firma."\">";
+	$template = ereg_replace("<!--Firmenlogo-->",$logo,$template);
+}
+
+
+// Statistikinfos speichern
+if ($viewstatsid > 0) {
+	$userid=$firmenid;
+	$spalte=$stellenfetch["spalte"];
+	mysql_db_query($database_db,"UPDATE viewstatsfirmen SET anzeige='true' WHERE id=$viewstatsid AND stellenid='$id' AND firmenid='$userid' AND spalte='$spalte'",$praktdbmaster);
+}
+echo $template;
+?>

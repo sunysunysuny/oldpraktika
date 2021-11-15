@@ -1,0 +1,33 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+$_SESSION['current_page'] = PAGE_SEARCH;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = 'default';
+
+pageheader(array("page_title" => "Praktikum in Leipzig"));
+
+$leipzig_channel = new Praktika_Channel(19);
+$leipzig_stellen = $leipzig_channel->getStellen(8);
+?>
+<p>Sie suchen ein <strong>Praktikum in Leipzig</strong>? Dann sind Sie bei uns genau richtig.
+Egal ob Marketing, IT, Journalismus oder Touristik, wir haben f&uuml;r jeden das passende Angebot.
+&Uuml;berzeugen Sie sich selbst von unseren vielf&auml;ltigen Angeboten f&uuml;r ein Praktikum in Leipzig.</p>
+<br />
+<div class="vorn"><h4>Praktikumsstellen in Leipzig</h4>
+<? for($a = 0;$a < count($leipzig_stellen);$a++) {
+        echo "<p style='border-bottom: 1px dotted #bbb; padding: 0px 0 7px 0;'><a href='".Praktika_Stelle::getUrl($leipzig_stellen[$a])."'><b>".htmlentities($leipzig_stellen[$a]["taetigkeit"])."</b></a><br />bei <span>".$leipzig_stellen[$a]["firma"]." in ".$leipzig_stellen[$a]["einsatzort"]."</span> <br /><span style='color:#777; font-size:11px; line-height:30px;'><b>Branche</b>: ".htmlentities($leipzig_stellen[$a]["branche_german"])."<span style='padding: 0 0 0 70px;'><b>Berufsfeld</b>: ".htmlentities($leipzig_stellen[$a]["berufsfeld_german"])."</span></span></p>";
+} ?>
+</div>
+<p class="control"><a href="/praktika/praktikum_leipzig.php" class="button">Weitere Praktikumsstellen in Leipzig</a></p>
+<br /><br />
+<h2>Dein Praktikum in Leipzig mit praktika.de</h2>
+<p>Leipzig ist nicht nur die bev&ouml;lkerungsreichste Stadt der neuen Bundesl&auml;nder,
+sondern auch das wirtschaftliche Zentrum Mitteldeutschlands.
+Als Messe-, Sport- und Musikstadt, wichtiger Medienstandort und Kulturhochburg bietet die s&auml;chsische Gro&szlig;stadt vielf&auml;ltige M&ouml;glichkeiten f&uuml;r junge Menschen.
+Wieso also nicht ein <strong>Praktikum in Leipzig</strong> machen?<br /><br /><img src="/styles/images/landing/leipzig.jpg" alt="praktikum leipzig" /><br /><br />
+Ein Praktikum in Leipzig macht sich gut im Lebenslauf und bietet spannende und interessante Einblicke in den Berufsalltag. In Leipzig sind viele gro&szlig;e Unternehmen ans&auml;ssig, die sich bei Praktikanten besonders gro&szlig;er Beliebtheit erfreuen. Doch auch bei weniger bekannten Unternehmen findet man tolle <strong>Praktikumsstellen in Leipzig</strong>. Praktikumspl&auml;tze gibt es in den kleineren Unternehmen zwar meist weniger als in den gro&szlig;en, doch bieten sie ihren jungen Kollegen oft mehr M&ouml;glichkeiten, selbst aktiv zu werden.
+Bei uns finden Sie Ihr <a href="/praktika/praktikum_leipzig.php">Praktikum in
+Leipzig</a>!</p>
+
+<? bodyoff(); ?>

@@ -1,0 +1,315 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+if (!isset($_GET['id'])) {
+	$_GET['id'] = 0;
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+if (isset($_POST['next'])) {
+	if (isset($_SESSION['aktuelle_stelle'])) {
+		$stellenid = $_SESSION['aktuelle_stelle'];		
+	}
+	
+	header('Location: /firmen/stelle/layout/'.(isset($stellenid) ? $stellenid.'/' : ''));
+	exit();
+}
+
+if (isset($_SESSION['stelleSchonDa'])) {
+	unset($_SESSION['stelleSchonDa']);
+}
+
+if (isset($_POST['buchen'])) {
+	$error = 0;
+	
+	foreach ($_POST as $key => $value) {
+		if ($key != 'preisProdukte' && $key != 'preisAlles' && $key != 'buchen' && $key != 'ansprechpartner' && $key != 'fax') {
+			if (empty($value)) {
+				$error++;
+			}
+		}
+	}
+
+	if (!isset($_POST['agbbestaetigt'])) {
+		$error++;
+	}
+	
+	if ($error == 0) {
+		if ($_SESSION['chosen_firmenlevel'] == 1) {
+			$_SESSION['produktID'] = 18;	
+		} elseif ($_SESSION['chosen_firmenlevel'] == 2) {
+			$_SESSION['produktID'] = 15;
+		} elseif ($_SESSION['chosen_firmenlevel'] == 3) {
+			$_SESSION['produktID'] = 16;
+		}
+		
+		$_SESSION['gesamtPreis'] =  $_POST['preisAlles'];
+		$_SESSION['produktPreis'] = $_POST['preisProdukte'];
+
+		$allebuchungen = mysql_db_query($database_comm,'SELECT COUNT(id) AS anzahl FROM buchungen',$praktdbslave);
+		$auftragsnummer = $_SESSION['s_firmenid'].'B'.(mysql_result($allebuchungen,0,'anzahl') + 1).'P'.$_SESSION['produktID'];
+
+		$preisQuery = mysql_db_query($database_comm,'SELECT preis FROM produkte WHERE id = '.$_SESSION['produktID'],$praktdbslave);
+		
+		if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+			$row = mysql_fetch_array($preisQuery);
+		}
+
+		unset($_SESSION['sql_query']);
+		$_SESSION['sql_query'] = array();
+		$_SESSION['sql_query'][0] = '	INSERT INTO buchungen SET
+										stammid = '.intval($_SESSION['s_firmenid']).',
+										bearbeiterid = '.intval($_SESSION['s_loginid']).',
+										produktid = '.intval($_SESSION['produktID']).',
+										auftragsnummer = \''.mysql_real_escape_string($auftragsnummer).'\',
+										zeitraum_von = '.time().',
+										zeitraum_bis = '.strtotime('+1 year',time()).',
+										buchmenge = 1,
+										abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+										firma = \''.mysql_real_escape_string($_POST['firma']).'\',
+										strasse = \''.mysql_real_escape_string($_POST['strasse']).'\',
+										plz = \''.mysql_real_escape_string($_POST['plz']).'\',
+										ort = \''.mysql_real_escape_string($_POST['ort']).'\',
+										ansprechpartner = \''.mysql_real_escape_string($_POST['ansprechpartner']).'\',
+										tel = \''.mysql_real_escape_string($_POST['tel']).'\',
+										fax = \''.mysql_real_escape_string($_POST['fax']).'\',
+										email = \''.mysql_real_escape_string($_POST['email']).'\',
+										preis = \''.$row['preis'].'\',
+										waehrungsid = 1,
+										'.((isset($_POST['ZA']) && $_POST['ZA'] == 'RE') ? 'gezahlt = \'true\'' : 'gezahlt = \'false\'').',
+										'.(!isset($_POST['agbbestaetigt']) ? 'agbbestaetigt = \'false\'' : 'agbbestaetigt = \'true\'').',
+										host = \''.$host.'\',
+										ip = \''.$ip.'\',
+										datum_eintrag = '.time().',
+										modify = NOW();';
+
+		if (isset($_POST['leistungen']) && is_array($_POST['leistungen'])) {
+			$_SESSION['zusatzLeistungen'] = ''; //leeren, falls wieder auf zurueck-button geklickt
+			$_SESSION['zusatzLeistungen'] = $_POST['leistungen'];
+	
+			$i = 1;
+			
+			foreach ($_SESSION['zusatzLeistungen'] as $key) {
+				$allebuchungen = mysql_db_query($database_comm,'SELECT COUNT(id) AS anzahl FROM buchungen',$praktdbslave);
+				$auftragsnummer = $_SESSION['s_firmenid'].'B'.(mysql_result($allebuchungen,0,'anzahl') + 1).'P'.$key;
+				
+				$preisQuery = mysql_db_query($database_comm,'SELECT preis FROM produkte WHERE id = '.$key,$praktdbslave);
+				
+				if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+					$row = mysql_fetch_array($preisQuery);
+				}
+
+				$_SESSION['sql_query'][$i] = '	INSERT INTO buchungen SET
+												stammid = '.intval($_SESSION['s_firmenid']).',
+												bearbeiterid = '.intval($_SESSION['s_loginid']).',
+												produktid = '.$key.',
+												auftragsnummer = \''.mysql_real_escape_string($auftragsnummer).'\',
+												zeitraum_von = '.time().',
+												zeitraum_bis = '.strtotime('+1 year',time()).',
+												buchmenge = 1,
+												abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+												firma = \''.mysql_real_escape_string($_POST['firma']).'\',
+												strasse = \''.mysql_real_escape_string($_POST['strasse']).'\',
+												plz = \''.mysql_real_escape_string($_POST['plz']).'\',
+												ort = \''.mysql_real_escape_string($_POST['ort']).'\',
+												ansprechpartner = \''.mysql_real_escape_string($_POST['ansprechpartner']).'\',
+												tel = \''.mysql_real_escape_string($_POST['tel']).'\',
+												fax = \''.mysql_real_escape_string($_POST['fax']).'\',
+												email = \''.mysql_real_escape_string($_POST['email']).'\',
+												preis = \''.$row['preis'].'\',
+												waehrungsid = 1,
+												'.((isset($_POST['ZA']) && $_POST['ZA'] == 'RE') ? 'gezahlt = \'true\'' : 'gezahlt = \'false\'').',
+												'.(!isset($_POST['agbbestaetigt']) ? 'agbbestaetigt = \'false\'' : 'agbbestaetigt = \'true\'').',
+												host = \''.$host.'\',
+												ip = \''.$ip.'\',
+												datum_eintrag = '.time().',
+												modify = NOW()';
+
+				$i++;
+			}
+		}
+	
+		if (isset($_POST['ZA']) && $_POST['ZA'] == 'CC') {
+			header('Location: https://'.$_SERVER['HTTP_HOST'].'/zahlung/kreditkarte/');
+			exit();
+		} elseif (isset($_POST['ZA']) && $_POST['ZA'] == 'RE') {
+			header('Location: https://'.$_SERVER['HTTP_HOST'].'/zahlung/rechnung/');
+			exit();
+		} else {
+			header('Location: https://'.$_SERVER['HTTP_HOST'].'/zahlung/rechnung/');
+			exit();
+		}
+	}
+}
+
+$arrayZusatz = array(
+						6,
+						30,
+						31
+					);
+
+// Wenn keine Wahl getroffen wurden, dann einfach um ein Level hochsetzen
+if(empty($_SESSION['chosen_firmenlevel'])) {
+
+	$_SESSION['chosen_firmenlevel'] = $_SESSION['s_firmenlevel'] + 1;
+
+}
+					
+//Auswahl des Produktes
+if ($_SESSION['chosen_firmenlevel'] == 1) {
+	$produktid = 18;	
+} elseif ($_SESSION['chosen_firmenlevel'] == 2) {
+	$produktid = 15;
+} elseif ($_SESSION['chosen_firmenlevel'] == 3) {
+	$produktid = 16;
+} else {
+	if ($_SESSION['s_firmenlevel'] == 0) {
+		$produktid = 18;
+		$_SESSION['produktID'] = 18;
+		$_SESSION['chosen_firmenlevel'] = 1;
+	} else {
+		$_SESSION['stelleSchonDa'] = true;
+		header('Location: /firmen/stelle/paket/');
+		exit();
+	}
+}
+
+$preisQuery = mysql_db_query($database_comm,'SELECT bezeichnung, preis FROM produkte WHERE id = '.$produktid,$praktdbslave);
+	
+if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+	$row = mysql_fetch_array($preisQuery);
+	
+	$PackageBezeichnung = $row['bezeichnung'];
+	$PackagePreis = $row['preis'];
+} else {
+	die('<p class="error">Fehler im Buchhungssystem aufgetreten. Bitte nehmen Sie Kontakt mit uns auf.</p>');
+}
+
+if(empty($_GET["id"])) $_GET["id"] = $_SESSION["aktuelle_stelle"];
+pageheader(array('page_title' => 'Buchung'));
+
+echo '<div id="PackageBuchung">'.$PackageBezeichnung.'<br />'.$PackagePreis.' &euro;</div>'."\n";
+
+echo '<script type="text/javascript">'."\n";
+
+echo '	function changePrice(price,id) {'."\n";
+echo '		var oldPrice = document.getElementById(\'preisProdukte\').value;'."\n";
+echo '		if (id.checked == true) {'."\n";
+echo '			var newPrice = parseFloat(oldPrice) + parseFloat(price);'."\n";
+echo '		} else {'."\n";
+echo '			var newPrice = parseFloat(oldPrice) - parseFloat(price);'."\n";
+echo '		}'."\n";
+echo '		var priceLabel = newPrice.toFixed(2);'."\n";
+echo '		newPriceLabel = priceLabel.replace(\'.\',\',\');'."\n";
+echo '		document.getElementById(\'preisProdukte\').value = newPriceLabel;'."\n";
+echo '		var priceLabel2 = ((19 * priceLabel) / 100) + parseFloat(priceLabel);'."\n";
+echo '		document.getElementById(\'preisAlles\').value = priceLabel2;'."\n";
+echo '		priceLabel2 = priceLabel2.toFixed(2);'."\n";
+echo '		newPriceLabel2 = priceLabel2.replace(\'.\',\',\');'."\n";
+echo '		document.getElementById(\'preisLabel\').innerHTML = newPriceLabel2;'."\n";
+echo '	}'."\n";
+echo '</script>'."\n";
+
+echo '<h4>Zusatzleistungen</h4>'."\n";
+echo '<form action="/firmen/stelle/buchung/" method="post" name="Infoform">'."\n";
+echo '	<fieldset>'."\n";
+
+foreach ($arrayZusatz as $key) {
+	$preisQuery = mysql_db_query($database_comm,'SELECT id, bezeichnung, beschreibung, preis FROM produkte WHERE id = '.$key,$praktdbslave);
+	
+	if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+		$row = mysql_fetch_array($preisQuery);
+		$forID = str_replace(array(' ','-'),array('',''),$row['bezeichnung']);
+		
+		echo '		<p class="checkboxes"><input type="checkbox" name="leistungen['.$row['id'].']" id="'.$forID.'" value="'.$row['id'].'" onchange="changePrice('.$row['preis'].','.$forID.');" /><label for="'.$forID.'">'.$row['bezeichnung'].' ('.number_format($row['preis'],2,',','.').' &euro;)<br />'.$row['beschreibung'].'</label></p>'."\n";
+	} else {
+		die();
+	}
+}
+
+echo '	</fieldset>'."\n";
+
+$PackagePreisProdukte = $PackagePreis;
+$PackagePreisAlles = (19 * $PackagePreis) / 100 + $PackagePreis;
+
+echo '	<div id="gesamtPreis">Gesamtpreis (inklusive 19% Mehrwertsteuer): <span id="preisLabel">'.number_format($PackagePreisAlles,2,',','.').'</span><span> &euro;</span></div>'."\n";
+//echo '	<h4>Buchung &amp; Zahlung</h4>'."\n";
+//echo '	<fieldset>'."\n";
+
+$firmenland = mysql_db_query($database_db,'SELECT land FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+if (mysql_result($firmenland,0,'land') == 68) {
+	echo '		<input type="hidden" id="RE" name="ZA" value="RE" />'."\n";
+} else {
+	echo '		<input type="hidden" id="CC" name="ZA" value="CC" checked="checked" />'."\n";
+}
+
+//echo '	</fieldset>'."\n";
+
+$firma = mysql_db_query($database_db,'SELECT firmen.firma,firmen.strasse,firmen.plz,firmen.ort,firmen.land,bearbeiter.anrede,bearbeiter.vname,bearbeiter.name,bearbeiter.abteilung,bearbeiter.tel,bearbeiter.fax,bearbeiter.email FROM firmen,bearbeiter WHERE firmen.id = '.$_SESSION['s_firmenid'].' AND bearbeiter.id = '.$_SESSION['s_loginid'],$praktdbslave);
+$eintrag = mysql_fetch_array($firma);
+
+echo '	<h4>Rechnungsadresse</h4>'."\n";
+
+if (isset($error) && $error > 0) {
+	echo '	<p class="error">Bitte f&uuml;llen Sie alle Pflichtfelder aus!</p>'."\n";
+}
+
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="firma"'.((isset($_POST['buchen']) && isset($_POST['firma']) && empty($_POST['firma'])) ? ' class="error"' : '').'>Firma:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="firma" name="firma" value="'.((isset($_POST['buchen']) && isset($_POST['firma']) && !empty($_POST['firma'])) ? $_POST['firma'] : $eintrag['firma']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abteilung"'.((isset($_POST['buchen']) && isset($_POST['abteilung']) && empty($_POST['abteilung'])) ? ' class="error"' : '').'>Abteilung:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="abteilung" name="abteilung" value="'.((isset($_POST['buchen']) && isset($_POST['abteilung']) && !empty($_POST['abteilung'])) ? $_POST['abteilung'] : $eintrag['abteilung']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="strasse"'.((isset($_POST['buchen']) && isset($_POST['strasse']) && empty($_POST['strasse'])) ? ' class="error"' : '').'>Stra&szlig;e:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="strasse" name="strasse" value="'.((isset($_POST['buchen']) && isset($_POST['strasse']) && !empty($_POST['strasse'])) ? $_POST['strasse'] : $eintrag['strasse']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="plz"'.((isset($_POST['buchen']) && ((isset($_POST['plz']) && empty($_POST['plz'])) || (isset($_POST['ort']) && empty($_POST['ort'])))) ? ' class="error"' : '').'>PLZ / Ort:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="plz" name="plz" value="'.((isset($_POST['buchen']) && isset($_POST['plz']) && !empty($_POST['plz'])) ? $_POST['plz'] : $eintrag['plz']).'" /><input type="text" id="ort" name="ort" value="'.((isset($_POST['buchen']) && isset($_POST['ort']) && !empty($_POST['ort'])) ? $_POST['ort'] : $eintrag['ort']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="ansprechpartner">z. Hd. von:</label>'."\n";
+echo '			<input type="text" id="ansprechpartner" name="ansprechpartner" value="'.((isset($_POST['buchen']) && isset($_POST['ansprechpartner']) && !empty($_POST['ansprechpartner'])) ? $_POST['ansprechpartner'] : $eintrag['anrede'].' '.$eintrag['vname'].' '.$eintrag['name']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel"'.((isset($_POST['buchen']) && isset($_POST['tel']) && empty($_POST['tel'])) ? ' class="error"' : '').'>Telefon:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="tel" name="tel" value="'.((isset($_POST['buchen']) && isset($_POST['tel']) && !empty($_POST['tel'])) ? $_POST['tel'] : $eintrag['tel']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="fax">Fax:</label>'."\n";
+echo '			<input type="text" id="fax" name="fax" value="'.((isset($_POST['buchen']) && isset($_POST['fax']) && !empty($_POST['fax'])) ? $_POST['fax'] : $eintrag['fax']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email"'.((isset($_POST['buchen']) && isset($_POST['email']) && empty($_POST['email'])) ? ' class="error"' : '').'>Email:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="email" name="email" value="'.((isset($_POST['buchen']) && isset($_POST['email']) && !empty($_POST['email'])) ? $_POST['email'] : $eintrag['email']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p><label for="agbbestaetigt" class="wholewidth'.((isset($_POST['buchen']) && !isset($_POST['agbbestaetigt'])) ? ' error"' : '').'"><input type="checkbox" id="agbbestaetigt" name="agbbestaetigt" value="true" />Die <a href="/cms/AGB-fuer-Unternehmen.1505.0.html" onclick="return GB_showCenter(\'\',this.href,700,700);">AGB f&uuml;r Unternehmen</a> habe ich gelesen und verstanden, hiermit erkenne ich diese an.</label></p>'."\n";
+echo '	</fieldset>'."\n";
+
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<input type="hidden" id="preisProdukte" name="preisProdukte" value="'.$PackagePreisProdukte.'" />'."\n";
+echo '			<input type="hidden" id="preisAlles" name="preisAlles" value="'.$PackagePreisAlles.'" />'."\n";
+echo '			<button type="submit" name="buchen" value="Buchung durchf&uuml;hren"><span><span><span>BUCHUNG DURCHF&Uuml;HREN</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+
+echo '</form>'."\n";
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

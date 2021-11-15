@@ -1,0 +1,44 @@
+<?php
+
+require_once("/home/praktika/etc/config.inc.php");
+
+$temp = $_SESSION['user_group'];
+
+if ($_SESSION['s_loggedinadmin'] == true) {
+	$_SESSION['s_firmenid'] = 0;
+	
+	unset($_SESSION['s_nutzerid']);
+	unset($_SESSION['s_loginid']);
+	unset($_SESSION['s_unternehmen']);
+	unset($_SESSION['s_anrede']);
+	unset($_SESSION['s_vname']);
+	unset($_SESSION['s_name']);
+	unset($_SESSION['s_landid']);
+	unset($_SESSION['s_preregister']);
+	unset($_SESSION['s_partnerid']);
+	unset($_SESSION['lastlogin']);
+	unset($_SESSION['update']);
+	unset($_SESSION['s_firmenid']);
+	
+	unset($_SESSION['s_agenturid']);
+	unset($_SESSION['s_suchbezahlt']);
+	unset($_SESSION['s_stammid']);
+	unset($_SESSION['s_agb']);
+	unset($_SESSION['s_lastlogin']);
+	unset($_SESSION['s_nutzerproparray']);
+	unset($_SESSION['s_firmenproparray']);
+	unset($_SESSION['s_commerce']);
+	unset($_SESSION['counter']);
+	unset($_SESSION['s_lastlogin']);
+	unset($_SESSION['s_firmenlevel']);
+	unset($_SESSION['s_loggedin']);
+	
+} else {
+
+	session_destroy();
+	unset($_SESSION);
+}
+
+header("Location: http://".$_SERVER['HTTP_HOST'].(($temp == USER_GROUP_COMPANIES) ? '/cms/Unternehmen.104.0.html' : '/'));
+
+?>

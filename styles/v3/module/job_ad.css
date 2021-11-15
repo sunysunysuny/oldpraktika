@@ -1,0 +1,229 @@
+div#page div#main div#content {
+	width:740px;
+}
+div#page div#main div#sidebar {
+	width:231px;
+}
+
+
+/* Content - Begin */
+
+form#jobAdvertisementForm {
+	width: 750px;
+}
+div#main form fieldset.control_panel p input.button {
+	margin: 0;
+	float: right;
+}
+div#page div#main input#taetigkeit {
+	width:540px;
+}
+/* Content - End */
+
+
+/* Layout - Begin */
+
+div#content #stellenLayout {
+	width:750px;
+}
+div#content #stellenLayout .layoutTypeButton {
+	display:block; 
+	float:left; 
+	width:11em;
+}
+div#content #stellenLayout .layoutTypeButton img {
+	margin-top:2px;
+}
+div#content #stellenLayout .layoutTypeButton a {
+	text-decoration:underline;
+}
+div#content #stellenLayout .layoutTypeButton img {
+	float:left;
+	margin-right:10px;
+}
+div#preview_externe {
+	display: none;
+}
+table#preview_standard,
+table#preview_video,
+table#preview_eigene {
+	border-width: 0;
+	display: none;
+	width: 100%;
+}
+table#preview_standard img,
+table#preview_video img,
+div#preview_externe img,
+div#preview_eigene img {
+	border: 3px solid #fff;
+}
+table#preview_standard img.na,
+table#preview_video img.na,
+div#preview_externe img.na,
+div#preview_eigene img.na {
+	opacity: 0.6;
+	filter: alpha(opacity=60);
+}
+div#setTemplate {
+	visibility: hidden;
+	margin-top: 25px;
+}
+div#setTemplate fieldset.control_panel {
+	text-align: right;
+}
+div#chooseType {
+	height: 33px;
+}
+
+/* Layout - End */
+
+
+/* Category - Begin */
+
+div#main div#chooseCategory {
+	height: 45px;
+}
+div#main div#chooseCategory p {
+	margin-top: -10px;
+}
+div#main div#chooseCategory p label {
+	width: auto;
+}
+div#main div#categoryContent p#qualification {
+	margin-top: 10px;
+}
+div#main div#categoryContent p#study {
+	clear: both;
+	padding-top: 10px;
+}
+div#main div#categoryContent p#keywords {
+	clear: left;
+	margin-top: 10px;
+}
+div#main form fieldset p span.checklist {
+	width: 555px;
+}
+div#content #stellenCategory {
+	width:750px;
+}
+div#content #categoryContent {
+	clear: both;
+}
+
+/* Category - End */
+
+
+/* Activation - Begin */
+
+div#activate {
+	width: 740px;
+	margin-top: 67px;
+}
+div#activate form {
+	margin-bottom: 12px;
+}
+div#activate form fieldset,
+div#activate form fieldset p {
+	margin-bottom: 0;
+}
+div#activate form fieldset {
+	padding-bottom: 0;
+}
+
+div#stelleAktivieren {
+	width:750px;
+	padding-top:58px;
+}
+div#stelleAktivieren .isInactive {
+	font-size:16px;
+	font-weight:bold;
+	color:rgb(255,0,0);
+}
+div#stelleAktivieren .isActive {
+	font-size:16px;
+	font-weight:bold;
+	color:rgb(0,100,0);
+}
+div#main div#content input.link_bewerbung {
+	width:736px;
+}
+/* Activation - End */
+
+
+/* Sidebar - Begin */
+
+div#sidebar ul#stelle {
+	border: 0;
+	border-top-width: 0;
+	width: 231px;
+	margin-left: auto;
+	background: url(/gifs/bcenter/breadcrumps_bg.gif) top repeat-x;
+}
+div#sidebar div#stelle #lady_on_top {
+	margin-top: 12px;
+}
+div#sidebar ul#stelle li {
+	padding: 12px 0;
+	margin: 0;
+	text-align: left;
+	font-size: 12px;
+	color: #ccc;
+	height: 50px;
+	font-weight: bold;
+}
+div#sidebar ul#stelle li.done {		
+	background: url(/gifs/bcenter/line_red_red.jpg) center repeat-y;
+	background-position: 55px -8px;
+}
+div#sidebar ul#stelle li.todo {
+	background: url(/gifs/bcenter/line_grey.jpg) center repeat-y;
+	background-position: 55px -8px;
+}
+div#sidebar ul#stelle li.arrow_grey {
+	background: url(/gifs/bcenter/pfeil.gif) center no-repeat;
+	background-position: 50px 0px;
+}
+div#sidebar ul#stelle li.arrow_red {
+	background: url(/gifs/bcenter/pfeil_red.gif) center no-repeat;
+	background-position: 50px 0px;
+}
+div#sidebar ul#stelle img.check {
+	display: block;
+	float: left;
+	margin: 5px 20px auto 45px; 
+}
+div#sidebar ul#stelle li.first {
+	padding: 14px 0;
+	background: url(/gifs/bcenter/line_red_red.jpg) center no-repeat;
+	background-position: 55px 17px;	
+}
+div#sidebar ul#stelle li.first h2 {
+	text-align: center;
+	font-size: 12px;
+	text-align: left;
+	font-weight: bold;
+	padding-left: 85px;
+	color: #000;
+	line-height: 14px;
+}
+div#sidebar ul#stelle li.last {
+	padding-bottom: 50px;
+	color: #ccc;
+}
+div#sidebar ul#stelle li.active {
+	color: #f27000;
+}
+
+div#sidebar ul#stelle li.active a {
+	color: #f27000;
+}
+div#sidebar ul#stelle li a {
+	display: block;
+	vertical-align: middle;
+	padding: auto;
+	padding-left: 20px;
+	text-align: left;
+}
+
+/* Sidebar - End */
+

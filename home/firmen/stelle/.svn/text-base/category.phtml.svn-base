@@ -1,0 +1,689 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+$id = intval($_GET["id"]);
+
+if (isset($_SESSION['neueStelle']) && $_SESSION['neueStelle'] == true) {
+	$_SESSION['neueStelle']['layout'] = true;
+}
+
+$err = array();
+for ($i = 0; $i <= 13; $i++) {
+	$err[] = false;
+}
+$checked = false;
+
+// Validierung nach Submit
+if ( isset($_POST["weiter"]) ) {
+	#var_dump($_POST);
+	// Wurden alle noetigen Felder ausgefuellt?
+	if ( empty($_POST["stichwort"]) || preg_match('/^z. B./', $_POST["stichwort"]) ) $err[0] = true;
+	
+	if ( empty($_POST["qualifikation"]) ) $err[1] = true;
+	
+	if ( $_POST["spalte"] == 1 ) {
+		if (!isset($_POST['schuelerprakt']) && 
+			!isset($_POST['hochschulprakt']) && 
+			!isset($_POST['wprakt']) && 
+			!isset($_POST['sonstprakt']) 
+		) $err[2] = true;
+		$_POST['schuelerprakt'] = isset($_POST['schuelerprakt']) ? $_POST['schuelerprakt'] : 'false';
+		$_POST['hochschulprakt'] = isset($_POST['hochschulprakt']) ? $_POST['hochschulprakt'] : 'false';
+		$_POST['wprakt'] = isset($_POST['wprakt']) ? $_POST['wprakt'] : 'false';
+		$_POST['sonstprakt'] = isset($_POST['sonstprakt']) ? $_POST['sonstprakt'] : 'false';
+	}
+	
+	if ( $_POST["spalte"] == 1 || $_POST["spalte"] == 2 ) {
+		if ( empty($_POST["studienrichtung"]) && $_POST["studienrichtung"] !== '0') $err[3] = true;
+	}
+	
+	if ( isset($_POST['branche']) && empty($_POST["branche"]) ) $err[4] = true;
+	
+	if ( isset($_POST['berufsfeld']) && empty($_POST["berufsfeld"]) ) $err[5] = true;
+	
+	if ( $_POST["spalte"] == 5 ) {
+		if ( empty($_POST["beschaeftigung"]) ) $err[6] = true;
+		if ( empty($_POST["position"]) ) $err[7] = true;
+	}
+	
+	if ( $_POST["spalte"] != 2 ) {
+		if ( empty($_POST["von_monat"]) || empty($_POST["von_jahr"]) ) $err[8] = true;
+	}
+	
+	if ( $_POST["spalte"] != 3 && $_POST["spalte"] != 4 && $_POST["spalte"] != 5 ) {
+		if ( empty($_POST["zeitraum"]) ) $err[9] = true;
+	}
+	
+	if ( empty($_POST["land"]) ) $err[10] = true;
+	if ( empty($_POST["bundesland"]) ) $err[11] = true;
+	if ( empty($_POST["grossraum"]) ) $err[12] = true;
+	if ( empty($_POST["einsatzort"]) ) $err[13] = true;
+	
+	$checked = true;
+
+	for ( $i = 0; $i < count($err); $i++ ) {
+		if ($err[$i]) $checked = false;
+	}
+} else {
+	
+	$sql = sprintf("SELECT
+						*
+					FROM
+						stellen
+					WHERE
+						id = %d",
+					intval($_GET["id"]) );
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+
+	foreach ($row as $key => $value) {
+		$_POST[$key] = $value;
+	}
+
+	$sql = sprintf("SELECT
+						land, 
+						bundesland, 
+						grossraum, 
+						ort AS einsatzort, 
+						branche
+					FROM
+						firmen
+					WHERE
+						id = %d",
+					intval($_SESSION['s_firmenid']) );
+
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+
+	foreach ($row as $key => $value) {
+		if ( !isset($_POST[$key]) ) $_POST[$key] = $value;
+	}
+}
+
+if( !$checked ) {
+	//var_dump($_POST);
+	pageheader( array('page_title' => 'Stellenart und Kategorie') );
+?>
+<!--<table>
+  <tr>
+    
+  </tr>
+</table>-->
+<div id="stellenCategory">
+<form action="<? echo 'http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/category/'.$_GET["id"].'/'; ?>" method="post" name="category">
+  <!--<script type="text/javascript" src="/scripts/ajax/category.js"></script>-->
+
+ <div style="height:50px; margin:0px; margin-top:-10px;">
+       <span class="categoryTypeButton" style="width:8em;">Template<br />Kategorie:</span>
+       <span class="categoryTypeButton"><a href="#1" onclick="show(1)"><img border="0" id='categoryIcon_1' width="15" height="15" src='/gifs/bcenter/praktikum.gif' />Praktikum</a></span>
+       <span class="categoryTypeButton longField"><a href="#2" onclick="show(2)"><img border="0" id='categoryIcon_2' width="15" height="15"  src='/gifs/bcenter/bachelor_master.gif' />Bachelor- / Masterarbeit</a></span>
+       <span class="categoryTypeButton"><a href="#7" onclick="show(7)"><img border="0" id='categoryIcon_7' width="15" height="15"  src='/gifs/bcenter/trainee.gif' />Trainee</a></span>
+       <span class="categoryTypeButton"><a href="#6" onclick="show(6)"><img border="0" id='categoryIcon_6' width="15" height="15"  src='/gifs/bcenter/projekt.gif' />Projekt</a></span>
+    	<span class="categoryTypeButton"><a href="#4" onclick="show(4)"><img border="0" id='categoryIcon_4' width="15" height="15"  src='/gifs/bcenter/ausbildung.gif' />Ausbildung</a></span>
+	    <span class="categoryTypeButton longField"><a href="#5" onclick="show(5)"><img border="0" id='categoryIcon_5' width="15" height="15"  src='/gifs/bcenter/berufseinstieg.gif' />Berufseinstieg</a></span>
+       	<span class="categoryTypeButton"><a href="#4" onclick="show(3)"><img border="0" id='categoryIcon_3' width="15" height="15"  src='/gifs/bcenter/nebenjob.gif' />Nebenjob</a></span>
+ </div>
+ <div id="categoryContent">
+  <h4 id="category" style="margin-top: 18px;">Kategorie - <span id="type"></span></h4>
+  <i>Bemerkung:</i> Die folgenden Angaben dienen lediglich der Stellensuche durch den Bewerber und erscheinen <b>nicht</b> in der Anzeige selbst.
+  <fieldset>
+    <p id="qualification" style="display: none; margin-top: 20px;">
+      <label <?php echo $err[1] ? 'class="error" ' : '' ?> for="qualifikation">Mindestqualifikation:</label>
+      <select id="qualifikation" name="qualifikation">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+		// select the qualifikations from the database
+		$result = mysql_db_query($database_db, 'SELECT qualifikation, id FROM qualifikation ORDER BY folge', $praktdbslave);
+		// number of qualifikations
+		$num_rows = ($result != false) ? mysql_num_rows($result) : 0;
+		
+		$i = 0;
+		while ($i < $num_rows) {
+			$html = htmlspecialchars(mysql_result($result, $i, 'qualifikation'));
+			echo '        <option ';
+			// the chosen one is marked as "selected"
+			if (isset($_POST['qualifikation']) && (mysql_result($result, $i, 'id') == $_POST['qualifikation']) ) {
+				echo 'selected="selected" ';
+			}
+			echo 'value="'.mysql_result($result, $i, 'id').'">'.$html.'</option>'."\n";
+			$i++;
+		}
+?>
+      </select>
+    </p>
+
+    <div id="internship" style="display: none;">
+	<p<?php echo $err[2] ? ' class="error"' : '' ?>>
+      <label class="checkbox_labeltext" for="schuelerprakt">Art des Praktikums:</label>
+    </p>
+    <div class="col_2">
+      <p class="checkboxes">
+        <input type="checkbox" id="schuelerprakt" name="schuelerprakt" value="true"<?php echo ( isset($_POST['schuelerprakt']) && $_POST['schuelerprakt'] == 'true' ) ? ' checked="checked"' : '' ?> />
+        <label for="schuelerprakt">Sch&uuml;lerpraktikum</label>
+      </p>
+      <p class="checkboxes">
+        <input type="checkbox" id="hochschulprakt" name="hochschulprakt" value="true"<?php echo ( isset($_POST['hochschulprakt']) && $_POST['hochschulprakt'] == 'true' ) ? ' checked="checked"' : '' ?> />
+        <label for="hochschulprakt">Hochschulpraktikum</label>
+      </p>
+      <p class="checkboxes">
+        <input type="checkbox" id="wprakt" name="wprakt" value="true"<?php echo ( isset($_POST['wprakt']) && $_POST['wprakt'] == 'true' ) ? ' checked="checked"' : '' ?> />
+        <label for="wprakt">Weiterbildungspraktikum</label>
+      </p>
+      <p class="checkboxes">
+        <input type="checkbox" id="sonstprakt" name="sonstprakt" value="true"<?php echo ( isset($_POST['sonstprakt']) && $_POST['sonstprakt'] == 'true' ) ? ' checked="checked"' : '' ?> />
+        <label for="sonstprakt">sonstiges Praktikum</label>
+      </p>
+    </div>
+    </div>
+
+    <p id="study" style="clear: both; display: none; padding-top: 10px;">
+      <label <?php echo $err[3] ? 'class="error" ' : '' ?>for="studienrichtung">Studienrichtung:</label>
+      <select id="studienrichtung" name="studienrichtung">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+		// select the fields of studies from the database
+		$result = mysql_db_query($database_db,'SELECT * FROM studienrichtungen ORDER BY id',$praktdbslave);
+		// number of fields of studies
+		$num_rows = ($result != false) ? mysql_num_rows($result) : 0;
+		
+		$i = 0;
+		while ($i < $num_rows) {
+			$html = htmlspecialchars(mysql_result($result, $i, 'german'));
+			echo '        <option ';
+			// the chosen one is marked as "selected"
+			if (isset($_POST['studienrichtung']) && (mysql_result($result, $i, 'id') == $_POST['studienrichtung']) ) {
+				echo 'selected="selected" ';
+			}
+			echo 'value="'.mysql_result($result, $i, 'id').'">'.$html.'</option>'."\n";
+			$i++;
+		}
+?>
+      </select>
+    </p>
+
+    <p id="sector" style="display: none;">
+      <label <?php echo $err[4] ? 'class="error" ' : '' ?>for="branche">Branche:</label>
+      <select id="branche" name="branche">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+    $sql = sprintf("SELECT 
+    					* 
+    				FROM 
+    					branchen 
+    				WHERE 
+    					%1\$s <> '' 
+    				ORDER BY 
+    					%1\$s",
+    				$_SESSION['s_sprache']);
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$num_rows = ($result != false) ? mysql_num_rows($result) : 0;
+	
+	$i = 0;
+	while ($i < $num_rows) {
+		$html = htmlspecialchars(mysql_result($result, $i, $_SESSION['s_sprache']));
+		echo '        <option ';
+		// the chosen one is marked as "selected"
+		if (isset($_POST['branche']) && (mysql_result($result, $i, 'id') == $_POST['branche']) ) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($result, $i, 'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+?>
+      </select>
+    </p>
+
+    <p id="field" style="display: none;">
+      <label <?php echo $err[5] ? 'class="error" ' : '' ?>for="berufsfeld">Berufsfeld / Bereich:</label>
+      <select id="berufsfeld" name="berufsfeld">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+	    $sql = sprintf("SELECT 
+	    					* 
+	    				FROM 
+	    					berufsfelder 
+	    				WHERE 
+	    					%1\$s <> '' 
+	    				ORDER BY 
+	    					%1\$s",
+	    				$_SESSION['s_sprache']);
+		$result = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num_rows = ($result != false) ? mysql_num_rows($result) : 0;
+		
+		$i = 0;
+		while ($i < $num_rows) {
+			$html = htmlspecialchars(mysql_result($result, $i, $_SESSION['s_sprache']));
+			echo '        <option ';
+			// the chosen one is marked as "selected"
+			if (isset($_POST['berufsfeld']) && (mysql_result($result, $i, 'id') == $_POST['berufsfeld']) ) {
+				echo 'selected="selected" ';
+			}
+			echo 'value="'.mysql_result($result, $i, 'id').'">'.$html.'</option>'."\n";
+			$i++;
+		}
+?>
+      </select>
+    </p>
+
+    <div id="job" style="display: none;">
+	<p>
+      <label <?php echo $err[6] ? 'class="error" ' : '' ?>for="beschaeftigung">Art der Anstellung:</label>
+      <select id="beschaeftigung" name="beschaeftigung">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+		$beschaeftigungArray = array(
+										'Trainee',
+										'Einstiegspostion',
+										'Position mit Berufserfahrung',
+										'Freier Mitarbeiter'
+									);
+
+		foreach ($beschaeftigungArray as $key => $value) {
+			echo '        <option value="'.$value.'"'.((isset($_POST['beschaeftigung']) && $value == $_POST['beschaeftigung']) ? ' selected="selected"' : '').'>'.$value.'</option>'."\n";
+		}
+?>
+      </select>
+    </p>
+    <p>
+      <label <?php echo $err[7] ? 'class="error" ' : '' ?>for="position">Position:</label>
+      <select id="position" name="position">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+		$position = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM berufseinstieg_position ORDER BY id',$praktdbslave);
+		if ($position != false) {
+			$anz_position = mysql_num_rows($position);
+		} else {
+			$anz_position = 0;
+		}
+		
+		$i = 0;
+		while ($i < $anz_position) {
+			$html = htmlspecialchars(mysql_result($position,$i,$_SESSION['s_sprache']));
+			echo '        <option ';
+			if (isset($_POST['position'])) {
+				if  (mysql_result($position,$i,'id') == $_POST['position']) {
+					echo 'selected="selected" ';
+				}
+			}
+			echo 'value="'.mysql_result($position,$i,'id').'">'.$html.'</option>'."\n";
+
+			$i++;
+		}
+?>
+      </select>
+    </p>
+    </div>
+
+    <p id="date" style="display: none;">
+      <label <?php echo $err[8] ? 'class="error" ' : '' ?>for="datum">Beginn der T&auml;tigkeit:</label>
+      <select class="month" id="datum" name="von_monat">
+<?php
+	for ($i = 1; $i <= 12; $i++) {
+		echo '        <option'.( ( ( !isset($_POST["von_monat"]) && $i == date("m") ) || ( isset($_POST["von_monat"]) && $i == $_POST["von_monat"] ) ) ? ' selected="selected"': '').' value="'.sprintf("%02d", $i).'">'.sprintf("%02d", $i).'</option>'."\n";
+	}
+?>
+      </select> / 
+      <select class="year" name="von_jahr">
+<?php
+	for ($i = date("Y"); $i <= date("Y") + 3; $i++) {
+		echo '        <option'.( ( ( !isset($_POST["von_jahr"]) && $i == date("Y") ) || ( isset($_POST["von_jahr"]) && $i == $_POST["von_jahr"] ) ) ? ' selected="selected"': '').' value="'.sprintf("%4d", $i).'">'.sprintf("%4d", $i).'</option>'."\n";
+	}
+?>
+      </select>
+    </p>
+
+    <p id="duration" style="display: none;">
+      <label <?php echo $err[9] ? 'class="error" ' : '' ?>for="zeitraum">Dauer der T&auml;tigkeit:</label>
+      <select id="zeitraum" name="zeitraum">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+	for ($i = 1; $i <= 24; $i++) {
+		echo '        <option'.( (isset($_POST["zeitraum"]) && $i == $_POST["zeitraum"]) ? ' selected="selected"': '').' value="'.$i.'">'.$i.' Monat'.($i > 1 ? 'e': '').'</option>'."\n";
+	}
+?>
+      </select>
+    </p>
+    <p id="keywords" style="clear: left; margin-top: 10px;">
+      <label <?php echo $err[0] ? 'class="error" ' : '' ?> for="stichwort">Stichworte f&uuml;r Suche:</label>
+      <textarea cols="25" rows="5" id="stichwort" name="stichwort" onclick="if(this.value.search(/^z. B./) != -1) this.value = '';"><?php echo (isset($_POST['stichwort']) ? $_POST['stichwort'] : 'z. B. Deutsch, Englisch, Web-Programmierer, MySQL, PHP, ...') ?></textarea>
+    </p>
+    <div id="location" style="display: none;">
+    <p>
+      <label <?php echo $err[10] ? 'class="error" ' : '' ?>for="land">Land:</label>
+      <select id="land" name="land">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+	$sql = sprintf("SELECT 
+						id, 
+						%1\$s
+					FROM 
+						land 
+					ORDER BY 
+						%1\$s",
+					$_SESSION['s_sprache']);
+	$result = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$num_rows = ($result != false) ? mysql_num_rows($result) : 0;
+	$landid = isset($_POST['land']) ? $_POST['land'] : $landid = 68;
+	
+	$i = 0;
+	
+	
+	while ($i < $num_rows) {
+		$html = htmlspecialchars(mysql_result($result,$i,$_SESSION['s_sprache']));
+		echo '        <option '.((mysql_result($result,$i,'id') == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($result,$i,'id').'">'.$html.'</option>'."\n";
+
+		$i++;
+	}
+?>
+      </select>
+    </p>
+    <p>
+      <label <?php echo $err[11] ? 'class="error" ' : '' ?>for="bundesland">Bundesland:</label>
+      <select id="bundesland" name="bundesland">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php
+	$bundeslandselect = mysql_db_query($database_db,'SELECT * FROM bundesland WHERE landid='.$landid.' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	if ($bundeslandselect == true) {
+		$anz_bundesland = mysql_num_rows($bundeslandselect);
+	}
+	
+	if (isset($anz_bundesland) && $anz_bundesland > 0) {
+		$bundeslandsel = mysql_result($bundeslandselect,0,'id');
+		
+		if (!isset($_POST['bundesland'])) {
+			$_POST['bundesland'] = $bundeslandsel;
+		}
+		
+		$grossraumselect = mysql_db_query($database_db,'SELECT grossraum,id FROM grossraum WHERE bundesland='.(isset($_POST['bundesland']) ? $_POST['bundesland'] : mysql_result($bundeslandselect,0,'id')).' ORDER BY grossraum',$praktdbslave);
+		$anz_grossraum = mysql_num_rows($grossraumselect);
+		
+		if (!isset($_POST['grossraum'])) {
+			$_POST['grossraum'] = mysql_result($grossraumselect,0,'id');;
+		}
+	}
+	if($landid == 68) {
+		echo ' <option '.((mysql_result($result,$i,'id') == "2030") ? 'selected="selected" ' : '').'value="2030">Bundesweit</option>';
+	}	
+	$i = 0;
+	while ($i < $anz_bundesland) {
+		$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+		echo '        <option '.((mysql_result($bundeslandselect,$i,'id') == $_POST['bundesland']) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,'id').'">'.$html.'</option>'."\n";
+
+		$i++;
+	}
+?>
+      </select>
+    </p>
+    <p>
+      <label <?php echo $err[12] ? 'class="error" ' : '' ?>for="grossraum">Gro&szlig;raum:</label>
+      <select id="grossraum" name="grossraum">
+        <option value="">- - - - BITTE AUSW&Auml;HLEN - - - -</option>
+<?php	
+	$i = 0;
+	while ($i < $anz_grossraum) {
+		$html = htmlspecialchars(mysql_result($grossraumselect,$i));
+		echo '        <option '.((mysql_result($grossraumselect,$i,'id') == $_POST['grossraum']) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,'id').'">'.$html.'</option>'."\n";
+
+		$i++;
+	}
+?>
+      </select>
+    </p>
+    <p>
+      <label <?php echo $err[13] ? 'class="error" ' : '' ?>for="einsatzort">Ort:</label>
+      <input type="text" id="einsatzort" maxlength="50" name="einsatzort" value="<?php echo (isset($_POST['einsatzort']) ? $_POST['einsatzort'] : '') ?>" />
+    </p>
+    </div>
+  </fieldset>
+  <fieldset class="control_panel">
+    <p>
+      <input id="spalte" name="spalte" type="hidden" value="1" />
+<button type="submit" id="weiter" name="weiter" style="text-align:center;" value="weiter"><span><span><span>WEITER</span></span></span></button>      
+    </p>
+  </fieldset>
+  </div>
+</form>
+</div>
+
+<script type="text/javascript">
+<!--
+var img = '', path = '/gifs/bcenter/', tmp = '';
+var oldVal = -1;
+var types;
+
+// Anzeige bestimmter Felder in Abhaengigkeit der gewählten Stellenart
+function show (id) {
+	
+	if(oldVal != -1) {
+		switch (oldVal) {
+			case <?=SECTION_PRAKTIKUM ?>: // Praktikum
+				tmp = 'praktikum';
+				types = 'Praktikum';
+				break;
+			case <?=SECTION_DIPLOM ?>: // Bachelor- / Masterarbeit
+				tmp = 'bachelor_master';
+				types = 'Bachelor- / Masterarbeit';
+				break;
+			case <?=SECTION_NEBENJOB ?>:
+				tmp = 'nebenjob';
+				types = 'Nebenjob';
+				break;
+			case <?=SECTION_AUSBILDUNG ?>:
+				tmp = 'ausbildung';
+				types = 'Ausbildung';
+				break;
+			case <?=SECTION_BERUFSEINSTIEG ?>:
+				tmp = 'berufseinstieg';
+				types = 'Berufseinstieg';
+				break;
+			case <?=SECTION_PROJEKT ?>:
+				tmp = 'projekt';
+				types = 'Projekt';
+				break;
+			case <?=SECTION_TRAINEE ?>:
+				tmp = 'trainee';
+				types = 'Trainee';
+				break;
+		}
+		document.getElementById("categoryIcon_" + oldVal).src = path + tmp + ".gif";
+		oldVal = -1;
+	}
+	
+	document.getElementById("categoryIcon_" + id).src = path + "stellenart_ausgewaehlt.gif"
+	oldVal = id;
+	
+	// H4 mit Text
+	document.getElementById('category').style.display = '';
+	// Stichworte
+	document.getElementById('keywords').style.display = '';
+	// Mindestqualifikation
+	document.getElementById('qualification').style.display = '';
+	// Art des Praktikums
+	document.getElementById('internship').style.display = 'none';
+	// Studienrichtung
+	document.getElementById('study').style.display = 'none';
+	// Branche
+	document.getElementById('sector').style.display = '';
+	// Berufsfeld
+	document.getElementById('field').style.display = '';
+	// 
+	document.getElementById('job').style.display = 'none';
+	// Datum
+	document.getElementById('date').style.display = '';
+	// Dauer
+	document.getElementById('duration').style.display = '';
+	// Angaben zum Einsatzort
+	document.getElementById('location').style.display = '';
+
+	// Weiter-Button
+	document.getElementById('weiter').style.display = '';
+	
+	switch (id) {
+		case <?=SECTION_PRAKTIKUM ?>: // Praktikum
+			document.getElementById('internship').style.display = ''; // nur hier
+			document.getElementById('study').style.display = '';
+			tmp = "praktikum";
+			types = "Praktikum";
+			typeID = 1;
+			break;
+		case <?=SECTION_DIPLOM ?>: // Bachelor- / Masterarbeit
+			//document.getElementById('keywords').style.display = 'none'; // nur hier
+			document.getElementById('study').style.display = '';
+			document.getElementById('date').style.display = 'none'; // nur hier
+			tmp = 'bachelor';
+			types = 'Bachelor- / Masterarbeit';
+			typeID = 2;
+			break;
+		case <?=SECTION_NEBENJOB ?>:
+			tmp = 'nebenjob';
+			types = 'Nebenjob';
+			typeID = 3;
+			break;
+		case <?=SECTION_AUSBILDUNG ?>:
+			document.getElementById('duration').style.display = 'none';
+			tmp = 'ausbildung';
+			types = 'Ausbildung';
+			typeID = 4;
+			break;
+		case <?=SECTION_BERUFSEINSTIEG ?>:
+			document.getElementById('job').style.display = ''; // nur hier
+			document.getElementById('duration').style.display = 'none';
+			tmp = 'berufseinstieg';
+			types = 'Berufseinstieg';
+			typeID = 5;
+			break;
+		case <?=SECTION_PROJEKT ?>:
+			tmp = 'projekt';
+			types = 'Projekt';
+			typeID = 6;
+			break;
+		case <?=SECTION_TRAINEE ?>:
+			tmp = 'trainee';
+			types = 'Trainee';
+			typeID = 7;
+			break;
+	}
+	
+	// verstecktes Element
+	document.getElementById('spalte').value = typeID;	
+	// Stellenart
+	document.getElementById('type').innerHTML = types;
+}
+
+/*if ( document.getElementById('hidden') ) {
+	show( document.getElementById('hidden').value );
+}*/
+
+function out () {
+	if ( img == '' ) img = 'praktikum_inaktiv.gif';
+	document.getElementById('img').src = path + img;
+}
+
+// Vorschau auf die Bilder
+function preview (type) {
+	switch (type) {
+		case 1:
+			tmp = 'praktikum';
+			break;
+		case 2:
+			tmp = 'bachelor';
+			break;
+		case 3:
+			tmp = 'nebenjob';
+			break;
+		case 4:
+			tmp = 'ausbildung';
+			break;
+		case 5:
+			tmp = 'berufseinstieg';
+			break;
+		case 6:
+			tmp = 'projekt';
+			break;
+		case 7:
+			tmp = 'trainee';
+			break;
+		default:
+			tmp = 'praktikum';
+    		break;
+	}
+	document.getElementById('img').src = path + tmp + '_inaktiv.gif';
+}
+-->
+</script>
+<?php
+	if ( isset($_POST["spalte"]) ) {
+?>
+      <script type="text/javascript">
+      <!--
+      show(<?php echo $_POST["spalte"] ?>);
+      -->
+      </script>
+<?php
+	}
+	$_SESSION['sidebar'] = '';
+
+	bodyoff();
+} else {
+	$sqlString = '';
+	foreach ($_POST as $key => $value) {
+		if (substr_count($value,'@') > 0 || substr_count($value,'(at)') > 0 || substr_count($value,'www.') > 0) {
+			$deny++;
+		}
+	
+		if ($key != 'weiter') {
+			if ($key == 'stellenid') {
+				if ($_POST['stellenid'] > 0) {
+					//$sqlString .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+				}
+			} else {
+				$sqlString .= $key." = '".mysql_real_escape_string($value)."', ";
+			}
+		}
+	}
+	
+	// Stelle in DB updaten
+	$sql = sprintf("UPDATE 
+						stellen
+					SET
+						bearbeiterid = %1\$d,
+						firmenid = %2\$d, 
+						sprache = %3\$d, 
+						%4\$s
+						host = '%5\$s',
+						ip = '%6\$s',
+						datum_eintrag = NOW()
+					WHERE
+						id = %7\$d",
+					intval($_SESSION['s_loginid']),
+					intval($_SESSION['s_firmenid']),
+					intval($_SESSION['s_sprachid']),
+					$sqlString,
+					mysql_real_escape_string($host),
+					mysql_real_escape_string($ip),
+					$id );
+	//echo $sql;die();
+	mysql_db_query($database_db, $sql, $praktdbmaster);
+	
+	$dateiname = '/home/praktika/cache/stellen/stelle_'.$id.'.html';
+	@unlink($dateiname);
+		
+	if (isset($_SESSION['neueStelle']) && $_SESSION['neueStelle'] == true) {
+		$_SESSION['neueStelle']['category'] = true;
+	}	
+	
+	header('Location: http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/content/'.$id.'/');
+	exit();
+}
+?>

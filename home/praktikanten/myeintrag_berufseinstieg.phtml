@@ -1,0 +1,565 @@
+<?
+// Kann weg (by stefan)
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_MY_PRAKTIKA;
+
+pageheader(array('page_title' => 'Eintrag eines neuen Berufsgesuches'));
+
+if (isset($_POST['senden']) &&
+	isset($_POST['beschreibungen']) &&
+	isset($_POST['beschaeftigung']) &&
+	isset($_POST['verfall_tag']) &&
+	isset($_POST['verfall_monat']) &&
+	isset($_POST['verfall_jahr']) &&
+	!empty($_POST['beschreibungen']) &&
+	!empty($_POST['beschaeftigung']) &&
+	!empty($_POST['verfall_tag']) &&
+	!empty($_POST['verfall_monat']) &&
+	!empty($_POST['verfall_jahr'])) {
+
+	/* datumsfelder zusammensetzen  */
+	$datum_verfall = $_POST['verfall_jahr'].'-'.$_POST['verfall_monat'].'-'.$_POST['verfall_tag'];
+	
+	$branchenselect = mysql_db_query($database_db,'SELECT * FROM branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	while ($row = mysql_fetch_array($branchenselect, MYSQL_ASSOC)) {
+	   $branchen[$row['id']] = $row[$_SESSION['s_sprache']];
+	}
+	
+	if (isset($_POST['branche']) && is_array($_POST['branche'])) {
+		$branchetext = array();
+		foreach ($_POST['branche'] as $brancheitem) {
+			$branchetext[] = $branchen[$brancheitem];
+		}
+	} else {
+		$_POST['branche'] = array();
+		$branchetext = array();
+	}
+	
+	if (!isset($_POST['inactive'])) {
+		$inactive = 'true';
+	} else {
+		$inactive = $_POST['inactive'];
+	}
+	
+	
+	/* einfuegestring zusammensetzen */
+	$insertstring = 'REPLACE INTO berufseinstieggesuch (
+						'.((isset($_POST['gesuch']) && !empty($_POST['gesuch'])) ? 'id,' : '').'
+						inactive,
+						nutzerid,
+						berufsfeld,
+						monat,
+						jahr,
+						bezeichnung,
+						beschaeftigung,
+						qualifikation,
+						beschreibung,
+						branchen,
+						branchentext,
+						gehalt,
+						waehrung,
+						regionales,
+						lehre,
+						sprachkenntnisse1,
+						sprachkenntnisse2,
+						sprachkenntnisse3,
+						host,
+						ip,
+						datum_eintrag,
+						datum_verfall,
+						modify
+					) VALUES (
+						'.((isset($_POST['gesuch']) && !empty($_POST['gesuch'])) ? intval($_POST['gesuch']).',' : '').'
+						\''.$inactive.'\',
+						'.intval($_SESSION['s_nutzerid']).',
+						'.intval($_POST['berufsfeld']).',
+						'.intval($_POST['zeitraum_ab_m']).',
+						'.intval($_POST['zeitraum_ab_y']).',
+						\''.mysql_real_escape_string($_POST['bezeichnung']).'\',
+						\''.mysql_real_escape_string($_POST['beschaeftigung']).'\',
+						'.intval($_POST['qualifikation']).',
+						\''.mysql_real_escape_string($_POST['beschreibungen']).'\',
+						\''.implode(',',$_POST['branche']).'\',
+						\''.implode(' ',$branchetext).'\',
+						\''.mysql_real_escape_string($_POST['gehalt']).'\',
+						'.intval($_POST['waehrung']).',
+						\''.mysql_real_escape_string($_POST['regionales']).'\',
+						'.intval($_POST['lehre']).',
+						'.intval($_POST['sprachkenntnisse1']).',
+						'.((isset($_POST['sprachkenntnisse2']) && !empty($_POST['sprachkenntnisse2'])) ? intval($_POST['sprachkenntnisse2']) : '\'\'').',
+						'.((isset($_POST['sprachkenntnisse3']) && !empty($_POST['sprachkenntnisse3'])) ? intval($_POST['sprachkenntnisse2']) : '\'\'').',
+						\''.$host.'\',
+						\''.$ip.'\',
+						NOW(),
+						\''.$datum_verfall.'\',
+						NOW()
+					)';
+	//echo $insertstring;
+	/* datensatz einfuegen */
+	mysql_db_query($database_db,$insertstring,$praktdbmaster);
+	
+	/* id bestimmen */
+	$insert_id = mysql_insert_id($praktdbmaster);
+	
+	/* Logfile eintragen */
+	$fp = fopen($logfile, 'a');
+	fputs($fp, $insertstring);
+	fputs($fp, "\n");
+	fclose($fp);
+
+	/* infomail zusammenbauen */
+	$subject = 'praktika.de BEWERBER-EINTRAG BERUFSGESUCH: ID: '.$insert_id;
+	$mailstring = 'BEWERBER BERUFSGESUCH - EINTRAG'."\n\n";
+	$mailstring = $mailstring.'NUTZER-ID: '.$_SESSION['s_nutzerid']."\n\n";
+	$mailstring = $mailstring.'ID: '.$insert_id."\n\n";
+	$mailstring = $mailstring.'Bezeichnung: '.$_POST['bezeichnung']."\n";
+	$mailstring = $mailstring.'Berufswunsch: '.$_POST['beschaeftigung']."\n";
+	$mailstring = $mailstring.'Berufsfeld: '.$_POST['berufsfeld']."\n";
+	$mailstring = $mailstring.'ab wann: '.$_POST['zeitraum_ab_m'].' '.$_POST['zeitraum_ab_y']."\n";
+	$mailstring = $mailstring.'Beschreibung: '.$_POST['beschreibungen']."\n";
+	$mailstring = $mailstring.'Qualifikation: '.$_POST['qualifikation']."\n";
+	$mailstring = $mailstring.'Lehre: '.$_POST['lehre']."\n";
+	$mailstring = $mailstring.'Gehalt: '.$_POST['gehalt'].' '.$_POST['waehrung']."\n";
+	$mailstring = $mailstring.'Regionale W&&uuml;uml;nsche: '.$_POST['regionales']."\n";
+	$mailstring = $mailstring.'1. Sprache: '.$_POST['sprachkenntnisse1']."\n";
+	$mailstring = $mailstring.'2. Sprache: '.$_POST['sprachkenntnisse2']."\n";
+	$mailstring = $mailstring.'3. Sprache: '.$_POST['sprachkenntnisse3']."\n";
+	$mailstring = $mailstring.'Host: '.$host."\n";
+	$mailstring = $mailstring.'IP: '.$ip."\n";
+	$mailstring = $mailstring.'Datum Eintrag: '.date('d-m-Y')."\n";
+	$mailstring = $mailstring."\n\n".'DATENBANKSTRING:'."\n";
+	$mailstring = $mailstring.$insertstring."\n";
+	
+	/* infomail verschicken */
+	mail($infomail, $subject, $mailstring, "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+	
+	/* ---------------------------------------------------------------------------------------------- */
+	
+	/* Praktikumsbeschreibung */
+	echo '<p>Ihr Gesuch wurde erfolgreich gespeichert!</p>'."\n";
+	
+	echo '<p class="control_panel"><button type="button" name="back" onclick="location.href = \'/karriere/gesuche/\'" value="zur&uuml;ck zur &Uuml;bersicht"><span><span><span>zur&uuml;ck zur &Uuml;bersicht</span></span></span></button></p>'."\n";
+} else {
+	$sprachen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM sprachen WHERE inactive = \'false\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_sprachen = mysql_num_rows($sprachen);
+
+	$qualifikationen = mysql_db_query($database_db,'SELECT qualifikation,id FROM qualifikation ORDER BY qualifikation',$praktdbslave);
+	$anz_qualifikationen = mysql_num_rows($qualifikationen);
+
+	$studiengaenge = mysql_db_query($database_db,'SELECT * FROM studiengaenge ORDER BY studiengang',$praktdbslave);
+	$anz_studiengaenge = mysql_num_rows($studiengaenge);
+
+	$praktikumsarten = mysql_db_query($database_db,'SELECT * FROM praktikumsart ORDER BY art',$praktdbslave);
+	$anz_praktikumsarten = mysql_num_rows($praktikumsarten);
+	
+	$berufsfelder = mysql_db_query($database_db,'SELECT * FROM berufsfelder WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_berufsfelder = mysql_num_rows($berufsfelder);
+	
+	$branchen = mysql_db_query($database_db,'SELECT * FROM branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	$anz_branchen = mysql_num_rows($branchen);
+	
+	$waehrung2 = mysql_db_query($database_comm,'SELECT id,bezeichner FROM waehrungen ORDER BY id',$praktdbslave);
+	$anz_waehrung = mysql_num_rows($waehrung2);
+
+	$geschlecht = mysql_db_query($database_db,'SELECT anrede FROM nutzer WHERE id='.$_SESSION['s_nutzerid'],$praktdbslave);
+	if (mysql_result($geschlecht,0,'anrede') == 'Herr') {
+		$berufswahl = mysql_db_query($database_db,'SELECT berufswahl,id FROM berufswahl_mann ORDER BY berufswahl',$praktdbslave);
+		$anz_berufswahl = mysql_num_rows($berufswahl);
+	} else {
+		$berufswahl = mysql_db_query($database_db,'SELECT berufswahl,id FROM berufswahl_frau ORDER BY berufswahl',$praktdbslave);
+		$anz_berufswahl = mysql_num_rows($berufswahl);
+	}
+	
+
+	$beschaeftigungsarten = array();
+	$beschaeftigungsarten[] = 'Trainee';
+	$beschaeftigungsarten[] = 'Einstiegsposition';
+	$beschaeftigungsarten[] = 'Position mit Berufserfahrung';
+	$beschaeftigungsarten[] = 'Freier Mitarbeiter';
+	
+	$gehaltsarten = array();
+	$gehaltsarten[] = 'keine Angabe';
+	$gehaltsarten[] = '15000 - 20000';
+	$gehaltsarten[] = '20000 - 25000';
+	$gehaltsarten[] = '25000 - 30000';
+	$gehaltsarten[] = '30000 - 35000';
+	$gehaltsarten[] = '35000 - 40000';
+	$gehaltsarten[] = '40000 - 45000';
+	$gehaltsarten[] = '45000 - 50000';
+	$gehaltsarten[] = '50000 - 55000';
+	$gehaltsarten[] = '55000 - 60000';
+	$gehaltsarten[] = '60000 - 65000';
+	$gehaltsarten[] = '65000 - 70000';
+	$gehaltsarten[] = '70000 - 75000';
+
+	if (isset($_GET['id'])) {
+		$berufseinstieggesuch = mysql_db_query($database_db,'SELECT *,date_format(datum_verfall, \'%d\') AS tagv, date_format(datum_verfall, \'%m\') AS monatv, date_format(datum_verfall, \'%Y\') AS jahrv FROM berufseinstieggesuch WHERE id = '.$_GET['id'].' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbmaster);
+
+		$_POST['bezeichnung'] = mysql_result($berufseinstieggesuch,0,'bezeichnung');
+		$_POST['qualifikation'] = mysql_result($berufseinstieggesuch,0,'qualifikation');
+		$_POST['beschaeftigung'] = mysql_result($berufseinstieggesuch,0,'beschaeftigung');
+		$_POST['sprachkenntnisse1'] = mysql_result($berufseinstieggesuch,0,'sprachkenntnisse1');
+		$_POST['sprachkenntnisse2'] = mysql_result($berufseinstieggesuch,0,'sprachkenntnisse2');
+		$_POST['sprachkenntnisse3'] = mysql_result($berufseinstieggesuch,0,'sprachkenntnisse3');
+		$_POST['inactive'] = mysql_result($berufseinstieggesuch,0,'inactive');
+		$_POST['gehalt'] = mysql_result($berufseinstieggesuch,0,'gehalt');
+		$_POST['waehrung'] = mysql_result($berufseinstieggesuch,0,'waehrung');
+		$_POST['regionales'] = mysql_result($berufseinstieggesuch,0,'regionales');
+		$_POST['lehre'] = mysql_result($berufseinstieggesuch,0,'lehre');
+		$_POST['beschreibungen'] = mysql_result($berufseinstieggesuch,0,'beschreibung');
+		$_POST['berufsfeld'] = mysql_result($berufseinstieggesuch,0,'berufsfeld');
+		$_POST['zeitraum_ab_m'] = mysql_result($berufseinstieggesuch,0,'zeitraum_ab_m');
+		$_POST['zeitraum_ab_y'] = mysql_result($berufseinstieggesuch,0,'zeitraum_ab_y');
+		$_POST['branche'] = explode(",",mysql_result($berufseinstieggesuch,0,'branchen'));
+		$_POST['verfall_tag'] = mysql_result($berufseinstieggesuch,0,'tagv');
+		$_POST['verfall_monat'] = mysql_result($berufseinstieggesuch,0,'monatv');
+		$_POST['verfall_jahr'] = mysql_result($berufseinstieggesuch,0,'jahrv');
+		$_POST['gesuch'] = $_GET['id'];
+	}	
+	
+	if (isset($_POST['senden'])) {
+		echo '<p class="error">Leider haben Sie die Felder nicht vollst&auml;ndig ausgef&uuml;llt.<br />Bitte korrigieren Sie Ihre Eingaben.</p>'."\n";
+	}
+
+	if (isset($_POST['senden']) && isset($insertstring)) {
+		if (substr_count($insertstring,'@') > 0 || substr_count($insertstring,'www') > 0) {
+			echo '<p class="error">Das Ver&ouml;ffentlichen von eMail- und Internetadressen ist aus Datenschutzgr&uuml;nden nicht erlaubt. Bitte entfernen Sie diese aus ihrem Text.</p>'."\n";
+		}
+	}
+
+	echo '	<form action="/karriere/gesuche/berufseinstieg/" method="post">'."\n";
+	echo '		<fieldset>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="auswahl">Art des Gesuches:</label>'."\n";
+	echo '				<select id="auswahl" name="auswahl" onchange="Go(this.form.auswahl.options[this.form.auswahl.options.selectedIndex].value);">'."\n";
+	echo '					<option value="/karriere/gesuche/praktikum/">Praktikum</option>'."\n";
+	echo '					<option value="/karriere/gesuche/diplom/">Bachelor-/Masterarbeit</option>'."\n";
+	echo '					<option value="/karriere/gesuche/berufseinstieg/" selected="selected">Berufseinstieg</option>'."\n";
+	echo '					<option value="/karriere/gesuche/nebenjob/">Nebenjob</option>'."\n";
+	echo '					<option value="/karriere/gesuche/ausbildung/">Ausbildung</option>'."\n";
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Ihr Berufswunsch</h4>'."\n";
+	echo '		<fieldset>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="bezeichnung"';
+
+	if (isset($_POST['senden']) && isset($_POST['bezeichnung']) && empty($_POST['bezeichnung'])) {
+		echo ' style="color: #ff0000;"';
+	}
+	
+	echo '>Derzeitiger oder angestrebter Beruf:</label>'."\n";
+	echo '				<input id="bezeichnung" name="bezeichnung" value="'.(isset($_POST['bezeichnung']) ? $_POST['bezeichnung'] : '').'" maxlength="150" />'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="berufsfeld">Berufsfeld:</label>'."\n";
+	echo '				<select id="berufsfeld" name="berufsfeld">'."\n";
+	
+	$i=0;
+	while ($i < $anz_berufsfelder) {
+		$html = htmlspecialchars(mysql_result($berufsfelder,$i,$_SESSION['s_sprache']));
+		echo '					<option ';
+		if (isset($_POST['berufsfeld'])) {
+			if  (mysql_result($berufsfelder,$i,'id') == $_POST['berufsfeld']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($berufsfelder,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	};
+
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="beschaeftigung"';
+
+	if (isset($_POST['senden']) && isset($_POST['beschaeftigung']) && empty($_POST['beschaeftigung'])) {
+		echo ' style="color: #ff0000;"';
+	}
+	
+	echo '>Art der Besch&auml;ftigung:</label>'."\n";
+	echo '				<select id="beschaeftigung" name="beschaeftigung">'."\n";
+	echo '					<option value="">BITTE W&Auml;HLEN</option>'."\n";
+	
+	foreach ($beschaeftigungsarten as $key => $value) {
+		echo '					<option ';
+		if (isset($_POST['beschaeftigung'])) {
+			if  ($value == $_POST['beschaeftigung']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$value.'">'.$value.'</option>'."\n";
+	}
+
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="zeitraum_ab_m"';
+
+	if (isset($_POST['senden']) && isset($_POST['zeitraum_ab_m']) && isset($_POST['zeitraum_ab_y']) &&(($_POST['zeitraum_ab_m'] < 1 || $_POST['zeitraum_ab_m'] > 12 ) || ($_POST['zeitraum_ab_y'] < date('Y')) || (empty($_POST['zeitraum_ab_m']) || empty($_POST['zeitraum_ab_y'])) || $_POST['zeitraum_ab_m'] > $_POST['zeitraum_ab_y']) && empty($zeitraum)) {
+		echo ' style="color: #ff0000;"';
+	}
+	
+	echo '>Zeitraum ab:</label>'."\n";
+	echo '				<select id="zeitraum_ab_m" name="zeitraum_ab_m" class="month">'."\n";
+
+	if (!isset($_POST['zeitraum_ab_m'])) {
+		$_POST['zeitraum_ab_m'] = date('m');
+	}
+	
+	$i=1;
+	while ($i < 13) {
+		echo '<option ';
+		if (isset($_POST['zeitraum_ab_m'])) {
+			if  ($i == $_POST['zeitraum_ab_m']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$i.'">'.sprintf("%02d",$i).'</option>'."\n";
+		$i++;
+	}
+
+	echo '				</select>&nbsp;/&nbsp;'."\n";
+	echo '				<select name="zeitraum_ab_y" class="year">'."\n";
+
+	$startyear = date('Y');
+	$i = $startyear;
+	while ($i < ($startyear + 4)) {
+		echo '					<option ';
+		if (isset($_POST['zeitraum_ab_y'])) {
+			if  ($i == $_POST['zeitraum_ab_y']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$i.'">'.sprintf("%04d",$i).'</option>'."\n";
+		$i++;
+	}
+
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+
+	if (isset($_POST['branche']) && !is_array($_POST['branche'])) {
+		$_POST['branche'] = array();
+	}
+	$i=0;
+	while ($i < $anz_branchen) {
+		if ($i == 0) {
+				echo '			<label for="branche'.$i.'">Branchenauswahl:</label>'."\n";
+				echo '			<div class="col_2">'."\n";
+		}
+		
+		$html = htmlspecialchars(mysql_result($branchen,$i,$_SESSION['s_sprache']));
+		echo '				<p class="checkboxes">'."\n";
+		echo '					<input type="checkbox" id="branche'.$i.'" name="branche[]" ';
+		if (isset($_POST['branche'])) {
+			if (in_array(mysql_result($branchen,$i,'id'),$_POST['branche'])) {
+				echo 'checked="checked" ';
+			}
+		}
+		echo 'value="'. mysql_result($branchen,$i,'id').'" />'."\n";
+		echo '					<label for="branche'.$i.'">'.$html.'</label>'."\n";
+		echo '				</p>'."\n";
+		$i++;
+	}
+
+	echo '			</div>'."\n";
+	echo '			<p style="clear: right; padding-top: 5px;">'."\n";
+	echo '				<label for="beschreibungen"';
+
+	if (isset($_POST['senden']) && empty($_POST['beschreibungen'])) {
+		echo ' style="color: #ff0000;"';
+	}
+
+	echo '>Vorstellungen zur zuk&uuml;nftigen beruflichen T&auml;tigkeit:</label>'."\n";
+	echo '				<textarea id="beschreibungen" name="beschreibungen" cols="20" rows="6">'.htmlspecialchars((isset($_POST['beschreibungen']) ? $_POST['beschreibungen'] : '')).'</textarea>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="gehalt"';
+	
+	echo '>Gehaltsvorstellungen p.a.:</label>'."\n";
+	echo '				<select id="gehalt" name="gehalt" class="money">'."\n";
+
+	foreach ($gehaltsarten as $key => $value) {
+		echo '					<option ';
+		if (isset($_POST['gehalt'])) {
+			if  ($value == $_POST['gehalt']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$value.'">'.$value.'</option>'."\n";
+	}
+
+	echo '				</select>&nbsp;&nbsp;'."\n";
+	echo '				<select name="waehrung" class="currency">'."\n";
+
+	$i=0;
+	while ($i < $anz_waehrung) {
+		$html = mysql_result($waehrung2,$i,"bezeichner");
+		echo '					<option ';
+		if (isset($_POST['waehrung'])) {
+			if (mysql_result($waehrung2,$i,'id') == $_POST['waehrung']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($waehrung2,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p style="clear: right; padding-top: 5px;">'."\n";
+	echo '				<label for="regionales">Regionale W&uuml;nsche:</label>'."\n";
+	echo '				<textarea id="regionales" name="regionales" cols="20" rows="4">'.htmlspecialchars((isset($_POST['regionales']) ? $_POST['regionales'] : '')).'</textarea>'."\n";
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";	
+	echo '		<h4>Ihre Person</h4>'."\n";
+	echo '		<fieldset>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="qualifikation">Angestebter Bildungsabschluss:</label>'."\n";
+	echo '				<select name="qualifikation" id="qualifikation">'."\n";
+
+	$i=0;
+	while ($i < $anz_qualifikationen) {
+		$html = htmlspecialchars(mysql_result($qualifikationen,$i,'qualifikation'));
+		echo '					<option ';
+		if (isset($_POST['qualifikation'])) {
+			if  (mysql_result($qualifikationen,$i,'id') == $_POST['qualifikation']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($qualifikationen,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="lehre">Berufsabschluss:</label>'."\n";
+	echo '				<select name="lehre" id="lehre">'."\n";
+	echo '					<option value="">BEI BERUFSAUSBILDUNG</option>'."\n";
+
+	$i=0;
+	while ($i < $anz_berufswahl) {
+		$html = htmlspecialchars(mysql_result($berufswahl,$i,'berufswahl'));
+		echo '					<option ';
+		if (isset($_POST['lehre'])) {
+			if  (mysql_result($berufswahl,$i,'id') == $_POST['lehre']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($berufswahl,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="sprachkenntnisse1">Sprachkenntnisse:</label>'."\n";
+	echo '				<select name="sprachkenntnisse1" id="sprachkenntnisse1">'."\n";
+
+	if (!isset($_POST['sprachkenntnisse1'])) {
+		$_POST['sprachkenntnisse1'] = 2;
+	}
+	$i=0;
+	while ($i < $anz_sprachen) {
+		$html = htmlspecialchars(mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+		echo '					<option ';
+		if (mysql_result($sprachen,$i,'id') == $_POST['sprachkenntnisse1']) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($sprachen,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="sprachkenntnisse2">&nbsp;</label>'."\n";
+	echo '				<select id="sprachkenntnisse2" name="sprachkenntnisse2">'."\n";
+
+	$i=0;
+	echo '					<option value="">--</option>'."\n";
+	while ($i < $anz_sprachen) {
+		$html = htmlspecialchars(mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+		echo '					<option ';
+		if (isset($_POST['sprachkenntnisse2'])) {
+			if (mysql_result($sprachen,$i,'id') == $_POST['sprachkenntnisse2']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($sprachen,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="sprachkenntnisse3">&nbsp;</label>'."\n";
+	echo '				<select id="sprachkenntnisse3" name="sprachkenntnisse3">'."\n";
+
+	$i=0;
+	echo '					<option value="">--</option>'."\n";
+	while ($i < $anz_sprachen) {
+		$html = htmlspecialchars(mysql_result($sprachen,$i,$_SESSION['s_sprache']));
+		echo '					<option ';
+		if (isset($_POST['sprachkenntnisse3'])) {
+			if (mysql_result($sprachen,$i,'id') == $_POST['sprachkenntnisse3']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.mysql_result($sprachen,$i,'id').'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Wann verf&auml;llt Ihr Gesuch?</h4>'."\n";
+	echo '		<fieldset>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="verfall_tag">Verfallsdatum:</label>'."\n";
+
+	if (empty($_POST['verfall_jahr'])) {
+		$verfall_jahr = date('Y');
+		$verfall_jahr++;
+	} else {
+		$verfall_jahr = $_POST['verfall_jahr'];
+	}
+	
+	echo '				<input id="verfall_tag" name="verfall_tag" maxlength="2" value="'.((isset($_POST['verfall_tag']) && !empty($_POST['verfall_tag'])) ? $_POST['verfall_tag'] : date('d')).'" class="day" />.<input name="verfall_monat" maxlength="2" value="'.((isset($_POST['verfall_monat']) && !empty($_POST['verfall_monat'])) ? $_POST['verfall_monat'] : date('m')).'" class="month" />.<input name="verfall_jahr" maxlength="4" value="'.$verfall_jahr.'" class="year" />'."\n";
+	echo '			</p>'."\n";
+	echo '			<p class="checkboxes">'."\n";
+	echo '				<input type="checkbox" id="inactive" name="inactive" value="false" ';
+	
+	if (isset($_POST['inactive'])) {
+		if ($_POST['inactive'] == 'false') {
+		 echo 'checked="checked" ';
+		}
+	}
+	
+	echo '/>'."\n";
+	echo '				<label for="inactive">Ihr Gesuch nach dem Speichern automatisch aktivieren?</label>'."\n";
+	echo '			</p>'."\n";
+	echo '			<br /><p>Hinweis: Bitte legen Sie als Erg&auml;nzung Ihr <a href="/home/praktikanten/profil/">pers&ouml;nliches Karriereprofil mit Lebenslauf</a> an bzw. aktualisieren Sie dieses in regelm&auml;&szlig;igen Abst&auml;nden. Dadurch geben Sie den Untenehmen die M&ouml;glichkeit, sich ein umfassenderes Bild von Ihnen und Ihrem Karriereweg zu machen.</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '		<fieldset class="control_panel">'."\n";
+	echo '			<p>'."\n";
+	echo '				<input type="hidden" id="gesuch" name="gesuch" value="'.(isset($_POST['gesuch']) ? $_POST['gesuch'] : '').'" />'."\n";
+	echo '				<button type="submit" id="senden" name="senden" value="Speichern"><span><span><span>speichern</span></span></span></button>'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<button type="button" name="back" onclick="location.href = \'/karriere/gesuche/\'" value="zur Gesuche&uuml;bersicht"><span><span><span>zur Gesuche&uuml;bersicht</span></span></span></button>'."\n";
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '	</form>'."\n";
+}
+bodyoff();
+?>

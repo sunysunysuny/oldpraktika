@@ -1,0 +1,381 @@
+<?
+// config
+ $preis1 = "1.3";
+ $preis2 = "1.6";
+ $preis3 = "2.4";
+// config ende
+
+// ---------------------------------------------------
+
+
+ $gruppe = "unternehmen";
+
+ $sonstige_headertags = '<script> 
+
+var DHTML = (document.getElementById || document.all || document.layers); 
+function WK_getObj(name) 
+{ 
+ if (document.getElementById) 
+ { 
+  return document.getElementById(name).style; 
+ } 
+ else if (document.all) 
+ { 
+  return document.all[name].style; 
+ } 
+ else if (document.layers) 
+ { 
+  return document.layers[name]; 
+ } 
+} 
+
+function WK_showWaitMessage(div,flag) 
+{ 
+ if (!DHTML) return; 
+ var x = WK_getObj(div); 
+ x.visibility = (flag) ? \'visible\':\'hidden\' 
+ if(! document.getElementById) 
+  if(document.layers) 
+   x.left=280/2; 
+ return true; 
+} 
+</script>
+';
+
+
+ $sonstige_bodytags = '<div id=\'waitDiv\' style=\'position:absolute;left:260px;top:220px;visibility:hidden;text-align:center;\'>
+     <table cellpadding="6" border="0">
+            <tr>
+                <td align="center">
+                    <b>
+                       <font face="Tahoma,Helvetica" size="2">
+                             Seite wird verarbeitet...
+                       </font>
+                    </b>
+                    <br>
+                    <img src="/gifs/zentralelemente/wait.gif" alt="bitte warten">
+                    <br>
+                    <b>
+                       <font face="Tahoma,Helvetica" size="1">
+                             Bitte warten...
+                       </font>
+                    </b>
+                </td>
+            </tr>
+     </table>
+</div>
+<script>
+WK_showWaitMessage(\'waitDiv\', 1);
+</script>
+';
+
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuche.inc.php");
+ 
+pageheader(session_id(), session_name()); ?>
+
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Warenkorb - Kandidatensuche</h1>
+
+<? 
+
+if (!strpos($HTTP_REFERER,"warenkorb.phtml") && !strpos($HTTP_REFERER,"minilogin.phtml")) $s_ergebnisarry[sucheingabe][referer] = $HTTP_REFERER;
+if ($s_ergebnisarry[sucheingabe][referer] == "") $s_ergebnisarry[sucheingabe][referer] == "/home/firmen/einblick.phtml";
+
+if ($gesamt) {
+
+include_once ("DB.php");
+$dsn = "mysql://".$dbarray[0][mysqluser].":".$dbarray[0][mysqlpassword]."@".$dbarray[0][host]."/".$database_temp;
+$db = DB::connect($dsn);
+$datarow =& $db->getCol('SELECT nutzerid FROM '.$s_kandidatentable);
+$datarow = array_flip($datarow);
+
+function array_set_value(&$item1, $key, $prefix) {
+   $item1 = $prefix;
+}
+array_walk($datarow, 'array_set_value',$s_ergebnisarry[sucheingabe][suchart]);
+
+if (!is_array($s_ergebnisarry[warenkorb])) $s_ergebnisarry[warenkorb] = array();
+
+//print_pr($datarow);
+
+$s_ergebnisarry[warenkorb] += $datarow;
+
+//print_pr($s_ergebnisarry[warenkorb]);
+
+// Datens&auml;tze filtern, die schon gebucht sind
+if ($s_loggedin=="yes") {
+$bookmarkquery="SELECT nutzerid FROM firmenbookmark WHERE firmenid = $s_firmenid";
+
+$bookmarkresults=mysql_db_query($database_db,$bookmarkquery,$praktdbslave);
+
+if (mysql_num_rows($bookmarkresults) > 0) $error = "<br><br>Die gew&auml;hlten Kandidaten sind bereits auf Ihrem Merkzettel gespeichert!";
+
+// datensaetze gefunden ? //
+while ($bookmarkresult_row = mysql_fetch_array ( $bookmarkresults, MYSQL_ASSOC )) {
+	unset($s_ergebnisarry[warenkorb][$bookmarkresult_row["nutzerid"]]);
+}
+}
+
+$anzahlarray = array_count_values ($s_ergebnisarry[warenkorb]);
+$anzahl1 = $anzahlarray[1];
+$anzahl2 = $anzahlarray[2];
+$anzahl3 = $anzahlarray[3];
+} else {
+	
+// Datens&auml;tze filtern, die schon gebucht sind
+if ($s_loggedin=="yes") {
+$bookmarkquery="SELECT nutzerid FROM firmenbookmark WHERE firmenid = $s_firmenid";
+
+$bookmarkresults=mysql_db_query($database_db,$bookmarkquery,$praktdbslave);
+
+if (mysql_num_rows($bookmarkresults) > 0) $error = "Die gew&auml;hlten Kandidaten sind bereits auf Ihrem Merkzettel gespeichert!";
+
+// datensaetze gefunden ? //
+while ($bookmarkresult_row = mysql_fetch_array ( $bookmarkresults, MYSQL_ASSOC )) {
+	unset($s_ergebnisarry[warenkorb][$bookmarkresult_row["nutzerid"]]);
+}
+}
+
+if ($s_ergebnisarry[warenkorb]) {
+if ($delete) {
+foreach ($s_ergebnisarry[warenkorb] as $ergebniskey => $ergebnisvalue) {
+	if ($delete == $ergebnisvalue) {unset($s_ergebnisarry[warenkorb][$ergebniskey]);}
+}}
+
+$anzahlarray = array_count_values ($s_ergebnisarry[warenkorb]);
+$anzahl1 = $anzahlarray[1];
+$anzahl2 = $anzahlarray[2];
+$anzahl3 = $anzahlarray[3];
+
+}
+}
+
+if ($dest) $s_ergebnisarry["sucheingabe"]["destination"] = $dest;
+
+
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+	if (!$s_ergebnisarry["sucheingabe"]["destination"]) $s_ergebnisarry["sucheingabe"]["destination"]="merkzettel";
+} else {
+	if (!$s_ergebnisarry["sucheingabe"]["destination"]) $s_ergebnisarry["sucheingabe"]["destination"]="mailing";
+}
+
+// datensaetze gefunden ? //
+$anzahl = $anzahl1+$anzahl2+$anzahl3;
+
+
+echo "<script>\n";
+echo "WK_showWaitMessage('waitDiv', 0);\n";
+echo "</script>\n";
+
+if ( $anzahl  > 0) {
+
+echo "<a href=\"wk_inhalt.phtml?".session_name()."=".session_id()."\">Im Warenkorb befinden derzeit insgesamt <B>".$anzahl."</B> Kandidaten.</a><br><br>";
+
+
+echo "<table width=\"100%\" border=\"0\">\n";
+echo "<tr>\n";
+echo "<td width=\"10%\">&nbsp;</td>\n";
+echo "<td width=\"35%\"><b>Suchm&ouml;glichkeit</b></td>\n";
+echo "<td align=\"right\"><b>Menge</b></td>\n";
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+echo "<td width=\"15%\" align=\"right\"><b>Einzelpreis</b></td>\n";
+echo "<td width=\"15%\" align=\"right\"><b>Rabatt</b></td>\n";
+echo "<td width=\"15%\" align=\"right\"><b>Gesamtpreis</b></td>\n";
+}
+echo "</tr>\n";
+echo "<tr align=\"center\">\n";
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+echo "<td colspan=\"6\" height=\"1\" bgcolor=\"#F7E7CE\"></td>\n";
+} else {
+echo "<td colspan=\"3\" height=\"1\" bgcolor=\"#F7E7CE\"></td>\n";
+}
+echo "</tr>\n";
+
+if ($s_loggedin=="yes") {
+$query="SELECT `gesuchedb` FROM `firmen_prop_assign` WHERE firmenid = $s_firmenid";
+$gesucheresults=mysql_db_query($database_db,$query,$praktdbmaster);
+
+$gesuche_anzahl = mysql_result($gesucheresults,0,"gesuchedb");
+} else {
+$gesuche_anzahl = 0;
+}
+
+$gesuche_anzahl_berechnung = $gesuche_anzahl;
+
+if ($anzahl1 > 0) {
+$rabattsatz = rabattstaffel($anzahl1);
+echo "<tr>\n";
+echo "<td align=\"right\" width=\"10%\"><a href=\"warenkorb.phtml?delete=1&".session_name()."=".session_id()."\"><IMG SRC=\"/home/gifs/symbole/loeschen.gif\" ALT=\"diese Suche l&ouml;schen\" border=\"0\"></a></td>\n";
+echo "<td width=\"55%\"><a href=\"wk_inhalt.phtml?standardsuche=true&".session_name()."=".session_id()."\">Standardsuche</a></td>\n";
+echo "<td align=\"right\">".$anzahl1."</td>\n";
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",$preis1)."</td>\n";
+echo "<td align=\"right\" width=\"15%\">".((1 - $rabattsatz)*100)."%</td>\n";
+$guthabenanzahl1 = $anzahl1 - $gesuche_anzahl_berechnung;
+if ($guthabenanzahl1 < 0) { $guthabenanzahl1=0; }
+$gesuche_anzahl_berechnung = $gesuche_anzahl_berechnung-($anzahl1-$guthabenanzahl1);
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",($gesamtpreis1 = $preis1*$guthabenanzahl1*$rabattsatz))."</td>\n";
+}
+echo "</tr>\n";
+}
+
+if ($anzahl2 > 0) {
+$rabattsatz = rabattstaffel($anzahl2);
+echo "<tr>\n";
+echo "<td align=\"right\" width=\"10%\"><a href=\"warenkorb.phtml?delete=2&".session_name()."=".session_id()."\"><IMG SRC=\"/home/gifs/symbole/loeschen.gif\" ALT=\"diese Suche l&ouml;schen\" border=\"0\"></a></td>\n";
+echo "<td width=\"55%\"><a href=\"wk_inhalt.phtml?statussuche=true&".session_name()."=".session_id()."\">Statussuche</a></td>\n";
+echo "<td align=\"right\">".$anzahl2."</td>\n";
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",$preis2)."</td>\n";
+echo "<td align=\"right\" width=\"15%\">".((1 - $rabattsatz)*100)."%</td>\n";
+$guthabenanzahl2 = $anzahl2 - $gesuche_anzahl_berechnung;
+if ($guthabenanzahl2 < 0) { $guthabenanzahl2=0; }
+$gesuche_anzahl_berechnung = $gesuche_anzahl_berechnung-($anzahl2-$guthabenanzahl2);
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",($gesamtpreis2 = $preis2*$guthabenanzahl2*$rabattsatz))."</td>\n";
+}
+echo "</tr>\n";
+}
+
+if ($anzahl3 > 0) {
+$rabattsatz = rabattstaffel($anzahl3);
+echo "<tr>\n";
+echo "<td align=\"right\" width=\"10%\"><a href=\"warenkorb.phtml?delete=3&".session_name()."=".session_id()."\"><IMG SRC=\"/home/gifs/symbole/loeschen.gif\" ALT=\"diese Suche l&ouml;schen\" border=\"0\"></a></td>\n";
+echo "<td width=\"55%\"><a href=\"wk_inhalt.phtml?profilsuche=true&".session_name()."=".session_id()."\">Profilsuche</a></td>\n";
+echo "<td align=\"right\">".$anzahl3."</td>\n";
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",$preis3)."</td>\n";
+echo "<td align=\"right\" width=\"15%\">".((1 - $rabattsatz)*100)."%</td>\n";
+$guthabenanzahl3 = $anzahl3 - $gesuche_anzahl_berechnung;
+if ($guthabenanzahl3 < 0) { $guthabenanzahl3=0; }
+$gesuche_anzahl_berechnung = $gesuche_anzahl_berechnung-($anzahl3-$guthabenanzahl3);
+echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",($gesamtpreis3 = $preis3*$guthabenanzahl3*$rabattsatz))."</td>\n";
+}
+echo "</tr>\n";
+}
+
+$gesamtpreis = $gesamtpreis1 + $gesamtpreis2 + $gesamtpreis3;
+
+if ($gesuche_anzahl >= $anzahl) {
+$gesamtpreis = 0;
+
+}
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+
+if ($gesamtpreis < 12 && $gesamtpreis != 0) {
+$gesamtpreis = 12;
+echo "<tr>\n";
+echo "<td colspan=\"5\" align=\"right\"><b><u>Mindestsumme:</u></b></td>\n";
+echo "<td align=\"right\" width=\"15%\"><b><u>EUR&nbsp;".sprintf("%01.2f",($gesamtpreis))."</u></b></td>\n";
+echo "</tr>\n";
+} else {	
+echo "<tr>\n";
+echo "<td colspan=\"5\" align=\"right\"><b><u>Summe:</u></b></td>\n";
+echo "<td align=\"right\" width=\"15%\"><b><u>EUR&nbsp;".sprintf("%01.2f",($gesamtpreis))."</u></b></td>\n";
+echo "</tr>\n";
+}
+echo "<form action=\"warenkorb.phtml\" method=\"get\">\n";
+echo "<tR><td colspan=6 class=small><br><br>Alle Preise verstehen sich zuz&uuml;glich 16% MwSt.</td></tR>";
+                    
+echo "<tr valign=\"top\"><td colspan=6><hr></td></tr>";
+
+echo "<tr valign=\"top\"><td colspan=6>Bitte w&auml;hlen Sie die Aktion nach der Buchung: <select name=\"dest\" onChange=\"submit();\">";
+echo "<option value=\"mailing\"";
+if ($s_ergebnisarry["sucheingabe"]["destination"] == "mailing") echo " selected";
+echo ">Email an alle Kandidaten</option>";
+echo "<option value=\"warenkorb\"";
+if ($s_ergebnisarry["sucheingabe"]["destination"] == "warenkorb") echo " selected";
+echo ">auf Merkzettel setzen</option>";
+echo "</select></td></tr></form>\n";
+
+
+} else {
+
+echo "<form action=\"warenkorb.phtml\" method=\"get\">\n";
+echo "<tr valign=\"top\"><td colspan=6><br><br>Bitte w&auml;hlen Sie die ensprechende Aktion: <select name=\"dest\" onChange=\"submit();\">";
+echo "<option value=\"mailing\"";
+if ($s_ergebnisarry["sucheingabe"]["destination"] == "mailing") echo " selected";
+echo ">Email an alle Kandidaten</option>";
+echo "<option value=\"warenkorb\"";
+if ($s_ergebnisarry["sucheingabe"]["destination"] == "warenkorb") echo " selected";
+echo ">auf Merkzettel setzen</option>";
+echo "</select></td></tr></form>\n";
+	
+}
+?>
+</table>
+                    <hr>
+		<table width="100%" border=0>
+<? if ($gesamtpreis != 0) { ?>
+			<form><tr><td colspan="2"><img src="/home/gifs/symbole/neu.gif">&nbsp;<a href="wk_drucken.phtml?<? echo session_name()."".session_id(); ?>" target="wk_drucken">Diesen Warenkorb drucken und per <b>Fax</b> bestellen...</a></td></tr></form>
+<? } ?>
+			<tr><td colspan="2"><hr></td></tr>
+<?  
+if ($s_loggedin=="yes") {
+
+if ($gesuche_anzahl > 0) echo "<tr><td colspan=\"2\">Sie haben noch ein Guthaben vom $gesuche_anzahl Kandidaten.</td></tr>";
+
+}
+			echo "<tr><td align=\"left\">";
+			
+if ($s_loggedin=="yes" && ($s_firmenlevel < 2  || $s_firmenlevel > 2) && $gesuche_anzahl < $anzahl) {
+                  echo"<form action=\"/home/firmen/commerce/produktbuchung/kandidatensuche/bestaetigen.phtml\" method=\"POST\">\n";
+			echo"<input type=\"submit\" value=\"Buchung vornehmen\" name=\"submit\">\n";
+			echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+			echo"<input type=\"hidden\" value=\"". $gesamtpreis ."\" name=\"preis\">\n";
+			echo"<input type=\"hidden\" value=\"3\" name=\"pid\">\n";
+	
+} elseif ($s_loggedin=="yes") {
+	if ($s_ergebnisarry["sucheingabe"]["destination"] == "mailing") {
+                  echo"<form action=\"mailing.phtml\" method=\"POST\">\n";
+			echo"<input type=\"submit\" value=\"Mailing vorbereiten\" name=\"submit\">\n";
+			echo"<input type=\"hidden\" value=\"yes\" name=\"mailinsert\">\n";
+			echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+		}
+	else {
+                  echo"<form action=\"uebertrag.phtml\" method=\"POST\">\n";
+			echo"<input type=\"submit\" value=\"auf Merkzettel &uuml;bertragen\" name=\"submit\">\n";
+			echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+		}
+	
+} else {
+                  echo"<form>\n";
+			echo"<input type=\"button\" value=\"Einloggen\" onClick=\"windowanm=window.open('/home/quicklogin/minilogin.phtml?loginwer=Unternehmen&".session_name()."=".session_id()."','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=380,height=250'); return false;\">\n";
+}	 
+              	if ($s_ergebnisarry[sucheingabe][referer]=="") { $link = "/home/firmen/einblick.phtml?".session_name()."=".session_id();} else { $link = $s_ergebnisarry[sucheingabe][referer];}
+?>                      
+			</td>
+			<td align=right><input type="BUTTON" name="y" value="zur&uuml;ck zur Ergebnisliste" onClick="location.replace('<? echo $link; ?>');"></td>
+			</tr></table>
+                  </form>
+                  <? if ($s_loggedin !="yes") { ?><br>
+                  Um eine Buchung des Produktes "Kandidatensuche" vorzunehmen, m&uuml;ssen Sie angemeldet sein. <span class=normal><a href="#?<? echo session_name(); ?>=<? echo session_id(); ?>" onMouseOver="return Describe('')" onMouseOut="return Describe('')" onClick="windowanm=window.open('/home/quicklogin/minilogin.phtml?loginwer=Unternehmen&<? echo session_name(); ?>=<? echo session_id(); ?>','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=380,height=250'); return false;"><b>Loggen Sie sich jetzt ein!</b></a></span><br>
+                  Sollten Sie noch nicht bei praktika.de registriert sein, k&ouml;nnen Sie sich hier <span class=normal><a href="#?<? echo session_name(); ?>=<? echo session_id(); ?>" onMouseOver="return Describe('')" onMouseOut="return Describe('')" onClick="windowanm=window.open('/home/firmen/firmencheck.phtml?<? echo session_name(); ?>=<? echo session_id(); ?>','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=515,height=380'); return false;"><b>kostenlos anmelden</b></a></span>!
+                  <? } ?>
+              <? } else { 
+              	if ($s_ergebnisarry[sucheingabe][referer]=="") { $link = "/home/firmen/einblick.phtml?".session_name()."=".session_id();} else { $link = $s_ergebnisarry[sucheingabe][referer];}
+              	?> 
+            <table width="100%">
+              <tr> 
+                <td>Es liegen derzeit keine Kandidaten im Warenkorb!<br>
+                  <? echo $error; ?>
+                  <form>
+                    <hr>
+                      <input type="BUTTON" name="y" value="zur Suche" onClick="location.replace('<? echo $link; ?>');">
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? } 
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+            ?> </td>
+        </tr>
+      </table>
+
+<?
+bodyoff(session_id(), session_name());
+$s_ergebnisarry["warenkorb_id"]=wksavedb();
+?>

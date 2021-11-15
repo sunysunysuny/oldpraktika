@@ -1,0 +1,7 @@
+div.joblist.container {
+    margin:0px !important;
+    font-size:12px !important;
+}
+div.joblist.container span.taetigkeit {
+    color:#777;
+}

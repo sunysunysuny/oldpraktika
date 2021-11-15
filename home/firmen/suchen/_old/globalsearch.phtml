@@ -1,0 +1,217 @@
+<?
+$gruppe = "unternehmen";
+$unternehmen = "yes";
+$sprachbasisdatei = "/home/firmen/studiengang.phtml";
+$sprachbasisdatei2 = "/home/firmen/volltext.phtml";
+require("/home/praktika/etc/config.inc.php");
+
+pageheader(session_id(), session_name());
+
+?>
+
+<script type="text/javascript">
+<!--
+
+var xmlhttp;
+
+function Load_SearchData(resulttype,sortierung,suchstring,categoryids,ds_count) {
+	var queryvars = '';
+	if (resulttype == 'categories') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>&sortierung=" + sortierung + "&suchstring=" + suchstring;
+		requesturl = "ajax/resultlist.php";
+	}
+	else if (resulttype == 'results') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>&category=" + sortierung + "&suchstring=" + suchstring + "&ds_count=" + ds_count + categoryids;
+		requesturl = "ajax/resultlist.php";
+	}
+	else if (resulttype == 'finesearch') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>&category=" + sortierung + "&suchstring=" + suchstring + categoryids + ds_count;
+		requesturl = "ajax/resultlist.php";
+	}
+	else if (resulttype == 'detail') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>&nutzerid=" + categoryids + "&ds_count=" + ds_count;
+		requesturl = "ajax/resultdetail.php";
+	}
+	else if (resulttype == 'warenkorbupdate') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>&nutzerid=" + categoryids;
+		requesturl = "ajax/nutzerwk.php";
+	}
+	else if (resulttype == 'warenkorb') {
+		queryvars = "?<? echo session_name()."=".session_id(); ?>";
+		requesturl = "ajax/warenkorb.php";
+	}
+	//prompt('url:',requesturl + queryvars);
+	if ( window.XMLHttpRequest ) {
+		xmlhttp = new XMLHttpRequest();
+		xmlhttp.onreadystatechange = Get_SearchData;
+		xmlhttp.open("GET", requesturl + queryvars, true);
+		xmlhttp.send(null);
+	} else if ( window.ActiveXObject ) {
+		xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		if ( xmlhttp ) {
+			xmlhttp.onreadystatechange = Get_SearchData;
+			xmlhttp.open("POST", requesturl + queryvars, true);
+			xmlhttp.send(null);
+		}
+	}
+}
+
+function Get_SearchData() {
+	if ( xmlhttp.readyState == 4 && xmlhttp.status == 200 ) {
+		document.getElementById('resultausgabe').style.visibility = 'visible';
+		document.getElementById('resultausgabe').style.position = 'relative';
+		document.getElementById('resultausgabe').align = 'left';
+
+		var response = xmlhttp.responseXML;
+		var obj = document.getElementById('resultausgabe');
+		var objkscount = document.getElementById('kswarenkorb');
+
+		if (response.getElementsByTagName('wkcount')[0]) {
+			objkscount.innerHTML =  response.getElementsByTagName('wkcount')[0].firstChild.nodeValue;
+		}
+
+		var mainvalue = '';
+		if (response.getElementsByTagName('mainvalue0')[0])
+		mainvalue += response.getElementsByTagName('mainvalue0')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue1')[0])
+		mainvalue += response.getElementsByTagName('mainvalue1')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue2')[0])
+		mainvalue += response.getElementsByTagName('mainvalue2')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue3')[0])
+		mainvalue += response.getElementsByTagName('mainvalue3')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue4')[0])
+		mainvalue += response.getElementsByTagName('mainvalue4')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue5')[0])
+		mainvalue += response.getElementsByTagName('mainvalue5')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue6')[0])
+		mainvalue += response.getElementsByTagName('mainvalue6')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue7')[0])
+		mainvalue += response.getElementsByTagName('mainvalue7')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue8')[0])
+		mainvalue += response.getElementsByTagName('mainvalue8')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue9')[0])
+		mainvalue += response.getElementsByTagName('mainvalue9')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue10')[0])
+		mainvalue += response.getElementsByTagName('mainvalue10')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue11')[0])
+		mainvalue += response.getElementsByTagName('mainvalue11')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue12')[0])
+		mainvalue += response.getElementsByTagName('mainvalue12')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue13')[0])
+		mainvalue += response.getElementsByTagName('mainvalue13')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue14')[0])
+		mainvalue += response.getElementsByTagName('mainvalue14')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue15')[0])
+		mainvalue += response.getElementsByTagName('mainvalue15')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue16')[0])
+		mainvalue += response.getElementsByTagName('mainvalue16')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue17')[0])
+		mainvalue += response.getElementsByTagName('mainvalue17')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue18')[0])
+		mainvalue += response.getElementsByTagName('mainvalue18')[0].firstChild.nodeValue;
+		if (response.getElementsByTagName('mainvalue19')[0])
+		mainvalue += response.getElementsByTagName('mainvalue19')[0].firstChild.nodeValue;
+		obj.innerHTML = mainvalue;
+		scrollTo(0,0);
+	}
+}
+
+
+function CheckboxSubmit() {
+	var formnodes = document.getElementById('checkform');
+	var formnodeboxes = '';
+	for ( var i = 0; i < formnodes.length; i++ ) {
+		if (formnodes[i].type == "checkbox") {
+			if (formnodes[i].checked == true) {
+				formnodeboxes += "&categoyid[]=" + formnodes[i].value;
+			}
+		}
+	}
+	document.getElementById('categoryids').value = formnodeboxes;
+	Load_SearchData('results',document.getElementById('checkform').sortierung.value,document.getElementById('ksuchstring').value,formnodeboxes,'0');
+	scrollTo(0,0);
+}
+
+function LinkSubmit(category,value) {
+	document.getElementById('categoryids').value = "&categoyid[]=" + value;
+	Load_SearchData('results',category,document.getElementById('ksuchstring').value,"&categoyid[]=" + value,'0');
+	scrollTo(0,0);
+}
+
+function FineSearchSubmit() {
+	var valuearray = new Array();
+	valuearray[0] = "&finesearch[landselect]=" + document.getElementById('landselect').options[document.getElementById('landselect').selectedIndex].value;
+	valuearray[1] = "&finesearch[spracheselect]=" + document.getElementById('spracheselect').options[document.getElementById('spracheselect').selectedIndex].value;
+	valuearray[2] = "&finesearch[bundeslandselect]=" + document.getElementById('bundeslandselect').options[document.getElementById('bundeslandselect').selectedIndex].value;
+	valuearray[3] = "&finesearch[alterselect]=" + document.getElementById('alterselect').options[document.getElementById('alterselect').selectedIndex].value;
+	valuearray[4] = "&finesearch[grossraumselect]=" + document.getElementById('grossraumselect').options[document.getElementById('grossraumselect').selectedIndex].value;
+	valuearray[5] = "&finesearch[geschlechtselect]=" + document.getElementById('geschlechtselect').options[document.getElementById('geschlechtselect').selectedIndex].value;
+	valuearray[6] = "&finesearch[plzselect]=" + document.getElementById('plzselect').options[document.getElementById('plzselect').selectedIndex].value;
+	valuearray[7] = "&finesearch[karierrestatusselect]=" + document.getElementById('karierrestatusselect').options[document.getElementById('karierrestatusselect').selectedIndex].value;
+	valuearray[8] = "&finesearch[berufsfeldselect]=" + document.getElementById('berufsfeldselect').options[document.getElementById('berufsfeldselect').selectedIndex].value;
+	valuearray[9] = "&finesearch[spalteselect]=" + document.getElementById('spalteselect').options[document.getElementById('spalteselect').selectedIndex].value;
+	valuearray[10]= "&finesearch[studiengangselect]=" + document.getElementById('studiengangselect').options[document.getElementById('studiengangselect').selectedIndex].value;
+	valuearray[11]= "&finesearch[profilqualitaetselect]=" + document.getElementById('profilqualitaetselect').options[document.getElementById('profilqualitaetselect').selectedIndex].value;
+	valuearray[12]= "&finesearch[suchlastloginselect]=" + document.getElementById('suchlastloginselect').options[document.getElementById('suchlastloginselect').selectedIndex].value;
+	var urlparam = '';
+	for ( var x = 0; x < valuearray.length; x++ ) {
+		urlparam += valuearray[x];
+	}
+	Load_SearchData('finesearch',document.getElementById('sortierung').value,document.getElementById('ksuchstring').value,document.getElementById('categoryids').value,urlparam);
+	scrollTo(0,0);
+}
+
+function WarenkorbSubmit(userid, type, ds_count) {
+	Load_SearchData('warenkorbupdate', '', '', userid, '');
+	if (type == 'detail') {
+		Load_SearchData(type, document.getElementById('sortierung').value, document.getElementById('ksuchstring').value, userid, ds_count);
+	} else {
+		Load_SearchData(type, document.getElementById('sortierung').value, document.getElementById('ksuchstring').value, document.getElementById('categoryids').value, ds_count);
+	}
+}
+
+
+//-->
+</script>
+
+      <table width="90%">
+        <tr>
+          <td><h1 class="layout1">Suchergebnis: Kandidaten Volltextsuche</h1>
+
+<?
+
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=20";
+mysql($database_db,$updatestring,$praktdbmaster);
+
+$s_suchstring=$suchstring;
+
+echo "<form action=\"globalsearch.phtml\">";
+echo "Sucheingabe &auml;ndern: <input name=\"ksuchstring\" id=\"ksuchstring\" value=\"".$s_suchstring."\" size=\"18\" style=\"width: 250px\">&nbsp;";
+?>
+<input type="button" value="suchen" onClick="Load_SearchData(<? echo "'categories','".$_REQUEST["sortierung"] . "',document.getElementById('ksuchstring').value"; ?>);">
+<input type="hidden" name="sortierung" id="sortierung" value="<? echo $_REQUEST["sortierung"]; ?>">
+<input type="hidden" name="categoryids" id="categoryids">
+</form><br>
+<?
+echo "<div align=\"center\" id=\"resultausgabe\" style=\" width: 450px; visibility:hidden; position:absolute;\">Bitte warten</div>";
+
+if (!$s_loginid) {$bearbeiterid=$c_lid;} else {$bearbeiterid=$s_loginid;}
+if ($s_suchstring != "") mysql($database_comm,"INSERT INTO kssuchstring (bearbeiterid,suchstring) VALUES ('$bearbeiterid','$s_suchstring')",$praktdbmaster);
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");
+echo $content;
+?>
+</td>
+</tr>
+</table>
+
+<?php
+if ($_REQUEST["sortierung"] == "keine")
+unset ($_REQUEST["sortierung"]);
+?>
+<script type="text/javascript" language="Javscript">
+<!--
+Load_SearchData(<? echo "'categories','".$_REQUEST["sortierung"] . "','" . urlencode($_REQUEST["suchstring"])."'"; ?>);
+//-->
+</script>
+<? bodyoff(session_id(), session_name()); ?>

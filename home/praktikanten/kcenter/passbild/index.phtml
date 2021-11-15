@@ -1,0 +1,184 @@
+<?php
+$max_file_size = 2000000;
+$cWidth = 250;
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+// Normale Sidebar nutzen
+$_SESSION['sidebar'] = '';
+
+$error = array();
+
+// ist ein Foto schon vorhanden?
+$sql = sprintf("SELECT
+                    url,
+                    height, 
+                    width
+                FROM
+                    prakt2.bewerbungsfoto
+                WHERE 
+                    nutzerid = %d;",
+				$_SESSION['s_nutzerid']);
+$result = $hDB->query($sql, $praktdbslave);
+$record = mysql_fetch_assoc($result);
+
+if ( !empty($record['url']) )
+{
+	$bilddatei = '/home/praktika/public_html'.$record['url'];
+}
+
+
+// Foto l&ouml;schen
+if (isset($_POST["action"]) && $_POST["action"] == "delete") {
+	$sql = sprintf("DELETE FROM
+                        prakt2.bewerbungsfoto
+                    WHERE
+                        nutzerid = %d;",
+					$_SESSION['s_nutzerid']);
+	$hDB->query($sql, $praktdbmaster);
+
+	#$ext  = substr($bilddatei, strrpos($bilddatei, ".")+1);
+
+	echo "<script type='text/javascript'>$('#passbild').attr('src', '');</script>";
+	Praktika_Passbild::removeImages($_SESSION["s_nutzerid"], $bilddatei);
+	#@unlink("/home/praktika/public_html/webtemp/".$_SESSION["s_loginid"]."_80.".$etx);
+}
+
+
+// Foto hochladen
+if (isset($_POST['upload']))
+{
+	if ($_FILES['userfile']['error'] == 0)
+	{
+		list($width, $height) = getimagesize($_FILES['userfile']['tmp_name']);
+		
+		if (($_FILES['userfile']['size'] > $max_file_size) OR ($width < 1) OR ($height < 1)) 
+		{
+
+			array_push($error, "Die Datei ist zu gro� bzw. ist kein Bild.");
+		}
+		else 
+		{
+			$ext  = substr($_FILES['userfile']['name'], strrpos($_FILES['userfile']['name'], ".")+1);
+			
+			$url  = "/home/passfoto/".$_SESSION["s_loginid"]."_".substr(md5(time()),0,10).".".$ext;
+			$dest = "/home/praktika/public_html".$url;
+			
+			move_uploaded_file($_FILES['userfile']['tmp_name'], $dest);
+			
+			if($cWidth < $width || empty($width)) 
+			{
+				exec("/usr/local/bin/convert -geometry $cWidth ".$_FILES['userfile']['tmp_name'].' '.$dest);
+			} 
+			else 
+			{
+				exec("/usr/local/bin/convert ".$_FILES['userfile']['tmp_name'].' '.$dest);
+			}
+			
+			list($width, $height) = getimagesize($dest);
+				
+			$sql = sprintf("INSERT INTO 
+                                bewerbungsfoto (nutzerid, url, width, height) 
+                            VALUES
+                                (%d, '%s', %d, %d);",
+							$_SESSION['s_nutzerid'], 
+							$url,
+							$width,
+							 $height);
+			mysql_db_query($database_db, $sql, $praktdbmaster);
+			
+		}
+	}
+	
+	$bilddatei = $dest;
+	$record['url'] = $url;
+	$record['width'] = $width;
+	$record['height'] = $height;
+	
+	recalc_profilquali();
+    echo "<script type='text/javascript'>$('#passbild').attr('src', '/webtemp/".$_SESSION['s_nutzerid']."_149.jpg');</script>";
+}
+?>
+<script type="text/javascript">
+	$('#kCenterTitle').html(" - Passbild");	
+</script>
+<p>Hier haben Sie die M&ouml;glichkeit, Ihr Bewerbungsfoto auf praktika.de hochzuladen und es in Ihr Bewerberprofil zu integrieren.</p>
+<p>&Auml;nderungen brauchen maximal 60 Sekunden bis Sie sichtbar werden.</p>
+<br>
+<br>
+<form action="/Karriere_Center/passbild" method="post" name="logoUpload" enctype="multipart/form-data">
+  <input type="hidden" name="upload" value="1" />
+
+<?php if (isset($_POST['loeschen']) && !file_exists($bilddatei)) 
+{ ?>
+  <p class="hint success">Ihr Bewerbungsfoto wurde gelöscht.</p>
+<?php } ?>
+  
+  <fieldset>
+<?php if ( isset($bilddatei) && file_exists($bilddatei) ) 
+{ ?>
+    <p style="text-align: center;"><img src="<?php echo $record['url']; ?>" class="bewerberFoto" width="<?php echo $record['width']; ?>" height="<?php echo $record['height']; ?>" alt="Bewerbungsfoto: <?php echo $_SESSION['s_vname']." ".$_SESSION['s_name']; ?>" /></p>
+<?php } else { ?>
+<style type="text/css">
+div.fileinputs {
+	position: relative;
+	left:160px;
+	margin-bottom:50px;
+}
+
+div.fakefile {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 1;
+}
+.uploadButton {
+	float:none !important;
+	margin:0px !important;
+}
+input.file {
+	position: relative;
+	text-align: right;
+	-moz-opacity:0 ;
+	filter:alpha(opacity: 0);
+	opacity: 0;
+	z-index: 2;
+	width:400px;
+}
+</style>
+
+	<p style="text-align:center;"><input type="file" class="fileUploader" name="userfile" /></p>
+	<br /><br />
+<?php } ?>
+  </fieldset>
+
+  <fieldset class="control_panel">
+    <p class="center">
+	<?php if (!isset($bilddatei) || !file_exists($bilddatei)) {
+     ?><input type="submit" name="" class="button" value="hochladen"" />
+     <?php };
+     ?></p>
+
+<!--    <p><a href="/karriere/account/" class="button"><span><span><span>Mein Account</span></span></span></a> | <a href="/lebenslauf/" class="button"><span><span><span>Mein Profil</span></span></span></a></p>-->
+  </fieldset>
+</form>
+	<?php if (isset($bilddatei) && file_exists($bilddatei)) { ?>
+
+<form action="/Karriere_Center/passbild" method="post" name="logoDelete">
+	<input type="hidden" name="action" value="delete" />
+	<fieldset class="control_panel">
+		<p class="center">
+		<input type="submit" name="submit" class="button" value="Bild l&ouml;schen" />
+		</p>
+	</fieldset>
+</form>
+	
+	<? } ?>
+ <br /><br />
+<!--<div id="photo_service">
+	<p><strong>Kostenloser Bildservice</strong></p>
+	<p>Sollten Sie keinen Scanner zur Verf&uuml;gung haben, k&ouml;nnen Sie uns Ihr Bewerbungsfoto per Post senden. Wir scannen Ihr Bild und stellen es in Ihren Account online. Wenn Sie diesen Service nutzen m&ouml;chten senden Sie Ihr Bild an:</p>
+	<p>PRAKTIKA GmbH<br />Praktika.de - Bildservice<br />Petersstra&szlig;e 28<br />04109 Leipzig</p>
+	<p>Und so geht's: Bitte legen Sie einen ausreichend frankierten R&uuml;ckumschlag bei. Wir &uuml;bernehmen keine Haftung bei Verlust oder Besch&auml;digung Ihrer Zusendung.<br />Dieser Service ist kostenfrei.</p>
+	<p>Schreiben Sie auf die R&uuml;ckseite Ihres Passfotos:<br /><strong>Ihren Namen und Ihre Account-ID: <?php echo $_SESSION['s_nutzerid']; ?></strong></p>
+</div>-->

@@ -1,0 +1,279 @@
+<?
+$sprachbasisdatei = "/home/firmen/myberwerb_weiterl.phtml";
+
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+if (isset($_SESSION['backID'])) {
+	unset($_SESSION['backID']);
+}
+
+if (isset($_SESSION['backSpalte'])) {
+	unset($_SESSION['backSpalte']);
+}
+
+if (isset($_SESSION['datei'])) {
+	unset($_SESSION['datei']);
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_GET['id'])) {
+	$id = intval($_GET['id']);
+} else {
+	$id = intval($_POST['id']);
+}
+
+if (isset($_GET['spalte'])) {
+	$spalte = intval($_GET['spalte']);
+} else {
+	$spalte = intval($_POST['spalte']);
+}
+
+pageheader(array('page_title' => 'Kurzmitteilung weiterleiten'));
+
+if (isset($_POST['send'])) {
+	if (empty($_POST['email']) && $_POST['emailselect'] == '-1') {
+		echo '<p class="error">Bitte geben Sie eine eMail-Adresse an.</p>'."\n";
+		echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+		echo '	<fieldset class="control_panel">'."\n";
+		echo '		<p>'."\n";
+		echo '			<button type="button" name="back" value="zur&uuml;ck"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+		echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+		echo '			<input type="hidden" name="spalte" value="'.$spalte.'" />'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '</form>'."\n";
+	} else {
+		$nutzersel = mysql_db_query($database_db,'SELECT *,UNIX_TIMESTAMP(modify) AS modifyunix FROM firmenkontakte WHERE id = '.$id.' AND spalte = '.$spalte.' AND firmenid = '.$_SESSION['s_firmenid'].' AND inactive = \'false\'',$praktdbslave);
+		$eintragfetch = mysql_fetch_array($nutzersel);
+		$nutzerid = mysql_result($nutzersel, 0, 'nutzerid');
+		$firmenid = mysql_result($nutzersel, 0, 'firmenid');
+		$stellenid = mysql_result($nutzersel, 0, 'angebote_id');
+		$firma = mysql_db_query($database_db,'SELECT id,firma,strasse,plz,ort,email FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+		$firmenfetch = mysql_fetch_array($firma);
+		$stelle = mysql_db_query($database_db,'SELECT jobcode FROM praktikumsstellen WHERE id = '.$stellenid.' AND firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+		if (mysql_num_rows($stelle) > 0) {
+			$stellenfetch = mysql_fetch_array($stelle);
+		}
+		
+		/* Infomail an Firma basteln*/
+		if (!empty($_POST['email'])) { 
+			$to = $_POST['email']; 
+			$to_name = 'Bewerbungsempfänger';
+		} else { 
+			$adbooksel = mysql_db_query($database_db,'SELECT * FROM adressbuch WHERE id = '.intval($_POST['emailselect']).' AND loginid = '.$_SESSION['s_loginid'].' AND gruppe = \'firma\' ORDER BY name',$praktdbslave);
+			$to = mysql_result($adbooksel, 0, 'email');
+			$to_name = mysql_result($adbooksel, 0, 'vname').' '.mysql_result($adbooksel, 0, 'name');
+		}
+
+		$querystring = 'SELECT id,anrede,vname,name,email FROM bearbeiter WHERE id = '.$_SESSION['s_loginid'].' AND firmenid = '.$_SESSION['s_firmenid'];
+		
+		// datensatz abfragen //
+		$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+		
+		// array erzeugen //
+		$queryresult = mysql_fetch_array($result);
+		
+		$from_name = $queryresult['vname'].' '.$queryresult['name'];
+		
+		$from = $queryresult['email'];
+		
+		$querystring = 'SELECT * FROM nutzer WHERE id = '.$nutzerid;
+		
+		// datensatz abfragen //
+		$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+		
+		// array erzeugen //
+		$fetch = mysql_fetch_array($result);
+
+		$mailstring = '';
+		
+		if (!empty($_POST['kommentar'])) {
+			$mailstring .= 'Kommentar von '.$queryresult['vname'].' '.$queryresult['name'].': '.$_POST['kommentar']."\n";
+			$mailstring .= '----------------------------------------------------------------'."\n\n";
+		}
+
+		$mailstring .= 'Um diesem Bewerber direkt zu antworten, benutzen Sie bitte folgende eMail-Adresse: '.$fetch['email']."\n";
+		$mailstring .= '----------------------------------------------------------------'."\n\n\n\n";
+		
+		if (!empty($fetch['titel'])) {
+			$mailstring .= $fetch['titel'].' ';
+		}
+		
+		$mailstring .= $fetch['vname'].' '.$fetch['name']."\n";
+		$mailstring .= $fetch['strasse']."\n";
+		$mailstring .= $fetch['plz'].' '.$fetch['ort']."\n";
+		$mailstring .= $fetch['tel']."\n";
+		$mailstring .= $fetch['email']."\n\n\n\n";		
+		$mailstring .= $firmenfetch['firma']."\n".$queryresult['anrede'].' '.$queryresult['vname'].' '.$queryresult['name']."\n";
+		$mailstring .= $firmenfetch['strasse']."\n".$firmenfetch['plz'].' '.$firmenfetch['ort']."\n\n\n";
+		
+		if ($eintragfetch['spalte'] == SECTION_PRAKTIKUM) {
+			$betreff = SECTION_PRAKTIKUM_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_DIPLOM) {
+			$betreff = SECTION_DIPLOM_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_NEBENJOB) {
+			$betreff = SECTION_NEBENJOB_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_AUSBILDUNG) {
+			$betreff = SECTION_AUSBILDUNG_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_BERUFSEINSTIEG) {
+			$betreff = SECTION_BERUFSEINSTIEG_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_PROJEKT) {
+			$betreff = SECTION_PROJEKT_ALPHA;
+		} elseif ($eintragfetch['spalte'] == SECTION_TRAINEE) {
+			$betreff = SECTION_TRAINEE_ALPHA;
+		}
+		
+		$mailstring .= 'Nachricht zum Thema: '. $betreff.' vom '.strftime('%x',$eintragfetch['modifyunix'])."\n";
+		
+		if (!empty($stellenfetch['jobcode'])) {
+			$mailstring .= 'Jobcode: '.$stellenfetch['jobcode']."\n";
+		}
+		
+		$mailstring .= "\n\n";
+		$mailstring .= $eintragfetch['betreff']."\n\n";
+		$mailstring .= $eintragfetch['nachricht'];
+
+		$subject = 'Nachricht zum Thema: '.$betreff.' bei '.$firmenfetch['firma'].' &uuml;ber praktika.de';
+
+		if (!empty($stellenfetch['jobcode'])) {
+			$subject .= ' - Jobcode: '.$stellenfetch['jobcode'];
+		}
+
+		$message = $mailstring;
+
+		include '../email/mimemail.inc.php';
+
+		$mailhinweis = '
+--- wichtiger Hinweis ----------------------------
+
+praktika.de - die Karriereplattform für den Berufseinstieg
+Wir halten Unternehmen jung!
+
+Der Bewerber nutzt das System von praktika.de, um diese Bewerbung zu erstellen.
+Sie können dem Bewerber direkt antworten bzw. kontaktieren. 
+praktika.de empfiehlt, dem Bewerber innerhalb von 2 Tagen einen Zwischenbescheid zu senden. 
+
+Kennen Sie schon praktika.de?
+
+-	praktika.de ist mit über 10000 täglichen Nutzer die ideale Plattform um zukünftige Fach- und Führungskräfte zu kontaktieren.
+-	Schreiben auch Sie Ihre Praktikumangebote, Diplomangebote,Nebenjobs,Ausbildugsplätze auf http://praktika.de kostenfrei aus!
+-	Offerieren Sie auch Ihre Stellen für Berufseinsteiger!
+-	Präsentieren Sie Ihr Unternehmen kostenfrei!
+-	Lernen Sie die Vorteile und die bequeme Arbeitsweise kennen und erledigen Sie Ihr komplettes Praktikantenmanagement mit http://praktika.de/home/werbung/index.phtml
+-	praktika.de wurde 1997 gegründet und gehört zu den führenden Portalen im deutschen Praktikanten- und Berufseinsteigermarkt für die Praktikumssuche und den Berufseinstieg.
+-	Jeder zweite deutsche Student hat im vergangenen Jahr praktika.de besucht.
+-	Auf praktika.de finden Sie aktuelle nationale und internationale Praktikumsstellen, Diplomarbeitsthemen, Berufseinstiegschancen und Nebenjobangebote.
+-	Bewerber können aus über 6000 aktuellen Praktikumsstellen ihre Favoriten auf einen Merkzettel setzten.
+-	In Sekunden können Sie sich mit Hilfe des Bewerbungsgenerators professionell bewerben und ein Zukunftsprofil über Ihre Berufseinstiegswünsche hinterlegen.
+-	praktika.de unterstützt junge Menschen bei der Umsetzung ihrer individuellen Berufseinstiegsstrategie von Praktikum zu Praktikum.
+
+https://www.praktika.de
+
+
+praktika.de einen Freund empfehlen: http://praktika.de/home/sendtofriend/
+Newsletter abonnieren:              http://praktika.de/home/newsletter/
+Hinweise und Anregungen schreiben:  http://praktika.de/home/feedback/
+Firmenhotline: 0700-PRAKTIKA		
+		';
+		
+		$m = new CMIMEMail($to_name.' <'.$to.'>',$from_name.' <'.$from.'>',$subject);
+		$m->mailbody($message."\n\n".$mailhinweis."\n");
+
+		//echo $to_name;
+		$modify = date("YmdHis");
+
+		$m->send();
+
+		if (isset($_SESSION['delete_detail_refer']) && $_SESSION['delete_detail_refer'] == true) {
+			unset($_SESSION['detail_refer']);
+			unset($_SESSION['detail_refer_nutzer']);
+			unset($_SESSION['detail_refer_id']);
+			unset($_SESSION['detail_refer_spalte']);
+			unset($_SESSION['delete_detail_refer']);
+		}
+	
+		echo '<p class="success">'.$language['strKMVersendet'].'</p>'."\n";
+		echo '<script type="text/javascript">'."\n";
+		echo '	document.write = setTimeout(\'top.GB_hide()\', 3000);'."\n";
+		echo '</script>'."\n";	
+	}
+} else {
+	echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="emailselect">'.$language['strEmpfaengerAdressbuch'].'<br /><a href="/recruiting/adressbuch_kurz/'.$id.'/'.$spalte.'/">Adressbuch</a></label>'."\n";
+	echo '			<select name="emailselect" id="emailselect" onchange="email_completion(this.value)">'."\n";
+	echo '				<option value="-1">---</option>'."\n";
+	
+	$rs = mysql_db_query($database_db,'SELECT id,vname,name,email FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND gruppe = \'firma\' ORDER BY name',$praktdbslave);
+	$num = mysql_num_rows($rs);
+
+	$emailNames = '';
+	$i = 0;
+	while ($i < $num) { 
+		$emailNamesID = mysql_result($rs,$i,'id');
+		$emailNamesVorname = mysql_result($rs,$i,'vname');
+		$emailNamesName = mysql_result($rs,$i,'name');
+		$emailNamesEmail = mysql_result($rs,$i,'email');
+		
+		echo '<option value="'.$emailNamesID.'">'.$emailNamesVorname.' '.$emailNamesName.'</option>'."\n";
+		$i++;
+
+		$emailNames .= '	eMailNames['.$emailNamesID.'] = \''.$emailNamesEmail.'\';'."\n";
+	}
+	
+	if ($num == 0) {
+		$querystring = 'SELECT * FROM bearbeiter WHERE id = '.$_SESSION['s_loginid'].' AND firmenid = '.$_SESSION['s_firmenid'];
+		$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+		$queryresult = mysql_fetch_array($result);
+		$defaultmail = $queryresult['email'];
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p style="clear: both;">'."\n";
+	echo '			<label for="email">'.$language['strEmpfaengerEmail'].'</label>'."\n";
+	echo '			<input class="stdStyle" type="text" id="email" name="email" value="'.(isset($defaultmail) ? $defaultmail : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="kommentar">'.$language['strKommentar'].'</label>'."\n";
+	echo '			<textarea class="stdStyle" id="kommentar" name="kommentar" cols="20" rows="4"></textarea>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<button type="submit" name="send" value="absenden"><span><span><span>ABSENDEN</span></span></span></button>'."\n";
+	echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+	echo '			<input type="hidden" name="spalte" value="'.$spalte.'" />'."\n";
+	echo '		</p>'."\n";
+
+	if (isset($_SESSION['detail_refer']) && $_SESSION['detail_refer'] == true) {
+		echo '		<p>'."\n";
+		echo '			<button type="button" name="details" onclick="location.href=\'/recruiting/kontaktdetails/'.$_SESSION['detail_refer_nutzer'].'/'.$id.'/'.$spalte.'/\'" value="zur&uuml;ck"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+		echo '		</p>'."\n";
+	}
+	
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+	
+	if ($i != 0) {
+		echo '<script type="text/javascript">'."\n";
+		echo '	var eMailNames = Array();'."\n";
+		echo $emailNames;
+		echo '	function email_completion(id) {'."\n";
+		echo '		document.getElementById(\'email\').value = eMailNames[id];'."\n";
+		echo '	}'."\n";
+		echo '</script>'."\n";
+	}
+}
+
+bodyoff();
+?>

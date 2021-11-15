@@ -1,0 +1,73 @@
+/** BUTTONS **/
+.companies button, .companies a.button {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	display: inline;
+	line-height: 21px;
+	margin: 7px auto;
+}
+.companies a.button {
+	font-size: 13px !important;
+}
+.companies button span, .companies a.button span {
+	background: url('/styles/images/Buttons/sprite2.png') left -289px no-repeat;
+	/* background: url('/styles/images/Buttons/button_comp_red_left.gif') left top no-repeat; */
+	padding: 0;
+	margin: 0;
+	display: block;
+	line-height: 21px;
+	border: 0;
+}
+.companies button span span, .companies a.button span span {
+	background: url('/styles/images/Buttons/sprite2.png') right -351px no-repeat;
+	/* background: url('/styles/images/Buttons/button_comp_red_right.gif') top right no-repeat; */
+	padding: 0 8px 0 7px;
+	margin: 0;
+	display: block;
+}
+.companies button span span span, .companies a.button span span span {
+	background: url('/styles/images/Buttons/sprite2.png') left -320px repeat-x;
+	/* background: url('/styles/images/Buttons/button_comp_red_middle.gif') left top repeat-x; */
+	padding: 0 5px;
+	display: block;
+	color: #ffffff;
+	font-weight: bold;
+	font-size: 11px;
+	text-transform: uppercase;
+}
+/** BUTTONS ENDE **/
+
+
+body.companies div#main h1,
+body.companies div#main h2{
+	color: #2a389d;
+	font-size: 1.7em;
+	font-weight:normal;
+}
+body.companies div#main h1{
+	margin-bottom:10px;
+}
+
+body.companies div#main h5{
+	color: #99131a;
+	font-weight:normal;
+}
+body.companies div#main h3{
+	color: #99131a;
+	font-weight:bold;
+	font-size: 1.2em;
+}
+
+body.companies div#main h3 {
+	font-size: 1.2em;
+}
+body.companies div#main h4{
+	color: #000;
+
+
+}
+
+body.companies div#main h5 {
+	color: #000000;
+}

@@ -1,0 +1,510 @@
+<?php 
+require("/home/praktika/etc/config.inc.php");
+
+$sprachid = 1;
+$sprachbasisdatei = "/home/praktikanten/previewlebenslauf.phtml";
+$sprachsel = 'english';
+
+if (isset($_GET['b'])) {
+	$bewerberid = intval($_GET['b']);
+} else {
+	$bewerberid = $_SESSION['s_nutzerid'];
+}
+
+echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'."\n";
+echo '<html xmlns="https://www.w3.org/1999/xhtml" xml:lang="de" lang="de">'."\n";
+echo '<head>'."\n";
+echo '	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />'."\n";
+echo '	<title>'.$language['strTitel'].'</title>'."\n";
+echo '	<link rel="icon" type="image/ico" href="/favicon.ico" />'."\n";
+echo '	<link rel="shortcut icon" href="/favicon.ico" />'."\n";
+echo '	<link rel="stylesheet" type="text/css" media="screen" href="/styles/v2/screen/cv.css" />'."\n";
+echo '</head>'."\n";
+echo '<body onload="parent.resize_me(\'frame_content\')" id="profile23">'."\n";
+
+$sql = sprintf("SELECT 
+                    nutzer.*,
+                    date_format(nutzer.geburtsdatum, '%%d') as tag, 
+                    date_format(nutzer.geburtsdatum, '%%m') as monat, 
+                    date_format(nutzer.geburtsdatum, '%%Y') as jahr, 
+                   -- date_format(nutzer.modify, '%%d.%%m.%%Y') as datum,
+                    land.%2\$s AS land
+                FROM 
+                    nutzer AS nutzer
+                LEFT JOIN
+                    land AS land
+                ON 
+                    nutzer.land = land.id 
+                WHERE 
+                    nutzer.id = %1\$d",
+			$bewerberid,
+			$sprachsel);
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+$fetch = mysql_fetch_array($result);
+
+$videoschonda = mysql_db_query($database_bprofil,'SELECT id, name FROM profil_video WHERE nutzerid = '.$bewerberid.' AND language = \'en\' ORDER BY reihenfolge',$praktdbslave);
+
+$fotoschonda = mysql_db_query($database_db,'SELECT nutzerid, url, height, width FROM bewerbungsfoto WHERE nutzerid = '.$bewerberid, $praktdbslave);
+$eintraege = ($fotoschonda != false) ? mysql_num_rows($fotoschonda) : 0;
+
+if ($eintraege > 0) {
+	$url = mysql_result($fotoschonda,0,'url');
+	$width = mysql_result($fotoschonda,0,'width');
+	$height = mysql_result($fotoschonda,0,'height');
+
+	if ($width > 0)	{
+		$CWidth = 150;
+		$picture_src = $url;
+		$pic = explode('.', $picture_src);
+		$thumb_image = '/webtemp/150'.mysql_result($fotoschonda,0,'nutzerid').'.'.end($pic).'.png';
+		$thumb_dest = '/home/praktika/public_html'.$thumb_image;
+		$picture_src = '/home/praktika/public_html'.$picture_src;
+		exec('/usr/local/bin/convert '.$picture_src.' -geometry '.$CWidth.' '.$thumb_dest);
+		$photo = '				<img src="'.$thumb_image.'" width="'.$CWidth.'" alt="Bewerbungsfoto" style="float: right;" />'."\n";
+	}
+} else {
+	$photo = '';
+}
+
+echo '	<h1>RESUME</h1>'."\n";
+echo '	<table cellpadding="0" cellspacing="0">'."\n";
+echo '		<colgroup>'."\n";
+echo '			<col width="170" />'."\n";
+echo '			<col width="*" />'."\n";
+echo '		</colgroup>'."\n";
+echo '		<tr class="first_content">'."\n";
+echo '			<th colspan="2">'.strtoupper((!empty($fetch['titel']) ? $fetch['titel'].' ' : '').$fetch['vname'].' '.$fetch['name']).'</th>'."\n";
+/*
+echo '			<td>'."\n";
+if ($_GET["video"] != 'yes') {
+	echo $photo;
+} else {
+	echo '					<object classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" codebase="http://fpdownload.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=7,0,0,0" width="240" height="250" id="240x180">'."\n";
+	echo '						<param name="allowFlashAutoInstall" value="true">'."\n";
+	echo '						<param name="Flashvars" value="url=/home/praktikanten/profil/flvkey.'.$key.'.flv">'."\n";
+	echo '						<param name="allowScriptAccess" value="sameDomain" />'."\n";
+	echo '						<param name="movie" value="/cms/fileadmin/Bilder/Bewerber/FlashFiles/240x180.swf" />'."\n";
+	echo '						<param name="quality" value="high" />'."\n";
+	echo '						<param name="bgcolor" value="#ffffff" />'."\n";
+	echo '						<embed src="/cms/fileadmin/Bilder/Bewerber/FlashFiles/240x180.swf" swLiveConnect="true" Flashvars="url=/home/praktikanten/profil/flvkey.'.$key.'.flv" quality="high" bgcolor="#ffffff" width="240" height="250" name="240x180" allowScriptAccess="sameDomain" type="application/x-shockwave-flash" pluginspage="https://www.macromedia.com/go/getflashplayer" />'."\n";
+	echo '					</object>'."\n";
+}
+
+if (mysql_num_rows($videoschonda) > 0) {
+	echo '<br /><strong>Application videos:</strong><br />'."\n";
+	
+	$i = 0;
+	while ($i < mysql_num_rows($videoschonda)) { 
+		$resultid = mysql_result($videoschonda,$i,'id');
+		echo '<a href="previewlebenslauf02.phtml?sprachid='.$_SESSION['s_sprachid'].'&amp;video=yes&amp;key='.md5(mysql_result($videoschonda,$i,'id')).'&amp;b='.$_GET['b'].'">'.mysql_result($videoschonda,$i,'name').'</a><br />'."\n";
+		$i++;
+	}
+}
+echo '			</td>'."\n";
+*/
+echo '		</tr>'."\n";
+echo '		<tr>'."\n";
+echo '			<td colspan="2"><hr /></td>'."\n";
+echo '		</tr>'."\n";
+echo '		<tr class="first_content">'."\n";
+echo '			<td colspan="2">'.$fetch['strasse'].'<br />'.$fetch['plz'].' '.$fetch['ort'].'<br />'.$fetch['land'].'<br />'.$fetch['monat'].'/'.$fetch['tag'].'/'.$fetch['jahr'].(!empty($fetch['tel']) ? '<br />Phone: '.$fetch['tel'] : '').(!empty($fetch['funktel']) ? '<br />Cell phone: '.$fetch['funktel'] : '').'<br />eMail: <a href="mailto:'.$fetch['email'].'">'.$fetch['email'].'</a></td>'."\n";
+echo '		</tr>'."\n";
+
+$result4 = mysql_db_query($database_bprofil,'SELECT studiumarray FROM profil_studium WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave) or die(mysql_error().__LINE__);
+$result3 = mysql_db_query($database_bprofil,'SELECT berufsarray FROM profil_berufsausbildung WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave) or die(mysql_error().__LINE__);
+$result2 = mysql_db_query($database_bprofil,'SELECT schularray FROM profil_schule WHERE nutzerid = '.$bewerberid." and sprachid=".$sprachid,$praktdbslave) or die(mysql_error().__LINE__);
+
+$zahl = 0;
+if (mysql_num_rows($result2) > 0) {
+	$zahl = $zahl + count(wddx_deserialize(mysql_result($result2,0,'schularray')));
+} elseif (mysql_num_rows($result3) > 0) {
+	$zahl = $zahl + count(wddx_deserialize(mysql_result($result3,0,'berufsarray')));
+} elseif (mysql_num_rows($result4) > 0) {
+	$zahl = $zahl + count(wddx_deserialize(mysql_result($result4,0,'studiumarray')));
+}
+
+if ($zahl > 0) {
+	echo '		<tr>'."\n";
+	echo '			<th colspan="2">EDUCATION</th>'."\n";
+	echo '		</tr>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td colspan="2"><hr /></td>'."\n";
+	echo '		</tr>'."\n";
+}
+
+$i = 0;
+
+//akademische Ausbildung
+if (mysql_num_rows($result4) > 0) {
+	$studiumsarray = wddx_deserialize(mysql_result($result4,0,'studiumarray'));
+	$studiumsarray = htmlspecialchars_array($studiumsarray);
+
+	$rueckgabe = previewlebenslauf($studiumsarray,$sprachid,'jvon','studiengang');
+	$studiumsarray = $rueckgabe;
+
+	if (count($studiumsarray) > 0) {
+		foreach ($studiumsarray as $studiumsrow) {
+			$ausgabe = '';
+			if (!empty($studiumsrow['mbis'])) {
+				$ausgabe = '- '.sprintf("%02.0f",$studiumsrow['mbis']).'/'.$studiumsrow['jbis'];
+			}
+			if (!empty($studiumsrow['mvon']) && empty($studiumsrow['mbis'])) {
+				$ausgabe = ' - present';
+			}
+
+			echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+			echo '			<td><strong>'.sprintf("%02.0f",$studiumsrow['mvon']).'/'. $studiumsrow['jvon'].' '.$ausgabe.'</strong></td>'."\n";
+			echo '			<td><strong>graduate of '.$studiumsrow['studiengang'].' at '.$studiumsrow['hochschule'].'</strong></td>'."\n";
+			echo '		</tr>'."\n";
+			
+			if (!empty($studiumsrow['sschwerpunkte'])) {
+				echo '		<tr class="top_content">'."\n";
+				echo '			<td>&nbsp;</td>'."\n";
+				echo '			<td>with focus on:<br />'.nl2br($studiumsrow['sschwerpunkte']).'</td>'."\n";
+				echo '		</tr>'."\n";
+			}
+
+			$i++;
+		}
+	}
+}
+
+// Berufsausbildung
+if (mysql_num_rows($result3) > 0) {
+	$berufsarray = wddx_deserialize(mysql_result($result3,0,'berufsarray'));
+	$berufsarray = htmlspecialchars_array($berufsarray);
+
+	$rueckgabe = previewlebenslauf($berufsarray,$sprachid,'jvon','beruf');
+	$berufsarray = $rueckgabe;
+
+	if (count($berufsarray) > 0) {
+		foreach ($berufsarray as $berufsrow) {
+			$ausgabe = '';
+
+			if (!empty($berufsrow['mbis'])) {
+				$ausgabe = '- '.sprintf("%02.0f",$berufsrow['mbis']).'/'.$berufsrow['jbis'];
+			}
+			if (!empty($berufsrow['mvon']) && empty($berufsrow['mbis'])) {
+				$ausgabe = ' - present';
+			}
+
+			echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+			echo '			<td><strong>'.sprintf("%02.0f",$berufsrow['mvon']).'/'.$berufsrow['jvon'].' '.$ausgabe.'</strong></td>'."\n";
+			echo '			<td><strong>'.$berufsrow['beruf'];
+			
+			if (!empty($berufsrow['bildungsmassnahme'])) {
+				echo '<br />'.$berufsrow['bildungsmassnahme'];
+			}
+			
+			if (!empty($berufsrow['land'])) {
+				$ausgabe = ', '.$berufsrow['land'];
+			} else {
+				$ausgabe = '';
+			}
+			
+			echo '<br />'.$berufsrow['ausbort'].$ausgabe;
+			
+			if (!empty($berufsrow['b_abschluss'])) {
+				echo '<br />result: '.$berufsrow['b_abschluss'];
+			}
+			
+			echo '</strong></td>'."\n";
+			echo '		</tr>'."\n";
+
+			if (!empty($berufsrow['b_werdegang'])) {
+				echo '		<tr class="top_content">'."\n";
+				echo '			<td>&nbsp;</td>'."\n";
+				echo '			<td>'."\n";
+				echo '				<div style="float: left; width: 100px;">content:</div>'."\n";
+				echo '				<div style="float: left;">'.nl2br($berufsrow['b_werdegang']).'</div>'."\n"; 
+				echo '			</td>'."\n";
+				echo '		</tr>'."\n";
+			}
+			
+			$i++;
+		}
+	}
+}
+
+// Schulausbildung
+if (mysql_num_rows($result2) > 0) {
+	$schularray = htmlspecialchars_array(wddx_deserialize(mysql_result($result2,0,'schularray')));
+
+	$rueckgabe = previewlebenslauf($schularray,$sprachid,'jvon','schule');
+	$schularray = $rueckgabe;
+
+	if (count($schularray) > 0) {
+		foreach ($schularray as $schulrow) {
+			$ausgabe = '';
+			$ausgabe2 = '';
+			
+			if (!empty($schulrow['mbis'])) {
+				$ausgabe = '- '.sprintf("%02.0f",$schulrow['mbis']).'/'.$schulrow['jbis'];
+			}
+			
+			if (!empty($schulrow['mvon']) && empty($schulrow['mbis'])) {
+				$ausgabe = ' - jetzt';
+			}
+			
+			if (!empty($schulrow['land'])) {
+				$ausgabe2 = ', '.$schulrow['land'];
+			}
+
+			echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+			echo '			<td><strong>'.sprintf("%02.0f",$schulrow['mvon']).'/'.$schulrow['jvon'].' '.$ausgabe.'</strong></td>'."\n";
+			echo '			<td><strong>'.$schulrow['schule'].' '.$schulrow['ort'].$ausgabe2;
+		
+			if (!empty($schulrow['abschluss'])) {
+				echo '<br />'.$schulrow['abschluss'].' (result '.$schulrow['ergebnis'].')';
+			}
+
+			echo '</strong></td>'."\n";
+			echo '		</tr>'."\n";
+			
+			$i++;
+		}
+	}
+}
+
+// Berufserfahrung 
+$result = mysql_db_query($database_bprofil,'SELECT berufserfahrungsarray FROM profil_beruferfahrung WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave);
+$result5 = mysql_db_query($database_bprofil,'SELECT praktikumarray FROM profil_praktika WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave);
+
+$zahl = 0;
+if (mysql_num_rows($result) > 0) {
+	$zahl = $zahl + count(wddx_deserialize(mysql_result($result,0,'berufserfahrungsarray')));
+} elseif (mysql_num_rows($result3) > 0) {
+	$zahl = $zahl + count(wddx_deserialize(mysql_result($result5,0,'praktikumarray')));
+}
+
+if ($zahl > 0) {
+	echo '		<tr>'."\n";
+	echo '			<th colspan="2">EXPERIENCE</th>'."\n";
+	echo '		</tr>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td colspan="2"><hr /></td>'."\n";
+	echo '		</tr>'."\n";
+}
+
+$i = 0;
+if (mysql_num_rows($result) > 0) {
+	$berufserfahrungsarray = wddx_deserialize(mysql_result($result,0,'berufserfahrungsarray'));
+	$berufserfahrungsarray = htmlspecialchars_array($berufserfahrungsarray);
+	
+	if (!empty($berufserfahrungsarray[0]['unternehmen'])) {
+		$rueckgabe = previewlebenslauf($berufserfahrungsarray,$sprachid,'jvon','unternehmen');
+		$berufsarray = $rueckgabe;
+
+		if (count($berufsarray) > 0) {
+			foreach ($berufsarray as $berufsrow) {
+				$ausgabe = '';
+				
+				if (!empty($berufsrow['mvon'])) {
+					$ausgabe1 = sprintf("%02.0f",$berufsrow['mvon']).'/'.$berufsrow['jvon'];
+				}
+				
+				if (!empty($berufsrow['mbis'])) {
+					$ausgabe2 = '- '.sprintf("%02.0f",$berufsrow['mbis']).'/'.$berufsrow['jbis'];
+				}
+				
+				if (!empty($berufsrow['mvon']) && empty($berufsrow['mbis'])) {
+					$ausgabe2 = ' - present';
+				}
+				
+				if ($berufsrow['land'] > 0) {
+					$landid = $berufsrow['land'];
+					$land = mysql_db_query($database_db,'SELECT '.$sprachsel.' FROM land WHERE id = '.$landid,$praktdbslave);
+					$landausgabe = ', '.mysql_result($land,0,$sprachsel);
+				}
+				
+				echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+				echo '			<td><strong>'.$ausgabe1.' '.$ausgabe2.'</strong></td>'."\n";
+		      	echo '			<td><strong>'.$berufsrow['beruf'].' at the company '.$berufsrow['unternehmen'].' - '.$berufsrow['ort'].$landausgabe.'</strong></td>'."\n";
+				echo '		</tr>'."\n";
+				
+				if (!empty($berufsrow['taetigkeit'])) {
+					echo '		<tr class="top_content">'."\n";
+					echo '			<td>explanation of duties:</td>'."\n";
+					echo '			<td>'.nl2br($berufsrow['taetigkeit']).'</td>'."\n";
+					echo '		</tr>'."\n";
+				}
+
+				$i++;
+			}
+		}
+	}
+}
+
+// Praktika & Nebentätigkeiten 
+if (mysql_num_rows($result5) > 0) {
+	$praktikumsarray = wddx_deserialize(mysql_result($result5,0,'praktikumarray'));
+	$praktikumsarray = htmlspecialchars_array($praktikumsarray);
+	
+	$rueckgabe = previewlebenslauf($praktikumsarray,$sprachid,'jvon','unternehmen');
+	$praktikumsarray = $rueckgabe;
+
+	if (count($praktikumsarray) > 0) {
+		foreach ($praktikumsarray as $praktikumssrow) {
+			$ausgabe = '';
+			
+			if (!empty($praktikumssrow['mbis'])) {
+				$ausgabe = '- '.sprintf("%02.0f",$praktikumssrow['mbis']).'/'.$praktikumssrow['jbis'];
+			}
+			
+			if (!empty($praktikumssrow['mvon']) && empty($praktikumssrow['mbis'])) {
+				$ausgabe = ' - present';
+			}
+			
+			echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+			echo '			<td><strong>'.sprintf("%02.0f",$praktikumssrow['mvon']).'/'.$praktikumssrow['jvon'].' '.$ausgabe.'</strong></td>'."\n";
+			echo '			<td><strong>'.$praktikumssrow['unternehmen'].'</strong>';
+			
+			if ($praktikumssrow['artdertaettigkeit'] == 'praktikum') {
+				echo '<br />Internship';
+			} elseif ($praktikumssrow['artdertaettigkeit'] == 'nebentaetigkeit') {
+				echo '<br />Part-time work';
+			}
+
+			echo '</td>'."\n";
+			echo '		</tr>'."\n";			
+			
+			if (!empty($praktikumssrow['taetigkeit'])) {
+				echo '		<tr class="top_content">'."\n";
+				echo '			<td>explanation of duties:</td>'."\n";
+				echo '			<td>'.nl2br($praktikumssrow['taetigkeit']).'</td>'."\n";
+				echo '		</tr>'."\n";
+			}
+			
+			$i++;
+		}
+	}
+}
+
+// Leistungs- und Erfahrungsprofil
+$result6 = mysql_db_query($database_bprofil,'SELECT * FROM profil_leistung WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave);
+
+if (mysql_num_rows($result6) > 0) {
+	$fetchleistung = mysql_fetch_array($result6);
+	
+	/* test ob kenntnisse / erfahrungen ausgef&uuml;llt wurde */
+	if ($fetchleistung['beschreibungen'] != "") {
+		echo '		<tr>'."\n";
+		echo '			<th colspan="2">SKILLS</th>'."\n";
+		echo '		</tr>'."\n";
+		echo '		<tr>'."\n";
+		echo '			<td colspan="2"><hr /></td>'."\n";
+		echo '		</tr>'."\n";
+		echo '		<tr class="first_content">'."\n";
+		echo '			<td>Skills</td>'."\n";
+		echo '			<td>'.nl2br($fetchleistung['beschreibungen']).'</td>'."\n";
+		echo '		</tr>'."\n";
+	}
+
+	echo '		<tr class="top_content">'."\n";
+	echo '			<td>Language Skills</td>'."\n";
+	echo '			<td>'."\n";
+	
+	$sprachbeherrschung1 = 'native language';
+	$sprachbeherrschung2 = 'very good';
+	$sprachbeherrschung3 = 'moderately well';
+	$sprachbeherrschung4 = 'beginner';
+	
+	if ($fetchleistung['sprachkenntnisse1'] != 0) {
+
+		$sprachid1 = $fetchleistung['sprachkenntnisse1'];
+		$sprachselect = mysql_db_query($database_db,'SELECT '.$sprachsel.' FROM sprachen WHERE id = '.$sprachid1,$praktdbslave); 
+		$sprachebeh = 'sprachbeherrschung'.$fetchleistung['sprachbegabung1'];
+		
+		echo '				<div style="float: left; width: 100px;">'.mysql_result($sprachselect,0,$sprachsel).'</div>'."\n";
+		echo '				<div style="float: left;">'.$$sprachebeh.'</div>'."\n"; 
+	}
+	
+	if ($fetchleistung['sprachkenntnisse2'] != 0) {
+		$sprachid1 = $fetchleistung['sprachkenntnisse2'];
+		$sprachselect = mysql_db_query($database_db,'SELECT '.$sprachsel.' FROM sprachen WHERE id = '.$sprachid1,$praktdbslave); 
+		$sprachebeh = 'sprachbeherrschung'.$fetchleistung['sprachbegabung2'];
+		
+		echo '				<div style="clear: both; float: left; width: 100px;">'.mysql_result($sprachselect,0,$sprachsel).'</div>'."\n";
+		echo '				<div style="float: left;">'.$$sprachebeh.'</div>'."\n"; 
+	}
+	
+	if ($fetchleistung['sprachkenntnisse3'] != 0) {
+		$sprachid1 = $fetchleistung['sprachkenntnisse3'];
+		$sprachselect = mysql_db_query($database_db,'SELECT '.$sprachsel.' FROM sprachen WHERE id = '.$sprachid1,$praktdbslave); 
+		$sprachebeh = 'sprachbeherrschung'.$fetchleistung['sprachbegabung3'];
+
+		echo '				<div style="clear: both; float: left; width: 100px;">'.mysql_result($sprachselect,0,$sprachsel).'</div>'."\n";
+		echo '				<div style="float: left;">'.$$sprachebeh.'</div>'."\n"; 
+	}
+
+	echo '			</td>'."\n";
+	echo '		</tr>'."\n";
+	
+	if (!empty($fetchleistung['weiteresprachen'])) {
+		echo '		<tr>'."\n";
+		echo '			<td>&nbsp;</td>'."\n";
+		echo '			<td>'.nl2br($fetchleistung['weiteresprachen']).'</td>'."\n";
+		echo '		</tr>'."\n";
+	}
+}
+
+//Hobbies
+$result7 = mysql_db_query($database_bprofil,'SELECT hobby FROM profil_hobby WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave);
+$fetch = mysql_fetch_array($result7);
+
+if (!empty($fetch['hobby'])) {
+	echo '		<tr>'."\n";
+	echo '			<th colspan="2">HOBBIES & INTERESTS</th>'."\n";
+	echo '		</tr>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td colspan="2"><hr /></td>'."\n";
+	echo '		</tr>'."\n";
+   	echo '		<tr class="first_content">'."\n";
+	echo '			<td colspan="2">'.nl2br($fetch['hobby']).'</td>'."\n";
+	echo '		</tr>'."\n";
+} 
+
+//Referenzen
+$result = mysql_db_query($database_bprofil,'SELECT referenzarray FROM profil_referenzen WHERE nutzerid = '.$bewerberid.' AND sprachid = '.$sprachid,$praktdbslave);
+
+if (mysql_num_rows($result) > 0) {
+	$referenzarray = wddx_deserialize(mysql_result($result,0,'referenzarray'));
+	$referenzarray = htmlspecialchars_array($referenzarray);
+	
+	$rueckgabe = previewlebenslauf($referenzarray,$sprachid,'ansprechpartner','ansprechpartner');
+	$referenzarray = $rueckgabe;
+	
+	if (count($referenzarray) > 0) {
+		echo '		<tr>'."\n";
+		echo '			<th colspan="2">REFERENCES</th>'."\n";
+		echo '		</tr>'."\n";
+		echo '		<tr>'."\n";
+		echo '			<td colspan="2"><hr /></td>'."\n";
+		echo '		</tr>'."\n";
+
+		$i = 0;		
+		foreach ($referenzarray as $referenzrow) {
+			if (!empty($referenzrow['ansprechpartner'])) {
+				echo '		<tr'.($i > 0 ? ' class="top_content"' : ' class="first_content"').'>'."\n";
+				echo '			<td>'.$referenzrow['ansprechpartner'].'</td>'."\n";
+				echo '			<td>'.$referenzrow['ort'].', phone: '.$referenzrow['tel'].'</td>'."\n";
+				echo '		</tr>'."\n";
+			}
+			
+			$i++;
+		}
+	}
+}
+
+if ($_SESSION['s_loggedin'] == true) {
+	echo '		<tr>'."\n";
+	echo '			<td colspan="2" class="powered">powered by <img src="/home/gifs/powered_by_praktika.gif" alt="" /></td>'."\n";
+	echo '		</tr>'."\n";
+	echo '		<tr>'."\n";
+	echo '			<td height="50" colspan="2">&nbsp;</td>'."\n";
+	echo '		</tr>'."\n";
+}
+echo '	</table>'."\n";
+echo '</body>'."\n";
+echo '</html>'."\n";
+?>

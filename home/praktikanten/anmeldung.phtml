@@ -1,0 +1,934 @@
+<?
+$sprachbasisdatei = '/home/praktikanten/anm_insert.phtml';
+
+require("/home/praktika/etc/config.inc.php");
+$captchaWord = "sicherheit";
+
+//$mainpage="yes";
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_NEUANMELDUNG;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$_SESSION['sidebar'] = 'none';
+
+if (isset($_COOKIE['c_partnerid']) && empty($partnerid)) {
+	$partnerid = $_COOKIE['c_partnerid'];
+}
+
+setcookie('c_group', 'nutzer', time() + 62208000, '/');
+
+$mailError = '';
+
+if (isset($_POST['email']) && !empty($_POST['email'])) {
+	$mailCheck = Praktika_Validate::checkMailForRegistration($_POST['email'], 'praktikant');
+	
+	switch($mailCheck) {
+		case 1:
+			$mailError = 'Die angegebene eMail-Adresse besitzt kein g&uuml;ltiges Format.';
+			break;
+		case 2:
+			$mailError = 'Die angegebene eMail-Adresse konnte nicht verifiziert werden.';
+			break;
+		case 3:
+			$mailError = 'Die angegebene eMail-Adresse "'.htmlentities($_POST['email']).'" wird schon verwendet!';
+			break;
+		case 4:
+			$mailError = 'Die angegebene eMail-Adresse "'.htmlentities($_POST['email']).'" darf auf dieser Plattform nicht verwendet werden!';
+			break;
+	}
+} 
+
+if (!isset($_POST['name']) ||
+	!empty($mailError) ||
+	!isset($_POST['vname']) ||
+	!isset($_POST['strasse']) ||
+	!isset($_POST['plz']) ||
+	!isset($_POST['ort']) ||
+	!isset($_POST['email']) ||
+	!isset($_POST['passwort']) ||
+	!isset($_POST['passwort2']) ||
+	!isset($_POST['anrede']) ||
+	!isset($_POST['agbok']) ||
+	!isset($_POST['birthdate']) ||
+	strlen(trim(($_POST['name']))) < 2 ||
+	strlen(trim(($_POST['vname']))) < 2 ||
+	strlen(trim(($_POST['strasse']))) < 4 ||
+	strlen(trim(($_POST['plz']))) < 4 ||
+	strlen(trim(($_POST['ort']))) < 2 ||
+	empty($_POST['email']) ||
+	empty($_POST['passwort']) ||
+	empty($_POST['passwort2']) ||
+	strlen(trim(($_POST['passwort']))) < 3 ||
+	$_POST['anrede'] == '-1' ||
+	empty($_POST['agbok']) ||
+	empty($_POST['birthdate']) ||
+	$captchaWord != $_POST["captcha"] ||
+	$_POST['passwort'] != $_POST['passwort2']) {
+	
+	pageheader(array('page_title' => 'Anmeldung f&uuml;r Bewerber', 'jqueryui' => 'true'));
+
+	Praktika_Static::__("anmeldung");
+	
+	if (!empty($mailError)) {
+		echo '<p class="hint error">'.$mailError.'</p>'."\n";
+	}	
+	if (isset($_POST['email'])) {
+		$_GET['email'] = $_POST['email'];
+	}
+
+	if (isset($_POST['save'])) {
+		echo '<p class="hint error">Leider haben Sie die Felder nicht vollst&auml;ndig ausgef&uuml;llt. Bitte korrigieren Sie Ihre Eingaben in den rot markierten Feldern.</p>'."\n";
+	}
+	
+	if (isset($_POST['save']) && isset($_POST['passwort']) && empty($_POST['passwort'])) {
+		echo '<p class="hint error">Sie m&uuml;ssen ein Passwort zu Ihrer Sicherheit vergeben.</p>'."\n";
+	}
+
+	if (isset($_POST['save']) && !isset($_POST['agbok'])) {
+		echo '<p class="hint error">Bitte best&auml;tigen Sie die Nutzungsbedingungen.</p>'."\n";
+	}
+
+	if (isset($_POST['land'])) {
+		$landid = $_POST['land'];
+	} else {
+		$landid = 68;
+	}
+
+	$karierrestats = mysql_query('SELECT '.$_SESSION['s_sprache'].',id FROM '.$database_db.'.karierrestatus ORDER BY anzeigeorder',$praktdbslave);
+	$anz_karierrestatus = mysql_num_rows($karierrestats);
+
+	$studiumsel = mysql_db_query($database_db,'SELECT studiengang,id FROM studiengaenge ORDER BY studiengang',$praktdbslave);
+	$anz_studium = mysql_num_rows($studiumsel);
+
+	$laender = Praktika_Listen::getLand(array("emptyText" => true));
+	
+	$bundeslaender = Praktika_Listen::getBundesland($landid, array("emptyText" => true));
+	$bundesland = $_POST["bundesland"];
+	
+	if (count($bundeslaender) > 0 && !empty($bundesland)) {
+		$grossraeume = Praktika_Listen::getGrossraum($bundesland, array("emptyText"=>true));
+		
+//		$grossraumselect = mysql_db_query($database_db,'SELECT grossraum,id FROM grossraum WHERE bundesland='.(isset($_POST['bundesland']) ? $_POST['bundesland'] : mysql_result($bundeslandselect,0,'id')).' ORDER BY grossraum',$praktdbslave);
+//		$anz_grossraum = mysql_num_rows($grossraumselect);
+	}
+?>
+<style type="text/css">
+	.strong-0 {  background-color:#ff0000 !important; }
+	.strong-1 {  background-color:#ff0000 !important; }
+	.strong-2 {  background-color:#ff2c00 !important; }
+	.strong-3 {  background-color:#ff4d00 !important; }
+	.strong-4 {  background-color:#ff7300 !important; }
+	.strong-5 {  background-color:#ff9900 !important; }
+	.strong-6 {  background-color:#b6ff00 !important; }
+	.strong-7 {  background-color:#ffff00 !important; }
+	.strong-8 {  background-color:#b6ff00 !important; }
+	.strong-9 {  background-color:#53e200 !important; }
+	.strong-10{  background-color:#00e200 !important; }	
+</style>
+<?
+// �bergabe des Merkzettels von den LandingPages
+if(!empty($_GET["ids"])) {
+	$_SESSION["tmpMerkzettel_ids"] = $_GET["ids"];
+}
+
+if(isset($_GET["openid"]) && $_GET["openid"] == "1") {
+?>
+Sie haben eine g&uuml;ltige OpenID angegeben, konnten aber in unserer Datenbank nicht gefunden werden.<br /><br />
+Sie haben jetzt die M&ouml;glichkeit einen neuen Account mittels dieser OpenID anzulegen.<br />
+<br />
+<?	
+	$data = unserialize(base64_decode($_GET["data"]));
+
+	$_POST["anrede"] = $data["gender"]=="M"?"Herr":"Frau";
+	$_POST["vname"] = $data["vname"];
+	$_POST["name"] = $data["name"];
+	$_POST["land"] = $data["land"];
+	$_POST["bundesland"] = $data["bundesland"];
+	$_POST["ort"] = $data["ort"];
+	$_POST["plz"] = $data["plz"];
+	
+	$_POST["openid"] = $data["openid"];
+	
+	if(substr($_POST["openid"],-1) == "/") {
+		$_POST["openid"] = substr($_POST["openid"],0,-1);
+	}
+	
+	$_GET["email"] = $data["email"];
+	
+	$_POST["birthdate"] = $data["dob"];
+		
+}
+?>
+
+<script type="text/javascript" src="/static.php?type=javascript&files=ajax/validator.js,framework/base.js,jquery/jquery.validate.min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#birthdate_view').datepicker({
+			dateFormat: 'dd.mm.yy',
+			altField: '#birthdate',
+			altFormat: 'yy-mm-dd',
+			changeMonth: true,
+			changeYear: true,
+			minDate: '-70y',
+			defaultDate: '-20y',
+			yearRange: '-70:-1'
+		});
+	});
+</script>
+
+<p>Um Ihren <b>kostenfreien praktika.de Account</b> zu er&ouml;ffnen, f&uuml;llen Sie nun bitte nachfolgendes Formular vollst&auml;ndig und gewissenhaft aus.</p>
+<div class="clear"></div>
+<p class="hint info"><strong>Information</strong>: * wichtig f&uuml;r den Bewerbungsprozess</p>
+	
+<?php 
+	echo '<form action="/neuanmeldung/candidate/" method="post" name="accountRegisterForm">'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<legend>'.$language['strNutzerdaten'].'</legend>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="anrede"'.((isset($_POST['save']) && isset($_POST['anrede']) && $_POST['anrede'] == '-1') ? ' class="error"' : '').'>Anrede:<sup>*</sup></label>'."\n";
+	echo '			<select id="anrede" name="anrede">'."\n";
+	echo '				<option value="-1">----------------</option>'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Herr') ? 'selected="selected" ' : '').'value="Herr">Herr</option>'."\n";
+	echo '				<option '.((isset($_POST['anrede']) && $_POST['anrede'] == 'Frau') ? 'selected="selected" ' : '').'value="Frau">Frau</option>'."\n";
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="vname"'.((isset($_POST['save']) && isset($_POST['vname']) && empty($_POST['vname'])) ? ' class="error"' : '').'>Vorname:<sup>*</sup></label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_vname"></span><input type="text" onblur="Praktika_Validator.checkText(this.value, 3,\'result_check_vname\');" id="vname" name="vname" maxlength="50" value="'.(isset($_POST['vname']) ? $_POST['vname'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="name"'.((isset($_POST['save']) && isset($_POST['name']) && empty($_POST['name'])) ? ' class="error"' : '').'>Nachname:<sup>*</sup></label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_name"></span><input type="text" onblur="Praktika_Validator.checkText(this.value, 3,\'result_check_name\');" id="name" name="name" maxlength="50" value="'.(isset($_POST['name']) ? $_POST['name'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="strasse"'.((isset($_POST['save']) && isset($_POST['strasse']) && empty($_POST['strasse'])) ? ' class="error"' : '').'>Stra&szlig;e:<sup>*</sup></label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_street"></span><input type="text" onblur="Praktika_Validator.checkText(this.value, 5,\'result_check_street\');" id="strasse" name="strasse" maxlength="50" value="'.(isset($_POST['strasse']) ? $_POST['strasse'] : '').'" /><span class="validatorIcon" id="result_check_street"></span>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="plz"'.((isset($_POST['save']) && ((isset($_POST['plz']) && empty($_POST['plz'])) || (isset($_POST['ort']) && empty($_POST['ort'])))) ? ' class="error"' : '').'>PLZ / Ort:<sup>*</sup></label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_plz"></span><span id=\'adresse_ort\'><input type="text" id="plz" autocomplete="off" onblur="Praktika_Validator.checkText(this.value + $(\'ort\').value, 9,\'result_check_plz\');" maxlength="50" value="'.(isset($_POST['plz']) ? $_POST['plz'] : '').'" name="plz" maxlength="7" value="'.(isset($_POST['plz']) ? $_POST['plz'] : '').'" /><input type="text" autocomplete="off" id="ort" name="ort" onblur="Praktika_Validator.checkText(this.value + $(\'plz\').value, 9,\'result_check_plz\');" maxlength="50" value="'.(isset($_POST['ort']) ? $_POST['ort'] : '').'" /></span>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="email"'.((isset($_POST['save']) && (isset($_POST['email']) && empty($_POST['email'])) || !empty($mailError)) ? ' class="error"' : '').'>eMail-Adresse:<sup>*</sup></label>'."\n";
+	echo '			<span class="required email" id="result_check_mail"></span><input type="text" onblur="Praktika_Validator.checkMailForRegistration(this.value,\'Praktikant\');" id="email" name="email" maxlength="50" value="'.(isset($_GET['email']) ? $_GET['email'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+/*	echo '		<p>'."\n";
+	echo '			<label for="email"'.((isset($_POST['save']) && (isset($_POST['email']) && empty($_POST['email'])) || !empty($maileError)) ? ' class="error"' : '').'>eMail-Adresse:<sup>*</sup></label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_mail"></span><input type="text" onblur="Praktika_Validator.checkMailForRegistration(this.value,\'Praktikant\');" id="email" name="email" maxlength="50" value="'.(isset($_GET['email']) ? $_GET['email'] : '').'" />'."\n";
+	echo '		</p>'."\n";*/
+	echo '		<p id="captchaParagraph">'."\n";
+	echo '			<label for="captcha"'.((isset($_POST['save']) && (isset($_POST['captcha']) && empty($_POST['captcha']))) ? ' class="error"' : '').'>Zum Spamschutz, geben Sie in das folgende Feld "<i>'.$captchaWord.'</i>" ein!.</label>'."\n";
+	echo '			<input type="text"  id="captcha" name="captcha" maxlength="50" value="'.(isset($_GET['captcha']) ? $_GET['captcha'] : '').'" />'."\n";
+	echo '		</p><script type="text/javascript"> document.getElementById("captcha").value = "'.$captchaWord.'"; document.getElementById("captchaParagraph").style.display="none";</script>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="land">Land:<sup>*</sup></label>'."\n";
+	echo '			<select id="land" name="land">'."\n";
+	
+	for($a = 0; $a < count($laender); $a++) {
+		echo '				<option '.(($laender[$a]["id"] == $landid) ? 'selected="selected" ' : '').'value="'.$laender[$a]["id"].'">'.$laender[$a]["title"].'</option>'."\n";
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="bundesland">Bundesland:</label>'."\n";
+	echo '			<select id="bundesland" name="bundesland">'."\n";
+	
+	for($a = 0; $a < count($bundeslaender); $a++) {
+		echo '				<option '.((isset($_POST['bundesland']) && $bundeslaender[$a]["id"] == $_POST['bundesland']) ? 'selected="selected" ' : '').'value="'.$bundeslaender[$a]["id"].'">'.$bundeslaender[$a]["title"].'</option>'."\n";
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="grossraum">Gro&szlig;raum:</label>'."\n";
+	echo '			<select id="grossraum" name="grossraum">'."\n";
+	
+	for($a = 0; $a < count($grossraeume);$a ++) {
+		echo '				<option '.(($grossraeume[$a]["id"] == $_POST['grossraum']) ? 'selected="selected" ' : '').'value="'.$grossraeume[$a]["id"].'">'.$grossraeume[$a]["title"].'</option>'."\n";
+	}
+	?>	
+		</select>
+	</p>
+	<p>
+		<label for="tel">Telefonnummer:</label>
+		<input type="text" onclick="Tip('<b>Warum brauchen wir diese Angabe?</b><br />Ihre Telefonnummer wird f&uuml;r die Bewerbungsunterlagen ben&ouml;tigt.<br />Die Praktika GmbH behandelt diese Angabe absolut vertraulich.', FIX, [this, 0, 0], DELAY, 100)" id="tel" name="tel" maxlength="50" value="<?=(isset($_POST['tel']) ? $_POST['tel'] : '') ?>" onblur='UnTip();' />
+	</p>
+	<p>
+		<label for="birthdate_view"<?php echo (isset($_REQUEST['birthdate']) &&  empty($_REQUEST['birthdate'])) ? ' class="error"' : '' ?>>Geburtsdatum:<sup>*</sup></label>
+		<input type="text" id="birthdate_view" name="birthdate_view" value="<? echo (isset($_REQUEST['birthdate_view']) && !empty($_REQUEST['birthdate_view'])) ? $_REQUEST['birthdate_view'] : ''; ?>" />
+		<input type="hidden" id="birthdate" name="birthdate" value="<? echo (isset($_REQUEST['birthdate']) && !empty($_REQUEST['birthdate'])) ? $_REQUEST['birthdate'] : ''; ?>" />
+	</p>
+
+	<?	
+	echo '		<p>'."\n";
+	echo '			<label for="karierrestatus">Karrierestatus:<sup>*</sup></label>'."\n";
+	echo '			<select id="karierrestatus" name="karierrestatus">'."\n";
+	echo '				<option value="">- - - Bitte ausw&auml;hlen - - -</option>'."\n";
+	
+	$i = 0;
+	
+	while ($i < $anz_karierrestatus) {
+		$html = htmlspecialchars(mysql_result($karierrestats,$i,$_SESSION['s_sprache']));
+		echo '				<option ';
+		if (isset($_POST["karierrestatus"]) && mysql_result($karierrestats,$i,"id") == $_POST["karierrestatus"]) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($karierrestats,$i,"id").'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="studiengang">Studium:<sup>*</sup></label>'."\n";
+	echo '			<select id="studiengang" name="studiengang">'."\n";
+	echo '				<option value="">- - - Bitte ausw&auml;hlen - - -</option>'."\n";	
+	
+	$i = 0;
+	
+	while ($i < $anz_studium) {
+		$html = htmlspecialchars(mysql_result($studiumsel,$i,'studiengang'));
+		echo '				<option ';
+		if (isset($_POST["studiengang"]) && mysql_result($studiumsel,$i,"id") == $_POST["studiengang"]) {
+			echo 'selected="selected" ';
+		}
+		echo 'value="'.mysql_result($studiumsel,$i,"id").'">'.$html.'</option>'."\n";
+		$i++;
+	}
+	
+	echo '			</select>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="hochschule">Uni / Bildungseinrichtung:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="hochschule" name="hochschule" autocomplete="off" maxlength="50" value="'.(isset($_POST['hochschule']) ? $_POST['hochschule'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+?>
+<script type="text/javascript">
+	var cache = {};
+	var lastXhr;
+	
+	$.ajaxSetup({
+		jsonp: null,
+		jsonpCallback: false
+	});
+
+	$(document).ready(function() {
+		$( "#hochschule" ).autocomplete({
+			minLength: 2,
+			delay:100,
+
+			source: function(request, response) {
+				var term = request.term;
+				if ( term in cache ) {
+					response( cache[ term ] );
+					return;
+				}
+
+				lastXhr = $.getJSON( "/api/listen/hochschule.html", "term="+ term,function( data, status, xhr ) {
+					cache[ term ] = data;
+
+					if ( xhr === lastXhr ) {
+
+						response( data );
+					}
+				});
+
+			}
+		});
+	});
+</script>
+
+<!--
+	P_Framework.addModule("autocomplete");
+      
+	//execute as soon as DOM is loaded
+	P_Framework.onload(initFunction);
+    
+	function initFunction() {
+		var hochschulAC = new P_Autocomplete();
+		hochschulAC.init('hochschule',"/admin/ajax/hochschule.phtml", function(value) {
+			document.getElementById('hochschule').value = value;
+		});
+
+		var ortAC = new P_Autocomplete();
+		ortAC.init([document.getElementById('plz'), document.getElementById('ort')],"/admin/ajax/einsatzort.phtml", function(value) {
+				parts = value.split("-"); 
+				
+				xhr("/api/geo/getdata.html?v=1.0","plz=" + trim(parts[0]) + "&ort="+ encodeURI(trim(parts[1].split(",")[0])) ,function(text) {
+					data = JSON.parse(text);
+					document.getElementById('land').value = data["land_id"];
+					document.getElementById('bundesland').value = data["bundesland_id"];
+
+					document.getElementById('ort').value = data["ort"];
+					document.getElementById('plz').value = data["plz"];
+					
+					Praktika_Validator.checkText(data["ort"] + document.getElementById('plz').value, 9,'result_check_plz');
+					
+					var event = {};
+					event.type = "change";
+					event.target = new Object();
+					event.target.value = data["bundesland_id"];
+					
+					bundesland.handleEvent(event);
+					if(data["grossraum_id"] != undefined && data["grossraum_id"] != 0) {
+						window.setTimeout("document.getElementById('grossraum').value = '" + data["grossraum_id"] + "';","600");
+					}
+				});      	
+		},{ resultSizeContainer: 'adresse_ort' });
+	}
+
+</script>-->
+<?	
+	echo '		<p>'."\n";
+	echo '			<label for="semester">aktuelles Semester:<sup>*</sup></label>'."\n";
+	echo '			<input type="text" id="semester" name="semester" maxlength="2" value="'.(isset($_POST['semester']) ? $_POST['semester'] : '').'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<legend>Ihr Passwort</legend>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="pwd"'.((isset($_POST['save']) && isset($_POST['passwort']) && (empty($_POST['passwort']) || $_POST['passwort'] != $_POST['passwort2'])) ? ' class="error"' : '').'>Passwort:</label>'."\n";
+	echo '			<input type="password" id="pwd" name="passwort" maxlength="35" value=""onblur="Praktika_Validator.checkPasswortEquals(this.value, $(\'pwd2\').value, \'result_check_password\')"  onkeyup=\'Praktika_Validator.checkPasswortSecure(this.value, "check_result_pwd_secure", "strong",  new Array("Schlecht", "Mittel", "Gut", "Sehr Gut"));\'   />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="pwd2"'.((isset($_POST['save']) && isset($_POST['passwort2']) && (empty($_POST['passwort2']) || $_POST['passwort'] != $_POST['passwort2'])) ? ' class="error"' : '').'>Passwortwiederholung:</label>'."\n";
+	echo '			<span class="validatorIcon" id="result_check_password"></span><input type="password" id="pwd2" name="passwort2" onblur="Praktika_Validator.checkPasswortEquals(this.value, $(\'pwd\').value, \'result_check_password\')" maxlength="35" value="" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label>Passwortsicherheit:</label>'."\n";
+	echo '			<input type="text" id="check_result_pwd_secure" name="check_result_pwd_secure" readonly="true" value="" />'."\n";
+	echo '		</p>'."\n";	
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="agbok" class="komplette_breite'.((isset($_POST['save']) && !isset($_POST['agbok'])) ? ' error' : '').'"><input type="checkbox" value="true" id="agbok" name="agbok"'.((isset($_POST['agbok']) && ($_POST['agbok'] == 'true')) ? ' checked="checked"' : '').' /> Um praktika.de nutzen zu k&ouml;nnen, m&uuml;ssen Sie die <a href="/cms/Nutzungsbedingungen.274.0.html" target="_blank">Nutzungsbedingungen</a> lesen und best&auml;tigen!</label>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="passwd" class="komplette_breite"><input type="checkbox" value="true" checked="checked" id="passwd" name="passwd"'.((isset($_POST['passwd']) && ($_POST['passwd'] == "true")) ? ' checked="checked"' : '').' /> Mein Passwort in der Best&auml;tigungsmail aus Sicherheitsgr&uuml;nden nicht mit senden. F&uuml;r diesen Fall merken Sie sich bitte Ihr Passwort!</label>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<legend>Interesse an einem Praktikum im Ausland?</legend>'."\n";
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="affilli_praktika_ausland" class="komplette_breite"><input type="checkbox" value="true" id="affilli_praktika_ausland" name="affilli[praktika_ausland]"'.((isset($_POST['affilli']['praktika_ausland']) && ($_POST['affilli']['praktika_ausland'] == 'true')) ? ' checked="checked"' : '').' /> Ja, ich interessiere mich f&uuml;r ein Praktikum im Ausland, bitte senden Sie mir dazu Informationen zu.<br /><img src="/styles/images/home/praktika_mini.jpg" alt="" /></label>'."\n";
+	echo '		</p>'."\n";
+	#echo '		<p class="checkboxes">'."\n";
+	#echo '			<label for="affilli_praktika_sprachreise" class="komplette_breite"><input type="checkbox" value="true" id="affilli_praktika_sprachreise" name="affilli[praktika_sprachreise]"'.((isset($_POST['affilli']['praktika_sprachreise']) && ($_POST['affilli']['praktika_sprachreise'] == "true")) ? ' checked="checked"' : '').' /> Ja, bitte senden Sie mir den aktuellen Sprachreisekatalog '.(date('Y')).' kostenlos zu.<br /><img src="/styles/images/home/sprachreisen_mini.gif" alt="" /></label>'."\n";
+	#echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit" name="save" class="button" value="Account anmelden" />'."\n";
+	echo '			<input type="hidden" name="gewinnid" value="'.$_GET['gewinnid'].'" />'."\n";
+	echo '			<input type="hidden" name="openid" value="'.$_POST["openid"].'" />'."\n";	
+	echo '			<input type="hidden" name="partnerid" value="'.$_GET['partnerid'].'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+} else {
+	$reload_gedrueckt = $hDB->query('SELECT email FROM '.$database_db.'.nutzer WHERE email = \''.mysql_real_escape_string($_POST['email']).'\'',$praktdbmaster);
+	
+	//mehrfache Eintr�ge vermeiden, wenn reload gedr�ckt wird
+	if (mysql_num_rows($reload_gedrueckt) == 0) {
+		if ($_POST['homepage'] == 'http://') {
+			$_POST['homepage'] = '';
+		}
+		if (!empty($_POST['homepage'])) {
+			if (strlen($_POST['homepage']) > 7) {
+				$anfang = substr($_POST['homepage'],0,7);
+			} else {
+				$anfang = '';
+			}
+			
+			if ($anfang != 'http://') {
+				$homepage = 'http://'.$_POST['homepage'];
+			}
+		}
+	
+		$gebdat = intval($_POST['geb_jahr']).'-'.intval($_POST['geb_monat']).'-'.intval($_POST['geb_tag']);
+	
+		if ($_POST['anrede'] == 'Frau') {
+			$anrede1 = 'weiblich';
+		} else {
+			$anrede1 = 'm&auml;nnlich';
+		}
+
+		$sql = "SELECT id FROM prakt2.hochschulen WHERE MATCH (name,name_short) AGAINST ('".mysql_real_escape_string(str_replace(" "," +",$_POST['hochschule']))."' IN BOOLEAN MODE) ORDER BY MATCH (name,name_short) AGAINST ('".mysql_real_escape_string(str_replace(" "," +",$_POST['hochschule']))."' IN BOOLEAN MODE) DESC LIMIT 1";
+		$result = $hDB->query($sql, $praktdbslave);
+		$hochschule_id = @mysql_result($result, 0, "id");
+		
+		$akttime = time();
+
+		/* einfuegestring zusammensetzen */
+		$insertstring = 'INSERT INTO '.$database_db.'.nutzer (
+							inactive,
+							titel,
+							vname,
+							name,
+							strasse,
+							plz,
+							ort,
+							bundesland,
+							land,
+							landfest,
+							grossraum,
+							tel,
+							fax,
+							funktel,
+							email,
+							homepage,
+							geburtsdatum,
+							karierrestatus,
+							studiengang,
+							geschlecht,
+							anrede,
+							sprache,
+							hochschule,
+							hochschule_id,
+							start_praktikum_m,
+							start_praktikum_y,
+							start_job_m,
+							start_job_y,
+							semester,
+							host,
+							ip,
+							datum_eintrag,
+							passwort,
+							passwort_plain,
+							partnerid,
+							modify,
+							modifyunix,
+							lastlogin,
+							lastloginunix,
+							emailverify,
+							openid
+						) VALUES (
+							\'false\',
+							\''.mysql_real_escape_string($_POST['titel']).'\',
+							\''.mysql_real_escape_string($_POST['vname']).'\',
+							\''.mysql_real_escape_string($_POST['name']).'\',
+							\''.mysql_real_escape_string($_POST['strasse']).'\',
+							\''.mysql_real_escape_string($_POST['plz']).'\',
+							\''.mysql_real_escape_string($_POST['ort']).'\',
+							'.intval($_POST['bundesland']).',
+							'.intval($_POST['land']).',
+							'.intval($_POST['land']).',
+							'.intval($_POST['grossraum']).',
+							\''.mysql_real_escape_string($_POST['tel']).'\',
+							\''.mysql_real_escape_string($_POST['fax']).'\',
+							\''.mysql_real_escape_string($_POST['funktel']).'\',
+							\''.mysql_real_escape_string($_POST['email']).'\',
+							\''.mysql_real_escape_string($_POST['homepage']).'\',
+							\''.mysql_real_escape_string($_POST['birthdate']).'\',
+							'.intval($_POST['karierrestatus']).',
+							'.intval($_POST['studiengang']).',
+							\''.mysql_real_escape_string($anrede1).'\',
+							\''.mysql_real_escape_string($_POST['anrede']).'\',
+							'.intval($_SESSION['s_sprachid']).',
+							\''.mysql_real_escape_string($_POST['hochschule']).'\',
+							\''.(int)$hochschule_id.'\',
+							'.intval($_POST['start_praktikum_m']).',
+							'.intval($_POST['start_praktikum_y']).',
+							'.intval($_POST['start_job_m']).',
+							'.intval($_POST['start_job_y']).',
+							'.intval($_POST['semester']).',
+							\''.mysql_real_escape_string($host).'\',
+							\''.mysql_real_escape_string($ip).'\',
+							NOW(),
+							OLD_PASSWORD(\''.mysql_real_escape_string($_POST['passwort']).'\'),
+							\''.mysql_real_escape_string($_POST['passwort']).'\',
+							'.intval($_POST['partnerid']).',
+							NOW(),
+							'.intval($akttime).',
+							NOW(),
+							'.intval($akttime).',
+							"false",
+							
+							"'.mysql_real_escape_string($_POST["openid"]).'")';
+		
+		/* datensatz einfuegen */
+		$hDB->query($insertstring,$praktdbmaster);
+
+		/* id bestimmen */
+		$insert_id = mysql_insert_id($praktdbmaster);
+	
+		$updatestring = 'UPDATE '.$database_db.'.nutzer SET id_md5 = MD5(CONCAT(id,datum_eintrag)) WHERE id = '.intval($insert_id);
+		$hDB->query($updatestring,$praktdbmaster);
+	
+		if(!empty($_COOKIE["cookiekey"])) {
+			Praktika_Kcenter_Merkzettel::convertMerkzettel($_COOKIE["cookiekey"], $insert_id);
+		}  
+							
+# 		echo "SESSION:".$_SESSION["tmpMerkzettel_ids"]."<br />";
+		if(!empty($_SESSION["tmpMerkzettel_ids"])) {
+			/* Merkzettel �bergabe der ID's */
+			$ids = explode(",",$_SESSION["tmpMerkzettel_ids"]);
+			for($a = 0;$a < count($ids);$a++) {
+				$ids[$a] = (int)$ids[$a];
+			}
+			
+			// $sql = "SELECT stellenid FROM nutzerbookmark WHERE stellenid IN(".implode(",",$ids).") AND nutzerid = ".$_SESSION["s_nutzerid"]."";
+			#echo $sql."<br />";
+			$result = mysql_query($sql, $praktdbslave);
+			$doppelte = array();
+			/*while($row = mysql_fetch_assoc($result)) {
+				$doppelte[] = $row["stellenid"];
+			}*/
+			
+			foreach ($ids as $key => $value) {
+				if(in_array($value, $doppelte)) {
+					unset($ids[$key]);
+				}
+				$doppelte[] = $value;
+			}
+			var_dump($ids);
+			
+			$sql = "SELECT id, firmenid, spalte, bewerbungperonline FROM stellen WHERE id IN(".implode(",",$ids).")";
+			$stellen = mysql_query($sql, $praktdbslave);
+			#echo $sql."<br />";
+			$sql = "INSERT INTO nutzerbookmark (nutzerid, stellenid, firmenid, spalte, ordner, datum_eintrag, obewerbung_active) VALUES";
+			$values = array();
+			
+			while($row = mysql_fetch_assoc($stellen)) {
+				$values[] = "(".$insert_id.",".$row["id"].",".$row["firmenid"].",".$row["spalte"].",0,NOW(),'".$row["bewerbungperonline"]."')";
+			}
+			$sql .= implode(",", $values);
+		#	echo $sql."<br />";
+			mysql_query($sql);
+		}
+		
+		/* Logfile eintragen */
+		$fp = @fopen($logfile, 'a');
+		@fputs($fp, $insertstring);
+		@fputs($fp, "\n");
+		@fclose($fp);
+	
+		/* infomail zusammenbauen */
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(4);
+		
+		extract($_POST);
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace('{id}',$insert_id);
+		$emailobj->replace('{vname}',$vname);
+		$emailobj->replace('{name}',$name);
+		$emailobj->replace('{strasse}',$strasse);
+		$emailobj->replace('{plz}',$plz);
+		$emailobj->replace('{ort}',$ort);
+		$emailobj->replace('{land}',$land);
+		$emailobj->replace('{bundesland}',$bundesland);
+		$emailobj->replace('{grossraum}',$grossraum);
+		$emailobj->replace('{tel}',$tel);
+		$emailobj->replace('{fax}',$fax);
+		$emailobj->replace('{funktel}',$funktel);
+		$emailobj->replace('{email}',$email);
+		$emailobj->replace('{homepage}',$homepage);
+		$emailobj->replace('{gebdat}',$birthdate);
+		$emailobj->replace('{passwort}',$passwort);
+		$emailobj->replace('{host}',$host);
+		$emailobj->replace('{ip}',$ip);
+		$emailobj->replace('{karierrestatus}',$karierrestatus);
+		$emailobj->replace('{partnerid}',$s_partnerid);
+		$emailobj->replace('{browser}',$HTTP_USER_AGENT);
+		$emailobj->replace('{insertstring}',$insertstring);
+		
+		// infomail verschicken
+		$emailobj->send_email();
+		
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+	
+	
+		// neues Emailsystem nutzen
+		$aktstunde = date('H');
+		if ($aktstunde < 10) {
+			$begruessung = 'Guten Morgen';
+		} elseif ($aktstunde > 19) {
+			$begruessung = 'Guten Abend';
+		} else {
+			$begruessung = 'Hallo';
+		}
+	
+		$loginidemail = $_POST['email'];
+		$passwort = $_POST['passwort'];
+		require("/home/praktika/etc/login_bewerber.inc.php");
+		
+				
+		$begruessung .= ' '.$_POST['anrede'].' '.$_POST['name'];
+	
+		// Templatesystem vorbereiten
+		$verifykeyresults = $hDB->query('SELECT anrede, name, vname, email, id_md5 AS verifykey FROM '.$database_db.'.nutzer WHERE id = '.$insert_id,$praktdbmaster);
+	
+		// datensaetze gefunden ? //
+		$verifykeynum_rows = mysql_num_rows($verifykeyresults);
+	
+		if ($verifykeynum_rows > 0) {
+			$verifykeydaten = mysql_fetch_array($verifykeyresults);
+		}
+	
+		$emailobj = new emailtemplate(5);
+	
+		// Ersetzungen durchf&uuml;hren
+		$mailto = $_POST['email'];
+		$emailobj->replace('{ansprache}',$begruessung);
+		$emailobj->replace('{email}',$_POST['email']);
+		$emailobj->replace('{id}',$insert_id);
+		$emailobj->replace('{verifykey}',$verifykeydaten['verifykey']);
+	
+		if (!isset($_POST['passwd'])) {
+			$emailobj->replace('{passwort}',$passwort);
+		} else {
+			$emailobj->replace('{passwort}',$language['strVerschluesselt']);
+		}
+		// Bestaetigunsmail verschicken
+		$emailobj->send_email($mailto);
+		
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+	
+		/* einfuegestring zusammensetzen */
+		$insertstring2 = '	INSERT INTO '.$database_db.'.nutzer_prop_assign (
+								nutzerid,
+								agb,
+								datum_eintrag,
+								modify
+							) VALUES(
+								'.intval($insert_id).',
+								\''.mysql_real_escape_string($_POST['agbok']).'\',
+								NOW(),
+								NOW())';
+	
+		/* datensatz einfuegen */
+		$hDB->query($insertstring2,$praktdbmaster);
+	
+		/* Nutzer f&uuml;r Empfehlungsprogramm umtragen */
+		$updatestring = 'UPDATE '.$database_partner.'.empfehlungen SET nutzerid = \''.intval($insert_id).'\' WHERE email = \''.mysql_real_escape_string($_POST['email']).'\'';
+		$hDB->query($updatestring,$praktdbmaster);
+	
+		if (mysql_affected_rows($praktdbmaster) == 0 && isset($_POST['partnerid']) && !empty($_POST['partnerid'])) {
+			$sql = 'INSERT INTO '.$database_partner.'.empfehlungen (
+						partnerid,
+						anrede,
+						name,
+						vname,
+						strasse,
+						plz,
+						ort,
+						land,
+						telefon_handy,
+						email,
+						produkt,
+						datum_eintrag
+					) VALUES (
+						'.intval($_POST['partnerid']).',
+						\''.mysql_real_escape_string($_POST['anrede']).'\',
+						\''.mysql_real_escape_string($_POST['name']).'\',
+						\''.mysql_real_escape_string($_POST['vname']).'\',
+						\''.mysql_real_escape_string($_POST['strasse']).'\',
+						\''.mysql_real_escape_string($_POST['plz']).'\',
+						\''.mysql_real_escape_string($_POST['ort']).'\',
+						\''.intval($_POST['land']).'\',
+						\''.mysql_real_escape_string($_POST['funktel']).'\',
+						\''.mysql_real_escape_string($_POST['email']).'\',
+						\'allgemein\',
+						NOW())';
+			$hDB->query($updatestring, $praktdbmaster);
+		}
+	
+		// Affilliate Programme ausf&uuml;hren
+		require_once(SERVER_ROOT."/etc/register_bewerber.inc.php");
+		
+		/* $praktort datensatz in $database_community einfuegen */
+		if (isset($_POST['praktort']) && !empty($_POST['praktort'])) {
+			$georesult = geocoding($_POST['praktland'],'','',$_POST['praktort'],'');
+			
+			if ($georesult['lat'] != 0 && $georesult['long'] != 0) {
+				$end_praktikum_m = $_POST['start_praktikum_m'] + 5;
+				$end_praktikum_y = $_POST['start_praktikum_y'];
+				
+				if ($end_praktikum_m > 12) {
+					$end_praktikum_m = $end_praktikum_m - 12;
+					$end_praktikum_y++;
+				}
+		
+				$sql = 'INSERT INTO stationlist (
+							nutzerid,
+							category,
+							landid,
+							ort,
+							start_praktikum_m,
+							start_praktikum_y,
+							start_praktikum,
+							end_praktikum_m,
+							end_praktikum_y,
+							end_praktikum,
+							long,
+							lat,
+							datum_eintrag
+						) VALUES (
+							'.intval($insert_id).',
+							2,
+							\''.mysql_real_escape_string($_POST['praktland']).'\',
+							\''.ucfirst($praktort).'\',
+							'.intval($start_praktikum_m).',
+							'.intval($start_praktikum_y).',
+							'.strtotime(intval($start_praktikum_y).'-'.intval($start_praktikum_m).'-01').',
+							'.intval($end_praktikum_m).',
+							'.intval($end_praktikum_y).',
+							'.strtotime(intval($end_praktikum_y).'-'.intval($end_praktikum_m).'-30').',
+							'.floatval($georesult['long']).',
+							'.floatval($georesult['lat']).',
+							UNIX_TIMESTAMP())';
+				mysql_db_query($database_community,$sql,$praktdbmaster);
+			}
+		}
+	
+		/* Wohnort datensatz in $database_community einfuegen */
+		if (!empty($_POST['ort'])) {
+			$georesult = geocoding($_POST['land'],($_POST['bundesland'] == '%' ? '' : $_POST['bundesland']),$_POST['plz'],$_POST['ort'],$_POST['strasse']);
+			
+			if ($georesult['lat'] == 0 && $georesult['long'] == 0) {
+				$georesult = geocoding($_POST['land'],'','',$_POST['ort'],'');
+			}
+			
+			if ($georesult['lat'] != 0 && $georesult['long'] != 0) {
+				$end_praktikum_m = $_POST['start_praktikum_m'] + 5;
+				$end_praktikum_y = $_POST['start_praktikum_y'];
+				
+				if ($end_praktikum_m > 12) {
+					$end_praktikum_m = $end_praktikum_m - 12;
+					$end_praktikum_y++;
+				}
+		
+		 		$sql = 'INSERT INTO stationlist (
+		 					nutzerid,
+		 					category,
+		 					landid,
+		 					bundeslandid,
+		 					plz,
+		 					ort,
+		 					strasse,
+		 					start_praktikum_m,
+		 					start_praktikum_y,
+		 					start_praktikum,
+		 					end_praktikum_m,
+		 					end_praktikum_y,
+		 					end_praktikum,
+		 					long,
+		 					lat,
+		 					datum_eintrag
+		 				) VALUES (
+		 					'.intval($insert_id).',
+		 					8,
+		 					'.intval($land).',
+		 					'.intval($bundesland).',
+		 					\''.mysql_real_escape_string($_POST['plz']).'\',
+		 					\''.mysql_real_escape_string(ucfirst($_POST['ort'])).'\',
+		 					\''.mysql_real_escape_string($_POST['strasse']).'\',
+		 					'.intval($start_praktikum_m).',
+		 					'.intval($start_praktikum_y).',
+		 					\''.strtotime(intval($start_praktikum_y).'-'.intval($start_praktikum_m).'-01').'\',
+		 					'.intval($end_praktikum_m).',
+		 					'.intval($end_praktikum_y).',
+		 					\''.strtotime(intval($end_praktikum_y).'-'.intval($end_praktikum_m).'-30').'\',
+		 					'.floatval($georesult['long']).',
+		 					'.floatval($georesult['lat']).',
+		 					UNIX_TIMESTAMP());';
+				mysql_db_query($database_community,$sql,$praktdbmaster);
+			}
+		}
+	}
+
+	pageheader(array('page_title' => 'Bewerberanmeldung', 'jqueryui' => 'true'));
+
+	Praktika_Static::__("anmeldung");
+	
+	echo '<p>Vielen Dank f&uuml;r Ihre Registrierung auf praktika.de.</p><br />'."\n";
+	echo '<table summary="Zugangsdaten" style="margin-bottom: 15px;">'."\n";
+	echo '	<colgroup>'."\n";
+	echo '		<col />'."\n";
+	echo '		<col />'."\n";
+	echo '	</colgroup>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">'.$language['strZugangsdaten'].'</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Identifikationnummer:</td>'."\n";
+	echo '		<td>'.$insert_id.'</td>'."\n";
+	echo '	</tr>'."\n";
+
+	if (isset($_POST['passwd'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>Passwort:</td>'."\n";
+		echo '		<td>wird per eMail gesendet</td>'."\n";
+		echo '	</tr>'."\n";
+	} else {
+		echo '	<tr>'."\n";
+		echo '		<td>Passwort:</td>'."\n";
+		echo '		<td>wird nicht per eMail gesendet</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">'.$language['strIhre'].'</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strTitel2'].':</td>'."\n";
+	echo '		<td>'.$_POST['titel'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strVorname'].':</td>'."\n";
+	echo '		<td>'.$_POST['vname'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strName'].':</td>'."\n";
+	echo '		<td>'.$_POST['name'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strStrasse'].':</td>'."\n";
+	echo '		<td>'.$_POST['strasse'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strPlzOrt'].':</td>'."\n";
+	echo '		<td>'.$_POST['plz'].' '.$_POST['ort'].'</td>'."\n";
+	echo '	</tr>'."\n";
+
+	if (isset($_POST['tel']) && !empty($_POST['tel'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strTelefon'].':</td>'."\n";
+		echo '		<td>'.$_POST['tel'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+	
+	if (isset($_POST['fax']) && !empty($_POST['fax'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strFax'].':</td>'."\n";
+		echo '		<td>'.$_POST['fax'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+	
+	if (isset($_POST['funktel']) && !empty($_POST['funktel'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strHandy'].':</td>'."\n";
+		echo '		<td>'.$_POST['funktel'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strMAIL'].':</td>'."\n";
+	echo '		<td>'.$_POST['email'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	
+	if (isset($_POST['homepage']) && !empty($_POST['homepage'])) {
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strURL'].':</td>'."\n";
+		echo '		<td>'.$_POST['homepage'].'</td>'."\n";
+		echo '	</tr>'."\n";
+	}
+	
+	echo '</table>'."\n";
+	echo '<p class="control_panel"><a href="/karriere/" class="button">weiter zu Mein PRAKTIKA</a></p>'."\n";
+}
+
+$_SESSION['sidebar'] = '';
+?><script type="text/javascript">P_Framework.write();</script><?
+bodyoff(); ?>

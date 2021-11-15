@@ -1,0 +1,105 @@
+<?php
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+$hDB = new Praktika_Db();
+
+if(empty($_SESSION['s_firmenid'])) {
+	die("No Access");
+}
+
+$_SESSION['s_firmenproparray']['lastPage'] = 'firmendaten/abo_kuendigen';
+
+$error = 0;
+
+if (isset($_POST['kuendigen'])) {
+	if (!isset($_POST['grund'])) {
+		$error++;
+		
+		echo '<p class="hint error">Bitte geben Sie einen Grund f&uuml;r die K&uuml;ndigung an!</p>'."\n";
+	} else {
+		$_POST['kuendigungsgrund'] = '';
+		
+		foreach ($_POST['grund'] as $key => $value) {
+			$_POST['kuendigungsgrund'] .= $key.',';
+		}
+		
+		$_POST['kuendigungsgrund'] = substr($_POST['kuendigungsgrund'], 0, (strlen($_POST['kuendigungsgrund']) - 1));
+	}
+}
+
+if (isset($_POST['kuendigen']) && $_POST['art'] == '1' && $error == 0) {
+	$kuendigung = new Praktika_Firmen_Kuendigung();
+
+	if ($kuendigung->checkBuchung() == true) {
+		if ($kuendigung->kuendigung() == true) {
+			echo '<p class="hint success">Ihre K&uuml;ndigung des Abonnements wird zum <strong>'.$kuendigung->zeitpunktKuendigung2.'</strong> wirksam. Sie haben eine Best&auml;tigungs-eMail an die Adresse <strong>'.$kuendigung->emailEmpfaenger.'</strong> erhalten.</p>'."\n";
+		} else {
+			echo '<p class="hint error"></p>'."\n";
+		}
+	} else {
+		echo '<p class="hint error">Es liegt keine Buchung f&uuml;r ein Abonnement vor.</p>'."\n";
+	}
+
+	echo '<p class="control"><a href="#" class="button small alternative" onclick="loadContent(\'firmendaten/mitgliedschaft_managen\'); return false;">zur&uuml;ck</a></p>'."\n";
+} elseif (isset($_POST['kuendigen']) && $_POST['art'] == '2' && $error == 0) {
+	$loeschung = new Praktika_Firmen_Management();
+
+	$loeschung->loeschen();
+} else {
+	if ($_SESSION['s_firmenlevel'] == 1) {
+		$paket = 'BASIS';
+	} elseif ($_SESSION['s_firmenlevel'] == 2) {
+		$paket = 'KOMFORT';
+	} elseif ($_SESSION['s_firmenlevel'] == 3) {
+		$paket = 'PREMIUM';
+	} 
+	echo '<h4>'.($_POST['art'] == '2' ? 'Firmenaccount unwiderruflich l&ouml;schen' : 'Firmenabonnement '.$paket.' k&uuml;ndigen').'</h4>'."\n";
+	echo '<p>Wir bedauern sehr, dass Sie Ihr'.($_POST['art'] == '2' ? 'en Account unwiderruflich l&ouml;schen' : ' Abonnement k&uuml;ndigen').' m&ouml;chten.</p>'."\n";
+	echo '<p>Da wir bestrebt sind, unseren Kunden den bestm&ouml;glichen Service zu bieten, teilen Sie uns bitte den Grund der '.($_POST['art'] == '2' ? 'Accountl&ouml;schung' : 'K&uuml;ndigung').' mit.</p>'."\n";
+	
+	echo '<form action="/recruiting/?m=firmendaten/abo_kuendigen" method="post" name="stammdaten">'."\n";
+	echo '	<fieldset>'."\n";
+	
+	$sql = 'SELECT * FROM prakt2.kuendigungsgruende ORDER BY id ASC';
+	$result = mysql_query($sql, $praktdbslave);
+
+	echo '		<p class="checkboxes">'."\n";
+	echo '			<label for="kuendigungsgrund" class="first_text'.((isset($_POST['kuendigen']) && $error != 0) ? ' error' : '').'">Grund der '.($_POST['art'] == '2' ? 'Accountl&ouml;schung' : 'K&uuml;ndigung').':</label>'."\n";
+	echo '			<span class="checklist">'."\n";
+	
+	$i = 0;
+	
+	while ($gruende = mysql_fetch_assoc($result)) {
+		echo '			<label class="komplette_breite"><input type="checkbox" name="grund['.$gruende['id'].']"'.($i == 0 ? ' id="kuendigungsgrund"' : '').' /> '.$gruende['grund'].'</label>'."\n";
+		$i++;
+	}
+	
+	echo '			</span>'."\n";
+	echo '		</p>'."\n";
+	
+	echo '		<p>'."\n";
+	echo '			<label for="kommentar">Kommentar:</label>'."\n";
+	echo '			<textarea id="kommentar" name="kommentar" rows="5" cols="5"></textarea>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit" class="button small red" name="kuendigen" value="K&uuml;ndigung senden" value="'.($_POST['art'] == '2' ? 'Account l&ouml;schen' : 'K&uuml;ndigung senden').'" />'."\n";
+	echo '			<input type="hidden" name="art" value="'.$_POST['art'].'" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+	echo '<p><a href="#" class="button small alternative" onclick="loadContent(\'firmendaten/mitgliedschaft_managen\'); return false;">zur&uuml;ck</a></p>'."\n";
+}
+?>

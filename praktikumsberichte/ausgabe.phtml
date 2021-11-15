@@ -1,0 +1,267 @@
+<?
+require("/home/praktika/etc/config.inc.php");
+
+$_SESSION['current_page'] = PAGE_INTERNSHIP_REPORTS;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = "default";
+
+$_REQUEST['firmen'] = intval($_REQUEST['firmen']);
+
+mysql_select_db ($database_db,$praktdbslave);
+$result = mysql_db_query($database_db,'SELECT firma FROM firmen WHERE id = ' . intval($_REQUEST['firmen']) ,$praktdbslave);
+
+$results = mysql_db_query($database_db,'SELECT praktberichte.*, branchen.german as branche_german FROM praktberichte LEFT JOIN prakt2.branchen ON(branchen.id = praktberichte.branche)WHERE inactive = \'false\' AND firmenid = \''.intval($_REQUEST['firmen']).'\' ORDER BY praktberichte.datum_eintrag DESC',$praktdbslave);
+
+if ($results && mysql_num_rows($results) > 0 ) {
+	$fimenname = mysql_result($results,0,'firma');
+}
+
+// uebergabevariablen konvertieren //
+if (isset($_REQUEST['ds_count'])) {
+	$ds_count = intval($_REQUEST['ds_count']);
+}
+if (isset($_REQUEST['ds_pro_seite'])) {
+	$ds_pro_seite = intval($_REQUEST['ds_pro_seite']);
+} else {
+	$ds_pro_seite = 1;
+}
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows($results);
+
+if ($num_rows > 0) {
+	pageheader(array('page_title' => 'Praktikumsbericht: '.$fimenname));
+
+	Praktika_Static::__('praktikumsberichte');
+	
+	// erste seite? //
+	if (!isset($ds_count)) {
+		$ds_count = 0;
+	}
+	$ds_value = $ds_count;
+
+	// datensaetze pro seite ueberpruefen und setzen //
+	if ($ds_pro_seite != 5 || $ds_pro_seite != 10 || $ds_pro_seite != 20) {
+		$ds_pro_seite = 1;
+	}
+	$anzahlBerichte = mysql_num_rows($results);
+	echo '<p>Bericht '.($ds_count + 1).' von '.mysql_num_rows($results).'</p>'."\n";
+
+	/* Datensaetze anzeigen */
+	mysql_data_seek($results, $ds_count);
+
+	$end_ds = $ds_count + $ds_pro_seite;
+	
+	while ($ds_count < $end_ds && $result_row = mysql_fetch_array($results)) {
+		$branchenid = $result_row['branche'];
+		$branche = mysql_db_query($database_db,'SELECT id, '.$_SESSION['s_sprache'].' FROM branchen WHERE id = '.$branchenid,$praktdbslave);
+		
+		$landid = $result_row['land'];
+		$land = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].', id FROM land WHERE id = '.$landid,$praktdbslave);
+
+		if ($result_row['public'] == 'true') {
+			$result = mysql_db_query($database_db,'SELECT anrede, vname, name FROM nutzer WHERE id = '.$result_row['nutzerid'],$praktdbslave);
+			
+			if (mysql_num_rows($result) > 0) {
+				$anrede = mysql_result($result,0,'anrede').' '.mysql_result($result,0,'vname').' '.mysql_result($result,0,'name');
+			} else {
+				$anrede = 'anonym';
+			}
+		} else {
+			$anrede = 'anonym';
+		}
+	?>
+
+    <h4>I. Unternehmensdaten:</h4>
+	<table>
+		<colgroup>
+			<col width="50%" />
+			<col width="50%" />
+		</colgroup>
+		<tr>
+			<td><strong>Firma:</strong></td>
+			<td><?php echo $result_row['firma']; ?></td>
+		</tr>
+		<tr>
+			<td><strong>Branche:</strong></td>
+			<td><?php echo mysql_result($branche,0,$_SESSION['s_sprache']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>Strasse:</strong></td>
+			<td><?php echo $result_row['strasse']; ?></td>
+		</tr>
+		<tr>
+			<td><strong>PLZ, Ort:</strong></td>
+			<td><?php echo $result_row['plz'].' '.$result_row['ort']; ?></td>
+		</tr>
+		<tr>
+			<td><strong>Land:</strong></td>
+			<td><?php echo mysql_result($land,0,$_SESSION['s_sprache']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>Name des Praktikumsbeauftragten:</strong></td>
+			<td><?php echo $result_row['pbeauftragter']; ?></td>
+		</tr>
+		<tr>
+			<td><strong>Datum des Praktikumsberichts:</strong></td>
+			<td><?php echo strftime('%x',strtotime($result_row['datum_eintrag'])); ?><br /><br /></td>
+		</tr>
+	</table>
+    <h4>II. Ihre Bewertung des Praktikums:</h4>
+	<table class="bericht">
+		<colgroup>
+			<col width="50%" />
+			<col width="50%" />
+		</colgroup>
+		<tr>
+			<td><strong>1. Zeitraum bzw. Dauer des Praktikums:</strong></td>
+			<td><?php echo nl2br($result_row['dauer']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>2. Bezahlung:</strong></td>
+			<td><?php echo nl2br($result_row['bezahlung']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>3. Wie sind Sie auf die Praktikumsstelle aufmerksam geworden?</strong></td>
+			<td><?php echo nl2br($result_row['aufmerksam']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>4. Wie lief das Bewerbungs- und Auswahlverfahren ab?</strong></td>
+			<td><?php echo nl2br($result_row['auswahlverfahren']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>5. Was waren Ihre Verantwortungsbereiche und Aufgaben w&auml;hrend des Praktikums?</strong></td>
+			<td><?php echo nl2br($result_row['aufgaben']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>6. In welcher Art und Weise standen Ihnen Ressourcen, Betreuer, Informationsquellen etc. zur Verf&uuml;gung?</strong></td>
+			<td><?php echo nl2br($result_row['betreuer']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>7. Wie w&uuml;rden Sie das Praktikum bewerten? Welche Erwartungen wurden erf&uuml;llt bzw. nicht erf&uuml;llt?</strong></td>
+			<td><?php echo nl2br($result_row['bewerten']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>8. Stellt das Unternehmen auch zuk&uuml;nftig Praktikumspl&auml;tze zur Verf&uuml;gung? Welche Tipps geben Sie zuk&uuml;nftigen Bewerbern?</strong></td>
+			<td><?php echo nl2br($result_row['zukuenftig']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>9. Gesamtbewertung:</strong></td>
+			<td><?php echo nl2br($result_row['bewertung']); ?></td>
+		</tr>
+		<tr>
+			<td><strong>verfasst von:</strong></td>
+			<td><?php echo $anrede; ?></td>
+		</tr>
+	</table>
+	<p><strong>War dieser Praktikumsbericht hilfreich f&uuml;r Sie? Jetzt abstimmen!</strong></p>
+	<table class="bericht">
+		<colgroup>
+			<col width="50%" />
+			<col width="50%" />
+		</colgroup>
+		<tr>
+			<td>Bisherige Bewertungen:</td>
+			<td>
+				<span onmouseover="setStar(0);">nein</span>&nbsp;&nbsp;<?php 
+				for($a = 0;$a < round($result_row["rating"]);$a++) {
+					?>
+					<img style="margin-bottom:-3px;cursor:pointer;" src='/styles/images/icons/stern_on.gif' id='star_<?php echo $a+1 ?>' onclick="rate(<?php echo $a+1?>);" onmouseover="setStar(<?php echo $a+1?>);" alt='2 Sterne' />
+					<?php 
+				}
+				for($a = round($result_row["rating"]);$a < 5; $a++) {
+					?>
+					<img style="margin-bottom:-3px;cursor:pointer;" src='/styles/images/icons/stern_off.gif' id='star_<?php echo $a+1 ?>' onclick="rate(<?php echo $a+1?>);" onmouseover="setStar(<?php echo $a+1?>);" alt='2 Sterne' />
+					<?php 
+				}			
+				?>
+				&nbsp;&nbsp;ja<br /><br />
+				<b><?php echo round($result_row["rating"],1); ?></b> <span style="font-size:10px;">Sterne  bei <?php echo $result_row["votes"]; ?> Bewertungen</span>
+			</td>
+		</tr>	
+	</table>
+	<script type="text/javascript" src="/scripts/microajax.js"></script>
+	<script type='text/javascript'>
+		var voted = false;
+
+		function setStar(rate) {
+			for(a = 1; a <= rate + 1; a++) {
+				if(a < 6) {
+					document.getElementById('star_' + a).src = "/styles/images/icons/stern_on.gif";
+				}
+			}
+			for(a = rate + 1; a <= 5; a++) {
+				document.getElementById('star_' + a).src = "/styles/images/icons/stern_off.gif";
+			}
+		}	
+		function rate(rate) {
+			if(voted == true) return;
+			voted = true;
+			xhr("/praktikumsberichte/bewertung.php", "bewertung=" + rate + "&bID=<?=$result_row['id'] ?>", function(text) {
+				$('rating_tr').style.display="none";
+				$('rating_tr').parentNode.removeChild($('rating_tr'));
+				setStar = "";
+			});
+		}
+	</script>
+	<br />
+	<?php
+	
+		$ds_count += 1;
+	}
+
+
+	if ($ds_count < $num_rows) {
+	?>
+	
+	<p><a href="<?php echo $_SERVER['PHP_SELF'] ?>?ds_count=<? echo $ds_count; ?>&ds_pro_seite=<? echo $ds_pro_seite ?>&ds_value=<? echo $ds_value ?>&firmen=<? echo intval($_REQUEST['firmen']) ?>">&raquo; n&auml;chster Praktikumsbericht von <?php echo $fimenname; ?></a></p>
+
+	<?
+	}	
+
+	for ($a = 0;$a < $anzahlBerichte;$a++) {
+		echo ($a+1).". <a href='".$_SERVER['PHP_SELF']."?ds_count=".($a)."&ds_pro_seite=".$ds_pro_seite."&ds_value=".($ds_value)."&firmen=".$_REQUEST['firmen']."'>Praktikumsbericht: ".htmlentities($fimenname)." - ".mysql_result($results,$a,"branche_german")."</a><br />";	
+	}
+	if ($ds_count > $ds_pro_seite) { ?>
+
+	<br /><br />
+	<div style="">
+	<a href="<?php echo $_SERVER['PHP_SELF'] ?>?ds_count=<? echo ($ds_value-$ds_pro_seite); ?>&ds_pro_seite=<? echo $ds_pro_seite ?>&ds_value=<? echo $ds_value ?>&firmen=<? echo $_REQUEST['firmen'] ?>">zur&uuml;ck</a> | <a href="/praktikumsberichte/ergebnisse.phtml"><span><span><span>Praktikumsberichte anderer Unternehmen</span></span></span></a>
+	</div><br />
+
+	<?php
+	} else {
+	?>
+
+	<br /><br />
+	<p><a class="button small alternative" href="/praktikumsberichte/ergebnisse.phtml">Praktikumsberichte anderer Unternehmen</a></p>
+	
+	<?php
+	
+	}
+
+	if ($ds_count == $num_rows && $ds_count > 5) {
+	
+	}
+} else { ?>
+	<script type="text/javascript"/">
+	<!--
+		function Eintragen() {
+			top.window.location = '/praktikumsberichte/?schritt=2&firmensel=<? echo $firmen; ?>';
+		}
+	//-->
+	</script>
+
+	<?php
+	pageheader(array('page_title' => 'Keinen Praktikumsbericht gefunden!'));
+	?>
+
+	<p>F&uuml;r die gew&uuml;nschte Firma ist bisher kein Praktikumsbericht geschrieben worden. Sie k&ouml;nnen der Erste sein, der einen Bericht zu diesem Unternehmen schreibt. Welche Praxis-Erfahrung haben Sie mit diesem Unternehmen gemacht?</p>
+	<p class="control_panel"><a href="javascript: top.location.reload();" class="button small alternative">Fenster schlie&szlig;en</a></p>
+	<p class="control_panel"><a href="javascript: Eintragen();" class="button buttton2 small">Praktikumsbericht eintragen</a></p>
+
+	<?php
+}
+
+bodyoff();
+?>

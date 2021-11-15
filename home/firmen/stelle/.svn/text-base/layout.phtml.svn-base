@@ -1,0 +1,460 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$result = mysql_db_query($database_db, 'SELECT COUNT(id) AS anzahl FROM stellen WHERE firmenid = '.$_SESSION["s_firmenid"].' AND deleted=\'false\'', $praktdbslave);
+$row = mysql_fetch_array($result);
+$anzahl = $row['anzahl'];
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+// Stelle schon vorhanden?
+if ( empty($_SESSION["neueStellenId"]) && empty($_GET["id"])) {
+	$job = array();
+
+	// Premium-Kunden werden immer durchgelassen
+	if($firmenlevel < 3) {
+			
+			$hasto_firmenlevel = 0;
+			// Wenn mehr als oder 20 Stellen angelegt sind, wird Premium benötigt
+			if($anzahl >= 21) {
+				$hasto_firmenlevel = 3;				
+			// Wenn mehr als oder 3 Stellen angelegt sind, wird Komfort benötigt
+			} elseif($anzahl >= 4) {
+				$hasto_firmenlevel = 2;		
+			// Wenn mehr als oder 1 Stelle angelegt sind, wird Basis benötigt		
+			} elseif($anzahl >= 1) {
+				$hasto_firmenlevel = 1;					
+			// Es wurde noch keine
+			}
+			
+			// Wenn mein Firmenlevel nicht ausreicht um diese Stellen online zu schalten, dann -> Buchung
+			if($_SESSION["s_firmenlevel"] < $hasto_firmenlevel) {
+				$_SESSION["chosen_firmenlevel"] = $hasto_firmenlevel;
+				
+				header('Location: /firmen/stelle/buchung/');
+				exit();		
+			}
+		
+	}	
+	
+	// LAYOUT
+	// Standard-Template
+	$job["templateid"] = 1;
+	
+	// STELLENART & KATEGORIE
+	// Definition der Mustertexte
+	// Praktikum
+	$job["spalte"] = 1;
+	$job["stichwort"] = 'z. B. Deutsch, Englisch, Web-Programmierer, MySQL, PHP, ...';
+	// Mindestqualifikation
+	$job["qualifikation"] = 3;
+	$job["studienrichtung"] = 2;
+	$job["berufsfeld"] = 5;
+	$job["beschaeftigung"] = '';
+	$job["position"] = '';
+	// Beginn der Taetigkeit
+	$job["von_monat"] = (date("m") > 10) ? ( (date("m") + 2) % 12 ) : (date("m") + 2);
+	$job["von_jahr"] = (date("m") > 10) ? (date("Y") + 1) : date("Y");
+	// Dauer der Taetigkeit
+	$job["zeitraum"] = '6 Monate';
+	
+	// INHALT
+	$job["jobcode"] = '';
+	$job["taetigkeit"] = 'Praktikum'.($anzahl+1).' im Bereich Produkt-Management';
+	$job["subtitle"] = 'am Standort Berlin';
+	$job["firmeninfosHead"] = 'Zu unserem Unternehmen';
+	$job["firmentaetigkeitHead"] = 'Das kommt auf Sie zu';
+	$job["firmenqualiHead"] = 'Ihr Profil';
+	$job["firmenperspHead"] = 'Unsere Leistungen';
+	$job["firmenkontaktHead"] = 'Kontaktaufnahme';
+	$job["firmeninfos"] = 'Wir sind ein innovatives und expandierendes Medienunternehmen. Als führender Dienstleister in diesem Bereich liegt unser Focus auf Kunden-Lösungen.';
+	$job["firmentaetigkeit"] = 'Ihre Aufgabe ist die Unterstützung der Manager bei der Strategieplanung und -umsetzung. In der Regel werden immer kleine Projekte vergeben, an denen Sie selbstständig arbeiten können. Den wesentlichen Teil der Tätigkeit bilden die Analysen sowie die Erstellung betriebswirtschaftlicher Auswertungen. Des Weiteren sind Sie zuständig für die Verwaltung und Strukturierung der benötigten Datenbasis. Außerdem stellt die Vorbereitung von Präsentationen der Projektergebnisse in turnusmäßigen Managementpräsentationen einen wichtigen Tätigkeitsbereich dar. Darüber hinaus soll dem Praktikant Gelegenheit gegeben werden, die Aufgabengebiete benachbarter Bereiche kennenzulernen sowie von der Lehranstalt vorgeschriebene Praktikumsberichte etc. anzufertigen.';
+	$job["firmenquali"] = '- immatrikulierter Student (m/w) folgender oder vergleichbarer Studiengänge:
+Betreibeswirtschaft<br />
+- gute Deutsch- und Englisch-Kenntnisse<br />
+- sehr gute Kenntnisse der gängigen MS Office-Anwendungen (Excel, Word, PowerPoint, Access)<br />
+- Teamfähigkeit und Zuverlässigkeit<br />
+- Eigeninitiative und Einsatzbereitschaft<br />
+- eigenverantwortliche und selbständige Arbeitsweise';
+	$job["firmenpersp"] = '- Wir sind ein junges, dynamisches Team, in dem eigenständiges Arbeiten gefördert wird<br />
+- Wir bieten verantwortungsvolle Mitarbeit in Projekten für weltweit agierende Unternehmen<br />
+- Unsere Mitarbeiter werden fortwährend weiterqualifiziert, die Umsetzung erfolgt direkt im Projekt<br />
+- Wir bieten die Möglichkeit, in Führungsaufgaben hineinzuwachsen<br />
+- Wir sind loyal, zuverlässig und verantwortungsbewusst unseren Kunden sowie Mitarbeitern gegenüber';
+	$job["link_anzeige"] = '';
+	$job["link_bewerbung"] = '';
+	$job["beschreibung"] = 'Als Dauer für ein solches Praktikum sehen wir Idealerweise 3 bis 6 Monate vor. Bitte nutzen Sie für Ihre Bewerbung das Online-System von praktika.de. Wir freuen uns auf Ihre Bewerbung.';
+	$job["entgelt"] = 'Diese Stelle wird monatlich vergütet.';
+	
+	// Daten der Firma auslesen
+	$sql = sprintf("SELECT
+						CONCAT(firma, '\n', strasse, '<br />', plz, ' ', ort, '<br />E-Mail: ', email, '<br />Telefon: ', tel, '<br />Fax: ', fax, '<br />Webseite: ', homepage) AS firmenkontakt,
+						land, 
+						bundesland, 
+						grossraum, 
+						ort AS einsatzort, 
+						branche
+					FROM
+						firmen
+					WHERE
+						id = %d",
+					intval($_SESSION['s_firmenid']) );
+	//echo $sql;
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+	//var_dump($row);
+	foreach ($row as $key => $value) {
+		$job[$key] = $value;
+	}
+	
+	// Daten des Bearbeiters auslesen
+	$sql = sprintf("SELECT
+						email AS email_bewerbung, 
+						tel AS tel_bewerbung
+					FROM
+						bearbeiter
+					WHERE
+						id = %d",
+					intval($_SESSION['s_loginid']) );
+	//echo $sql;
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+	//var_dump($row);
+	foreach ($row as $key => $value) {
+		$job[$key] = $value;
+	}
+	
+	$sqlString = '';
+	foreach ($job as $key => $value) {
+		$sqlString .= $key." = '".mysql_real_escape_string($value)."', \n";
+	}
+	
+	// Stelle in DB einfuegen
+	$sql = sprintf("INSERT INTO 
+						stellen
+					SET
+						inactive = 'true',
+						bearbeiterid = %1\$d,
+						firmenid = %2\$d, 
+						sprache = %3\$d, 
+						%4\$s
+						ansprechpartnerid = '%5\$s',
+						host = '%6\$s',
+						ip = '%7\$s',
+						datum_eintrag = NOW()",
+					intval($_SESSION['s_loginid']),
+					intval($_SESSION['s_firmenid']),
+					intval($_SESSION['s_sprachid']),
+					$sqlString,
+					intval($_SESSION['s_loginid']),
+					mysql_real_escape_string($host),
+					mysql_real_escape_string($ip));
+	//echo $sql;
+	mysql_db_query($database_db, $sql, $praktdbmaster);
+	$templateid = $job["templateid"];
+	$_GET["id"] = mysql_insert_id();
+	$_SESSION["neueStellenId"] = $_GET["id"];
+	$type = 1;
+} else {
+	$id = intval($_GET["id"]);
+	// Template-Id bestimmen
+	$sql = sprintf("SELECT
+						link_anzeige_abfr, 
+						templateid
+					FROM
+						stellen
+					WHERE
+						id = %d",
+					$id );
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	$row = mysql_fetch_assoc($result);
+	$extern = $row["link_anzeige_abfr"];
+	$templateid = intval($row["templateid"]);
+	if ($extern == 'true') {
+		$type = 3;
+	} else {
+		// Art des Templates bestimmen
+		$sql = sprintf("SELECT
+							isStandard,
+							isVideo,
+							isEigenes
+						FROM
+							stellentemplates
+						WHERE
+							id = %d",
+						$templateid );
+		$result = mysql_db_query($database_db, $sql, $praktdbslave);
+		$row = mysql_fetch_assoc($result);
+		if ($row["isStandard"] == 'true') {
+			$type = 1;
+		} elseif ($row["isVideo"] == 'true') {
+			$type = 2;
+		} elseif ($row["isEigenes"] == 'true') {
+			$type = 4;
+		} else {
+			$type = 1;
+		}
+	}
+
+}
+
+if(empty($_GET["id"])) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/firmen/angeboteliste/');
+}
+
+$checked = false;
+//var_dump($_SERVER);
+$firmenlevel = isset($_SESSION['chosen_firmenlevel']) ? $_SESSION['chosen_firmenlevel'] : intval($_SESSION['s_firmenlevel']);
+
+if( !$checked ) {
+	#var_dump($_POST);
+	pageheader( array('page_title' => 'Layout ausw&auml;hlen') );
+	
+?>
+<div id="stellenLayout">
+<form action="/firmen/stelle/category/<?php echo $_GET["id"] ?>/" method="post" name="layout">
+      <span class="layoutTypeButton" style="width:8em;">Template<br />Kategorie:</span>
+      <span class="layoutTypeButton"><a href="#1" onclick="show(1)"><img border="0" id='templateIcon_1' src='/gifs/bcenter/standard_template_icon.gif' />Standard Templates</a></span>
+       <span class="layoutTypeButton"><a href="#2" onclick="show(2)"><img border="0" id='templateIcon_2' src='/gifs/bcenter/video_template_icon.gif' />Video<br />Templates</a></span>
+       <span class="layoutTypeButton"><a href="#3" onclick="show(3)"><img border="0" id='templateIcon_3' src='/gifs/bcenter/externe_template_icon.gif' />Externe<br />Seiten</a></span>
+       <span class="layoutTypeButton"><a href="#4" onclick="show(4)"><img border="0" id='templateIcon_4' src='/gifs/bcenter/eigene_template_icon.gif' />Eigene<br />Templates</a></span>
+ <div style="height:33px;"></div>
+<div id="setTemplate" style="visibility:hidden;">
+ <h4 id="layout" style="margin-top: 25px;"><span id="typeText"></span></h4>
+  <table id="preview_standard" style="border-width: 0px; display: none; width: 100%;">
+    <colgroup>
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+    </colgroup>
+    <tr>
+<?php
+	$sql = sprintf("SELECT
+						id
+					FROM
+						stellentemplates
+					WHERE
+						isStandard = true",
+					intval($_SESSION['s_firmenid']) );
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	
+	$i = 0;
+	while ( $row = mysql_fetch_array($result) ) {
+		// not available?
+		$na = ($firmenlevel < 2 && $row["id"] > 1) ? true: false;
+
+		echo '
+      <td>
+        <p>
+          <img alt="Auswahl"'.( $na ? ' class="light" onmouseout="this.style.filter=\'alpha(opacity=60)\';this.style.opacity=\'0.6\'"': '' ).' id="template'.$row["id"].'" src="/gifs/templates/'.sprintf('%03d', $row["id"]).'/preview.gif" onclick="'.( $na ? 'GB_showCenter(\'Hinweis\', \'/home/firmen/stelle/notice.phtml?id='.$_GET["id"].'\', 180, 350)': 'update('.$_GET["id"].', '.$row["id"].');' ).'" onmouseover="this.style.cursor=\'pointer\';this.style.filter=\'alpha(opacity=100)\';this.style.opacity=\'1\'" title="'.( $na ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'" style="border:3px solid #fff;'.($na?'opacity:0.6;':'').'" /><br />
+        </p>
+        <!--<p title="'.( $na ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'">
+          <input'.( $na ? ' disabled="disabled"': ( ($templateid == $row["id"]) ? ' checked="checked"': '') ).' id="template0'.$row["id"].'" name="template" onclick="update('.$_GET["id"].', '.$row["id"].'); next()" style="border-width: 0px; width: auto;" type="radio" value="'.$row["id"].'" />
+          <label for="template0'.$row["id"].'"> Template '.$row["id"].'</label>
+        </p>-->
+        <p>
+          <a href="/greybox.phtml?url=/firmen/stelle/vorschau/'.$_GET["id"].'/'.$row["id"].'/" rel="pb_page_fs[]" title="Vorschau">Vorschau</a>
+        </p>
+      </td>';
+		if ( (++$i % 4) == 0 ) {
+			echo '
+    </tr>
+    <tr>';
+		}
+	}
+	if ($firmenlevel < 2) {
+		echo '
+    </tr>
+    <tr>
+      <td colspan="4"><h6><strong>Bemerkung</strong>: Die Templates 2 - 12 sind erst ab Tarif Komfort verf&uuml;gbar!</h6></td>';
+	}
+?>
+    </tr>
+  </table>
+  
+  <table id="preview_video" style="border-width: 0px; display: none; width: 100%;">
+    <colgroup>
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+    </colgroup>
+    <tr>
+<?php
+	$sql = sprintf("SELECT
+						id
+					FROM
+						stellentemplates
+					WHERE
+						isVideo = true",
+					intval($_SESSION['s_firmenid']) );
+	$result = mysql_db_query($database_db, $sql, $praktdbslave);
+	
+	$i = 1;
+	while ( $row = mysql_fetch_array($result) ) {
+		// not available?
+		$na = ($firmenlevel < 2 && $row["id"] > 11) ? true: false;
+		
+		if ( ($i % 4) == 0 ) {
+			echo '
+    </tr>
+    <tr>';
+		}
+		echo '
+      <td>
+        <p>
+          <!--<img alt="Vorschau" id="template'.$row["id"].'" src="/gifs/templates/'.sprintf('%03d', $row["id"]).'/preview.gif" onclick="'.( ($firmenlevel < 2 && $row["id"] > 11) ? '': 'update('.$_GET["id"].', '.$row["id"].')' ).'" title="'.( ($firmenlevel < 2 && $row["id"] > 11) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'" /><br />-->
+          <img alt="Auswahl"'.( $na ? ' class="light" onmouseout="this.style.filter=\'alpha(opacity=80)\';this.style.opacity=\'.8\'"': '' ).' id="template'.$row["id"].'" src="/gifs/templates/'.sprintf('%03d', $row["id"]).'/preview.gif" onclick="'.( $na ? 'GB_showCenter(\'Hinweis\', \'/home/firmen/stelle/notice.phtml?id='.$_GET["id"].'\', 180, 350)': 'update('.$_GET["id"].', '.$row["id"].')' ).'" onmouseover="this.style.cursor=\'pointer\';this.style.filter=\'alpha(opacity=100)\';this.style.opacity=\'1\'" title="'.( $na ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'" style="border:3px solid #fff" /><br />
+        </p>
+        <!--<p>
+          <a href="/greybox.phtml?url=/firmen/stelle/vorschau/'.$_GET["id"].'/'.$row["id"].'/" rel="pb_page_fs[]"><img alt="Vorschau" src="/gifs/templates/'.sprintf('%03d', $row["id"]).'/preview.gif" title="Vorschau" /></a><br />
+        </p>
+        <p title="'.( ($firmenlevel < 2 && $row["id"] > 11) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'">
+          <input'.(($firmenlevel < 2 && $row["id"] > 11) ? ' disabled="disabled"': ( ($templateid == $row["id"]) ? ' checked="checked"': '') ).' id="template'.$row["id"].'" name="template" onclick="update('.$_GET["id"].', '.$row["id"].'); next()" style="border-width: 0px; width: auto;" type="radio" value="'.$row["id"].'" />
+          <label for="template'.$row["id"].'"> Template '.$row["id"].'</label>
+        </p>-->
+        <p>
+          <a href="/greybox.phtml?url=/firmen/stelle/vorschau/'.$_GET["id"].'/'.$row["id"].'/" rel="pb_page_fs[]" title="Vorschau">Vorschau</a>
+        </p>
+      </td>';
+		$i++;
+	}
+?>
+    </tr>
+  </table>
+  
+  <div id="preview_externe" style="display: none;">
+<?php
+	// not available?
+	$na = ($firmenlevel < 2) ? true: false;
+	echo '
+        <p>
+          <!--<img alt="Vorschau" id="template0" src="/gifs/templates/extern/extern.gif" onclick="'.( ($firmenlevel < 2) ? '': 'update('.$_GET["id"].', \'0\')' ).'" title="'.( ($firmenlevel < 2) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'" /><br />-->
+          <img alt="Auswahl"'.( $na ? ' class="light" onmouseout="this.style.filter=\'alpha(opacity=80)\';this.style.opacity=\'.8\'"': '' ).' id="template0" src="/gifs/templates/extern/extern.gif" onclick="'.( $na ? 'GB_showCenter(\'Hinweis\', \'/home/firmen/stelle/notice.phtml?id='.$_GET["id"].'\', 180, 350)': 'update('.$_GET["id"].', 0)' ).'" onmouseover="this.style.cursor=\'pointer\';this.style.filter=\'alpha(opacity=100)\';this.style.opacity=\'1\'" title="'.( $na ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'" style="border:3px solid #fff" /><br />
+        </p>
+    <!--<p title="'.( ($firmenlevel < 2) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'">
+      <input'.( ($firmenlevel < 2) ? ' disabled="disabled"': ( ($extern == 'true') ? ' checked="checked"': '') ).' id="extern" name="template" onclick="update('.$_GET["id"].', \'0\'); next()" style="border-width: 0px; width: auto;" type="radio" value="true" />
+      <label for="extern" style="width: 100%;"> Die Stelle befindet sich auf einer externe Seite</label>
+    </p>-->';
+	if ($firmenlevel < 2) {
+		echo '
+    <p>
+      Diese Funktion ist erst im Paket Komfort verf&uuml;gbar!
+    </p>';
+	}
+?>
+  </div>
+  
+  <table id="preview_eigene" style="border-width: 0px; display: none; width: 100%;">
+    <colgroup>
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+      <col width="25%" style="padding: 0px;" />
+    </colgroup>
+    <tr>
+<?php
+	// unter Paket Premium? oder ist FirmenID von Bauerfeind -> Zusatzfeature
+	if ($firmenlevel < 3 && $_SESSION["s_firmenid"] != 7978) {
+		echo '
+      <td colspan="4">Diese Funktion ist erst im Paket Premium verf&uuml;gbar!</td>';
+	} else {
+		$sql = sprintf("SELECT
+							id,templatename
+						FROM
+							stellentemplates
+						WHERE
+							firmenid = %d AND 
+							isEigenes = true",
+						intval($_SESSION['s_firmenid']) );
+		$result = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num_rows = mysql_num_rows($result);
+		
+		if ($num_rows > 0) {
+			$i = 0;
+			while ( $row = mysql_fetch_array($result) ) {
+				echo '
+      <td>
+        <p>
+          <a href="/greybox.phtml?url=/firmen/stelle/vorschau/'.$_GET["id"].'/'.$row["id"].'/" rel="pb_page_fs[]"><img alt="Vorschau" src="/styles/images/companies/Anzeige/layout/anzeige_01_vorschau.gif" title="Vorschau" /></a><br />
+        </p>
+        <p title="'.( ($firmenlevel < 3 && $_SESSION["s_firmenid"] != 7978) ? 'Auswahl erst ab Premium m&ouml;glich': 'Ausw&auml;hlen' ).'">
+          <input'.(($firmenlevel < 3 && $_SESSION["s_firmenid"] != 7978) ? ' disabled="disabled"': ( ($templateid == $row["id"]) ? ' checked="checked"': '') ).' id="template'.$row["id"].'" name="template" onclick="update('.$_GET["id"].', '.$row["id"].'); next()" style="border-width: 0px; width: auto;" type="radio" value="'.$row["id"].'" />
+          <label for="template'.$row["id"].'"> Template '.$row["id"].' ('.$row["templatename"].')</label>
+        </p>
+      </td>';
+				if ( (++$i % 4) == 0 ) {
+					echo '
+    </tr>
+    <tr>';
+				}
+			}
+		} else {
+			echo '
+      <td>
+        <p>
+          <a href="/greybox.phtml?url=/firmen/stelle/vorschau/'.$_GET["id"].'/1/" rel="pb_page_fs[]"><img alt="Vorschau" src="/styles/images/companies/Anzeige/layout/anzeige_01_vorschau.gif" title="Vorschau" /></a><br />
+        </p>
+        <p title="'.( ($firmenlevel < 3) ? 'Auswahl erst ab Premium m&ouml;glich': 'Ausw&auml;hlen' ).'">
+          <input'.(($firmenlevel < 3) ? ' disabled="disabled"': ( ($templateid == 1) ? ' checked="checked"': '') ).' id="template1" name="template" onclick="update('.$_GET["id"].', 1)" style="border-width: 0px; width: auto;" type="radio" value="1" />
+          <label for="template1"> Template 1</label>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4"><i>Bemerkung:</i> Da zurzeit kein Template von Ihnen existiert, wird bis zur Fertigstellung Ihres Templates das Standardtemplate verwendet, um Ihnen die M&ouml;glichkeit zu geben, den Fortschritt Ihrer Stellenanzeige zu verfolgen</td>';
+		}
+	}
+
+?>
+    </tr>
+  </table>
+    <!--Derzeit k&ouml;nnen Sie keine eigenen Templates erstellen oder ausw&auml;hlen. Wenn sie dies dennoch m&ouml;chten, sollten Sie auf das Paket Premium upgraden!-->
+  <fieldset class="control_panel">
+    <p style="text-align: right;">
+     <input id="cat" type="hidden" value="<?=$type ?>" />
+      <button type="submit" name="weiter_layout" id="weiter" value="weiter"><span><span><span>WEITER</span></span></span></button>
+    </p>
+  </fieldset>
+  </div>
+</form>
+</div>
+<script type="text/javascript" src="/scripts/ajax/layout.js"></script>
+<?php
+	if ( (isset($templateid) && $templateid != 0) || $type == 3 ) {
+?>
+      <script type="text/javascript">
+      <!--
+      show(<?=$type ?>);
+      document.getElementById('template'+<?=$templateid ?>).style.border = '3px solid #f27000';
+      //next();
+      -->
+      </script>
+<?php
+	} else {
+?>
+      <script type="text/javascript">
+      <!--
+      	show(<?=$type ?>);
+		alert('Bitte wählen Sie ein Template durch Klick auf das entsprechende Vorschaubild aus.');
+      -->
+      </script>
+<?php
+	}
+	$_SESSION['sidebar'] = '';
+
+	bodyoff();
+} else {
+
+}
+?>

@@ -1,0 +1,30 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+praktikaInclude(array("db.php","listen.php"));
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+$hDB = new Praktika_Db();
+
+if(empty($_SESSION['s_firmenid'])) {
+	die("No Access");
+}
+
+$_SESSION['s_firmenproparray']['lastPage'] = 'firmendaten/mitgliedschaft_managen';
+
+$management = new Praktika_Firmen_Management();
+
+echo '<h3>Rechnungs&uuml;bersicht</h3>'."\n";
+
+echo $management->rechnungen();
+
+echo '<p>Wenn Sie die Rechnungsanschrift korrigieren m&ouml;chten, &auml;ndern Sie bitte Ihre <a href="#" onclick="loadContent(\'firmendaten/index\')">Stammdaten</a> und drucken dann Ihre Rechnung erneut aus.</p>'."\n";

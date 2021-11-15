@@ -1,0 +1,215 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$result = mysql_db_query($database_db,"SELECT nutzer.id,nutzer.anrede,nutzer.vname,nutzer.strasse,nutzer.ort,nutzer.plz,nutzer.name,nutzer.email as nutzeremail,bewerberkontakte.firmenid,bewerberkontakte.bearbeiterid,bewerberkontakte.firma,bewerberkontakte.email as bearbeiteremail,bewerberkontakte.nachricht,bewerberkontakte.gesuche_id,bewerberkontakte.angebote_id,date_format(bewerberkontakte.datum, '%d.%m.%Y') as deintrag FROM nutzer,bewerberkontakte WHERE nutzer.id = '".$_SESSION["s_nutzerid"]."' and bewerberkontakte.nutzerid='".$_SESSION["s_nutzerid"]."' AND bewerberkontakte.id='".$_REQUEST["id"]."'",$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_array($result);
+
+# pageheader(array('page_title' => 'Kontakt zur Firma ' . $eintrag["firma"]));
+
+
+$firmenid=$eintrag["firmenid"];
+$bearbeiterid=$eintrag["bearbeiterid"];
+$gesucheid=$eintrag["gesuche_id"];
+$angeboteid=$eintrag["angebote_id"];
+$anrede=$eintrag["anrede"];
+$vname=$eintrag["vname"];
+
+
+if ($bearbeiterid==0) {
+	$result3 = mysql_db_query($database_db,"SELECT id from bearbeiter where firmenid='$firmenid'",$praktdbslave);
+	$eintrag3 = mysql_fetch_array($result3);
+	$bearbeiterid=$eintrag3["id"];
+}
+
+$dedate_datum = $eintrag["deintrag"];
+$email = $eintrag["nutzeremail"];
+$email2 = $eintrag["bearbeiteremail"];
+$name=$eintrag["anrede"] ." ". $eintrag["vname"] ." ". $eintrag["name"];
+$einruecken = "&nbsp;";
+
+if ($_POST["answer"] == "1") {
+	$fertig=1;
+
+	if ($_POST["message"] == "") {
+		die("false");
+	}
+	if ($_POST["subject"] == "") {
+		die("false");
+	}
+}
+
+if (!isset($fertig) || $fertig ==  0) {
+
+	/*
+	---------------------------------------------------------------------
+	Eintragsseite,  nochmal, wenn die Seite nicht korrekt ausgef&uuml;llt wurde
+	---------------------------------------------------------------------
+	*/
+
+	if (!isset($_POST["betreff"]) || empty($_POST["betreff"])) $_POST["betreff"] = "";
+	if (!isset($_POST["nachricht"]) || empty($_POST["nachricht"])) $_POST["nachricht"] = "";
+	echo "<div style='width:500px; padding:10px;'>";
+	echo "<form action=\"/karriere/firma/antworten/".$_REQUEST["id"]."/\" method=\"post\">\n";
+
+	echo '	<h4>Mitteilung an die Firma</h4>'."\n";
+	echo "<p id='responseContainer' style='display:none;'></p>";
+	echo '	<fieldset>'."\n";
+	echo '		<table>'."\n";
+	echo '			<colgroup>'."\n";
+	echo '				<col width="90" />'."\n";
+	echo '				<col width="300" />'."\n";
+	echo '			</colgroup>'."\n";
+	echo '			<tbody>'."\n";
+	echo '				<tr>'."\n";
+	echo '					<td>Nachricht vom:</td>'."\n";
+	echo '					<td>'.$dedate_datum.'</td>'."\n";
+	echo '				</tr>'."\n";
+	echo '				<tr>'."\n";
+	echo '					<td>Ihr Name:</td>'."\n";
+	echo '					<td>'.$eintrag["anrede"].' '.$eintrag["vname"].' '.$eintrag["name"].'</td>'."\n";
+	echo '				</tr>'."\n";
+	echo '				<tr>'."\n";
+	echo '					<td>Ihre Anschrift:</td>'."\n";
+	echo '					<td>'.$eintrag["strasse"].'<br />'.$eintrag["plz"].' '.$eintrag["ort"].'<br />'.$email.'</td>'."\n";
+	echo '				</tr>'."\n";
+	echo '			</tbody>'."\n";
+	echo '		</table>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="betreff" style="width:100px;">Betreff (*):</label>'."\n";
+	echo '			<input id="betreff" name="betreff" value="'.((isset($_POST['betreff']) && !empty($_POST['betreff'])) ? $_POST['betreff'] : '').'" maxlength="150" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="nachricht" style="width:100px;">Nachricht (*):</label>'."\n";
+	echo '			<textarea id="nachricht" name="nachricht" cols="20" rows="6" >'.((isset($_POST['nachricht']) && !empty($_POST['nachricht'])) ? $_POST['nachricht'] : '').'</textarea>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p class="hint info" style="width: 100%;">Die Felder mit (*) m&uuml;ssen ausgef&uuml;llt werden.<br />Ihre Kontaktdaten stehen der Firma zur Verf&uuml;gung und <b>d&uuml;rfen nicht</b> im Nachrichtenfeld hinterlegt werden! Diese Kurzmitteilung unterliegt dem Datenschutz von praktika.de.</p>'."\n";
+	echo '	</fieldset>'."\n";
+
+	echo "<hr /><br />";
+	
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<a class="button small" onclick="kcenter.sendMessage($(\'#betreff\').val(), $(\'#nachricht\').val(), '.$_REQUEST["id"].'); return false;" name="submitbutton">Absenden</a>'."\n";
+
+	?> 
+  
+  <input type="hidden" name="id" value="<? echo $_REQUEST["id"]; ?>" />
+  <input type="hidden" name="gesucheid" value="<? echo $gesucheid; ?>" />
+  <input type="hidden" name="angeboteid" value="<? echo $angeboteid; ?>" />
+  <input type="hidden" name="firmenid" value="<? echo $firmenid; ?>" />
+  <input type="hidden" name="nutzerid" value="<? echo $s_nutzerid; ?>" />
+  <input type="hidden" name="bearbeiterid" value="<? echo $bearbeiterid; ?>" />
+  <input type="hidden" name="spaltenid" value="<? echo $s_spalte; ?>" />
+  <input type="hidden" name="anrede" value="<? echo $eintrag["anrede"]; ?>" />
+  <input type="hidden" name="vname" value="<? echo $eintrag["vname"]; ?>" />
+  <input type="hidden" name="name" value="<? echo $eintrag["name"]; ?>" />
+  <input type="hidden" name="nutzername" value="<? echo $eintrag["anrede"] . " " . $eintrag["vname"] . " " . $eintrag["name"]; ?>" />
+  </p>
+  </fieldset>
+</form>
+
+</div>
+
+<?
+
+} else {
+
+
+	/* aktuelles Datum betimmen */
+	$datum_eintrag = date("Y-m-d");
+	$modify = date("YmdHis");
+	$oldnachricht=$eintrag["nachricht"];
+
+	$_POST["nachricht"]=ereg_replace ("'", "", $_POST["message"]);
+	$oldnachricht=ereg_replace ("'", "", $oldnachricht);
+	$_POST["betreff"]=ereg_replace ("'", "", $_POST["subject"]);
+
+	/* einfuegestring zusammensetzen */
+	$insertstring = "INSERT INTO firmenkontakte (nutzerid,firmenid,bearbeiterid,gesuche_id,angebote_id ,spalte,betreff,email,name,nachricht,oldnachricht,datum,modify)
+			VALUES('".$_SESSION["s_nutzerid"]."','$firmenid','$bearbeiterid','$gesucheid','$angeboteid','".$_SESSION["s_spalte"]."','".$_POST["betreff"]."','$email','$name','".$_POST["nachricht"]."','$oldnachricht', '$datum_eintrag','$modify')";
+
+
+	if ($_SESSION["s_loggedin"] == true && $firmenid >0 ) {
+		/* datensatz einfuegen */
+		$hDB->query($insertstring,$praktdbmaster);
+
+		/* Logfile eintragen */
+		$fp = @fopen( $logfile, "a" );
+		@fputs( $fp, $insertstring);
+		@fputs( $fp, "\n");
+		@fclose( $fp);
+
+
+		$bearbeiter=mysql_db_query($database_db,"select id,anrede,vname,name,email from bearbeiter where firmenid=$firmenid",$praktdbslave);
+
+		if (mysql_result($bearbeiter,0,"anrede") == "Frau") $Anrede="geehrte Frau";
+		if (mysql_result($bearbeiter,0,"anrede") == "Herr") $Anrede="geehrter Herr";
+
+		if ($s_spalte == 1) $bereich="Praktikum";
+		if ($s_spalte == 2) $bereich="Diplom";
+		if ($s_spalte == 3) $bereich="Nebenjob";
+		if ($s_spalte == 4) $bereich="Ausbildung";
+		if ($s_spalte == 5) $bereich="Berufseinstieg/Jobs";
+
+
+		$mailtoaddr = $email2;
+
+		// Neues Emailtemplatesystem nutzen
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(14);
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace("{anrede}",$Anrede);
+		$emailobj->replace("{name}",mysql_result($bearbeiter,0,"name"));
+		$emailobj->replace("{vname}",mysql_result($bearbeiter,0,"vname"));
+		$emailobj->replace("{n_name}",$eintrag["name"]);
+		$emailobj->replace("{n_vname}",$eintrag["vname"]);
+		$emailobj->replace("{id}",mysql_result($bearbeiter,0,"id"));
+		// infomail verschicken
+		$emailobj->send_email($mailtoaddr);
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+
+	}
+
+	/* Praktikumsbeschreibung */
+	if ($_SESSION["s_loggedin"] == true) {
+		echo "true";
+		/* BEST&Auml;TIGUNGSMAIL AN DEN NUTZER */
+
+		$subject = "Statusmitteilung zu Ihrer Kurzmitteilung";
+
+		if ($anrede == "Frau") $Anrede="geehrte";
+		if ($anrede == "Herr") $Anrede="geehrter";
+
+		// Neues Emailtemplatesystem nutzen
+		// Templatesystem vorbereiten
+		$emailobj = new emailtemplate(13);
+		// Ersetzungen durchf&uuml;hren
+		$emailobj->replace("{anrede}",$Anrede." ".$anrede);
+		$emailobj->replace("{name}",$name);
+		$emailobj->replace("{vname}",$vname);
+		$emailobj->replace("{firma}",$eintrag["firma"]);
+		// infomail verschicken
+		$emailobj->send_email($email);
+		// Emailobjekt l&ouml;schen
+		unset($emailobj);
+
+	} else {
+		echo "false";
+	}
+
+}
+
+bodyoff();
+?>

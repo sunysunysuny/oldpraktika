@@ -1,0 +1,208 @@
+@CHARSET "UTF-8";
+
+/* reset all css styles - begin */
+
+html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, font, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, input, legend, table, caption, tbody, tfoot, thead, tr, th, td {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	outline: 0;
+	font-size: 100%;
+	vertical-align: baseline;
+	background: transparent;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after, q:before, q:after {
+	content: '';
+	content: none;
+}
+:focus {
+	outline: 0;
+}
+ins {
+	text-decoration: none;
+}
+del {
+	text-decoration: line-through;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+sup {
+	font-size:smaller;
+	vertical-align:super;
+}
+/* reset all css styles - end */
+
+
+/* define the grid 6 system - begin */
+
+.container_6 {
+	margin: 20px;
+	width: 1008px;
+	position: relative;
+	top: 0;
+	left: 0;
+}
+
+/* grid >> global */
+.grid_1,
+.grid_2,
+.grid_3,
+.grid_4,
+.grid_5,
+.grid_6 {
+	display: inline;
+	float: left;
+	position: relative;
+	margin-left: 10px;
+	margin-right: 10px;
+}
+.grid_1,
+.grid_2,
+.grid_3,
+.grid_4,
+.grid_5,
+.grid_6 {
+	display: inline;
+	float: left;
+	position: relative;
+	margin-left: 9px;
+	margin-right: 9px;
+}
+
+/* grid >> children (alpha is first column, omega is last) */
+.alpha {
+	margin-left: 0;
+}
+.omega {
+	margin-right: 0;
+}
+
+/* grid >> 6 columns */
+.container_6 .grid_1 {
+	width: 150px;
+}
+.container_6 .grid_2 {
+	width: 318px;
+}
+.container_6 .grid_3 {
+	width: 486px;
+}
+.container_6 .grid_4 {
+	width: 654px;
+}
+.container_6 .grid_5 {
+	width: 822px;
+}
+.container_6 .grid_6 {
+	width: 990px;
+}
+
+/* prefix extra space >> 6 columns */
+.container_6 .prefix_1 {
+	padding-left: 168px;
+}
+.container_6 .prefix_2 {
+	padding-left: 336px;
+}
+.container_6 .prefix_3 {
+	padding-left: 504px;
+}
+.container_6 .prefix_4 {
+	padding-left: 672px;
+}
+.container_6 .prefix_5 {
+	padding-left: 840px;
+}
+
+/* suffix extra space >> 6 columns */
+.container_6 .suffix_1 {
+	padding-right: 168px;
+}
+.container_6 .suffix_2 {
+	padding-right: 336px;
+}
+.container_6 .suffix_3 {
+	padding-right: 504px;
+}
+.container_6 .suffix_4 {
+	padding-right: 672px;
+}
+.container_6 .suffix_5 {
+	padding-right: 840px;
+}
+
+/* push space >> 6 columns */
+.container_6 .push_1 {
+	left: 168px;
+}
+.container_6 .push_2 {
+	left: 336px;
+}
+.container_6 .push_3 {
+	left: 504px;
+}
+.container_6 .push_4 {
+	left: 672px;
+}
+.container_6 .push_5 {
+	left: 840px;
+}
+
+/* pull space >> 6 columns */
+.container_6 .pull_1 {
+	left: -168px;
+}
+.container_6 .pull_2 {
+	left: -336px;
+}
+.container_6 .pull_3 {
+	left: -504px;
+}
+.container_6 .pull_4 {
+	left: -672px;
+}
+.container_6 .pull_5 {
+	left: -840px;
+}
+
+/* clearfix */
+.clear {
+	clear: both;
+	display: block;
+	overflow: hidden;
+	visibility: hidden;
+	width: 0;
+	height: 0;
+}
+.clearfix:after {
+	clear: both;
+	content: ' ';
+	display: block;
+	font-size: 0;
+	line-height: 0;
+	visibility: hidden;
+	width: 0;
+	height: 0;
+}
+.clearfix {
+	display: inline-block;
+}
+* html .clearfix {
+	height: 1%;
+}
+.clearfix {
+	display: block;
+}
+
+/* define the grid 6 system - end */

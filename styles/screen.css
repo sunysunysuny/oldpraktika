@@ -1,0 +1,549 @@
+@import url("base.css");
+
+@import url("screen/navigation.css");
+
+@import url("screen/intro.css");
+@import url("screen/main.css");
+
+@import url("screen/form.css");
+@import url("screen/table.css");
+
+@import url("screen/content.css");
+
+
+
+
+/**
+ * General page layout
+ */
+
+#page_margins {
+	height: 100%;
+	padding: 0 10px 0 0;
+	max-width: 1180px;
+	min-width: 1180px;
+	width: 1180px;
+}
+
+#page {
+	min-height: 100%;
+	background: #fffff5;
+	max-width: 990px;
+	min-width: 990px;
+	padding-left: 5px;
+	width: 990px;
+}
+
+#page.maintenance {
+	min-height: 100%;
+}
+
+
+
+#header {
+	position: relative;
+	padding-top: 125px;
+}
+
+#header h1 {
+	left: 0;
+	position: absolute;
+	top: 30px;
+}
+
+#header h2 {
+	display: none;
+}
+
+#header blockquote {
+	background: url(/gifs/zentralelemente/wir_halten_unternehmen.gif) no-repeat center;
+	height: 14px;
+	width: 213px;
+	left: 13px;
+	position: absolute;
+	top: 111px;
+}
+
+#header blockquote p {
+	display: none;
+}
+
+
+
+
+ul#skiplinks {
+	display: none;
+}
+
+
+
+
+div#advertisement_top {
+	background: url(/gifs/zentralelemente/anzeige.gif) no-repeat left center;
+	padding-left: 8px;
+	position: absolute;
+	right: 5px;
+	top: 5px;
+}
+
+div#advertisement_right {
+	position: absolute;
+	left: 1000px;
+	top: 285px;
+}
+
+
+div#col1 {
+	float: left;
+	width: 190px;
+}
+
+div#col2 {
+	float: right;
+	width: 152px;
+}
+
+div#col3 {
+	margin: 0 152px 0 190px;
+}
+
+body#admin #col3 {
+	margin: 0;
+}
+
+
+
+
+div#footer {
+	border-top: 1px solid #f7f3f7;
+	font-size: .9em;
+	margin: 2em 10px 0;
+	padding: .5em 0 5em;
+	clear: both;
+	height: 8em;
+}
+
+div#footer a {
+	color: #000;
+	text-decoration: underline;
+}
+
+
+div#footer #copyright {
+	margin-top: 1.5em;
+}
+
+div#footer #copyright, 
+div#footer #copyright a {
+	color: #c0c0c0;
+}
+
+div#footer p {
+	margin: 0 auto;
+	text-align: center;
+	width: 60%;
+}
+
+div#footer p#newsfeed {
+	margin: 0;
+	float: right;
+	width: auto;
+}
+
+div#footer ul#payment {
+	margin: 0;
+	float: left;
+}
+
+div#footer ul#payment li {
+	float: left;
+	margin-left: 1px;
+}
+
+div#footer ul#payment li img {
+	border: 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+ * Customizing subpages
+ */
+
+#intro a,
+#intro a,
+#intro a {
+	color: #fff;
+	text-decoration: underline;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#home div#content h2 {
+	color: #3186af;
+	/*display: none;*/
+}
+
+/*#home div#content h4,
+#home div#content h5,
+#home div#content h6 {
+	color: #3286b4;
+}*/
+
+
+
+
+
+
+
+#abroad div#content h4 > span {
+	background-color: #96bb13; 
+	background-image: url(/gifs/zentralelemente/reiter_green_left.gif);
+}
+
+#abroad div#content h4 > span > span {
+	background-image: url(/gifs/zentralelemente/reiter_green_right.gif);
+}
+
+#abroad #intro {
+	background-color: #718b06;
+	background-image: url(/gifs/zentralelemente/headerBG_green.gif);
+}
+
+#abroad #intro div.menu, 
+#abroad form#quicklogin fieldset {
+	background-image: url(/gifs/zentralelemente/blume_green.jpg);
+}
+
+
+
+
+
+
+#admin #intro {
+	background: #456;
+}
+
+
+
+/**
+ * 
+ */
+#company #intro {
+	background-color: #000;
+	background-image: url(/gifs/zentralelemente/headerBG_black.gif);
+}
+
+
+#company div#statistics {
+	background-image: url(/gifs/zentralelemente/company.jpg);
+}
+
+#company #intro .menu ul li:hover,
+#company #intro .menu ul li dd { 
+	background-color: #000;
+}
+
+
+
+
+
+
+
+
+
+
+
+#community div#content h4 > span {
+	background-color: #c34a97; 
+	background-image: url("/gifs/zentralelemente/reiter_darkpink_left.gif");
+}
+
+#community div#content h4 > span > span {
+	background-image: url("/gifs/zentralelemente/reiter_darkpink_right.gif");
+}
+
+#community #intro {
+	background-color: #b01874;
+	background-image: url("/gifs/zentralelemente/headerBG_darkpink.gif");
+}
+
+#community #intro div.menu, 
+#community form#quicklogin fieldset {
+	background-image: url("/gifs/zentralelemente/blume_darkpink.jpg");
+}
+
+#community #intro .menu ul li:hover,
+#community #intro .menu ul li dd { 
+	background-color: #c44994;
+}
+
+#community #intro .sub dd a:hover {
+	background-color: #a60266;
+}
+
+
+#community div#statistics {
+	background-image: url("/gifs/zentralelemente/community.jpg");
+}
+
+#community div#content form fieldset {
+	background: #fbf8e9;
+	border-color: #c44c94;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#my #intro,
+#home #intro {
+	background-color: #038aa7;
+	background-image: url(/gifs/zentralelemente/headerBG_blue.gif);
+}
+
+#my #intro div.menu, 
+#my form#quicklogin fieldset,
+#home #intro div.menu, 
+#home form#quicklogin fieldset {
+	background-image: url(/gifs/zentralelemente/blume_blue.jpg);
+}
+
+
+#my #intro.cc div#statistics,
+#home div#statistics {
+	background-image: url(/gifs/zentralelemente/home.jpg);
+}
+
+#my #intro.cv div#statistics {
+	background-image: url(/gifs/zentralelemente/cv.jpg);
+}
+
+
+#home #intro .menu ul li:hover,
+#home #intro .menu ul li dd, 
+#my #intro .menu ul li:hover,
+#my #intro .menu ul li dd { 
+	background-color: #47adc3;
+}
+
+#home #intro .sub dd a:hover,
+#my #intro .sub dd a:hover {
+	background-color: #038aa7;
+}
+
+
+#my div#content form fieldset {
+	/*border-color: #96bb13;*/
+}
+
+
+
+#my div#content div#profile h4 > span {
+	background-color: #dd0200; 
+	background-image: url("/gifs/zentralelemente/reiter_red_left.gif");
+}
+
+#my div#content div#profile h4 > span > span {
+	background-image: url("/gifs/zentralelemente/reiter_red_right.gif");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#search div#content div.tabs h4 span.inactive {
+	background-color: #c6d7e1; 
+	background-image: url(/gifs/zentralelemente/reiter_green_left.gif);
+	color: #000000;
+}
+#search div#content div.tabs h4 span.active {
+	background-color: #005584;
+	background-image: url(/gifs/zentralelemente/reiter_green_left.gif);
+	color: #ffffff;
+}
+#search div#content div.tabs h4 span span {
+	background-color: transparent;
+	background-image: url(/gifs/zentralelemente/reiter_green_right.gif);
+}
+#search div#content div.tabs h4 span span span {
+	background-color: transparent;
+	background-image: none;
+}
+
+#search #intro {
+	background-color: #005584;
+	background-image: url(/gifs/zentralelemente/headerBG_darkblue.gif);
+}
+
+#search #intro div.menu, 
+#search form#quicklogin fieldset {
+	background-image: url(/gifs/zentralelemente/blume_darkblue.jpg);
+}
+
+#search div#statistics {
+	background-image: url(/gifs/zentralelemente/search.jpg);
+}
+
+
+
+
+
+
+
+
+
+
+
+#home #content h2,
+
+
+#my div#content h2,
+#my div#content h3, 
+#my div#content h4/*, 
+#my div#content h5, 
+#my div#content h6*/ {
+	color: #3186af;
+	/*display: none;*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Classes
+ */
+.error {
+	color: #ff0000 !important;
+	text-align: center !important;
+}
+
+.success {
+	color: #009900 !important;
+	text-align: center !important;
+}
+
+.logout {
+	margin-top: .3em !important;
+}
+/*
+.logout a {
+	font-weight: bold !important;
+}*/
+
+
+/*
+.low {
+	color: #f00 !important;
+	font-style: normal !important;
+	font-weight: bold !important;
+}
+
+.medium {
+	color: #FE9B45 !important;
+	font-style: normal !important;
+}
+
+.top {
+	color: #096 !important;
+	font-style: normal !important;
+	font-weight: bold !important;
+}*/
+
+
+
+.paging,
+.paging a {
+	color: #000;
+}
+
+
+/**
+ * Clearfix hack
+ */
+.clearfix:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;
+}
+
+/* Hides from IE-mac \*/
+* html .clearfix {height: 1%;}
+.clearfix {display: block;}
+/* End hide from IE-mac */

@@ -1,0 +1,145 @@
+<?
+ $gruppe = "unternehmen";
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuche.inc.php"); 
+
+pageheader(session_id(), session_name()); ?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Suchergebnis: Statussuche Kandidaten</h1>
+            <table width="100%">
+<? 
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=51";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+// uebergabevariablen konvertieren //
+$ds_count = intval( $ds_count);
+$ds_pro_seite = intval( $ds_pro_seite);
+
+//echo "<pre>";
+//print_r($s_ergebnisarry);
+
+// Suchwerte dem Array hinzuf&uuml;gen
+$s_ergebnisarry[sucheingabe][suchart]=2;
+
+if ($wkvalue) inbasket($wknutzerid,$wkvalue);
+
+if ($finesearch) {
+	if ($berufsfeld != "") {
+		$s_ergebnisarry[sucheingabe][berufsfeld]=array($berufsfeld);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE berufsfeld <> $berufsfeld",$praktdbmaster);
+	}
+	if ($spalte != "") {
+		$s_ergebnisarry[bereiche]=array($spalte);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE spalte <> $spalte",$praktdbmaster);
+	}
+	if ($bundesland != "") {
+		$s_ergebnisarry[sucheingabe][bundesland]=array($bundesland);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE bundesland <> $bundesland",$praktdbmaster);
+	}
+	if ($sprache != "") {
+		$s_ergebnisarry[sucheingabe][sprache]=array($sprache);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE (sprachkenntnisse1 <> $sprache AND sprachkenntnisse2 <> $sprache AND sprachkenntnisse3 <> $sprache )",$praktdbmaster);
+	}
+	if ($grossraum != "") {
+		$s_ergebnisarry[sucheingabe][grossraum]=array($grossraum);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE grossraum <> $grossraum",$praktdbmaster);
+	}
+	if ($alter != "") {
+		$s_ergebnisarry[sucheingabe][alter]=array($alter);
+		$alter_split = explode("-",$alter);
+		$geburtsdatum_kleiner_als = (date("Y") - $alter_split[1]+1).date("-m-d");
+		$geburtsdatum_groesser_als = (date("Y") - $alter_split[0]-1).date("-m-d");
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE geburtsdatum < '$geburtsdatum_kleiner_als' OR geburtsdatum > '$geburtsdatum_groesser_als'",$praktdbmaster);
+	}
+}
+
+$query="SELECT * FROM $s_kandidatentable group by nutzerid order by nutzerid desc";
+//echo $query."<br>";
+
+$results=mysql_db_query($database_temp,$query,$praktdbmaster);
+
+//echo $results;
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows( $results );
+
+if ( $num_rows  > 0) {
+
+//echo "<pre>";
+//print_r($s_ergebnisarry[suchergebnis]);
+
+$rueckgabe = suchergebnis($ds_count,$ds_pro_seite,$num_rows);
+
+$ds_value=($ds_count);
+$ds_count = $rueckgabe[0];
+$ds_pro_seite = $rueckgabe[1];
+
+?> 
+
+              <hr>
+              <table width="100%">
+                <tr> 
+                  <td align="left"> 
+                  <? if ($ds_count > $ds_pro_seite) { ?> 
+                    <form action="statussuche.phtml" method="POST">
+                      	<input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+			<input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      	<input type="HIDDEN" name="ds_count" value=<? echo ($ds_value-$ds_pro_seite); ?>>
+                      	<input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      	<input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      	<input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      	<input type="SUBMIT" value="zur&uuml;ck">
+                    </form><? } else {?>
+
+                    <form>
+                      <input type="BUTTON" name="y" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchtiefe=2&<?=session_name()."=".session_id()?>')>
+                    </form> <? } ?>
+                  </td>
+                  <? if ($ds_count < $num_rows) { ?> 
+                  <td align="right"> 
+                    <form action="statussuche.phtml" method="POST">
+                      <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+                      <input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      <input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      <input type="HIDDEN" name="ds_count" value=<? echo $ds_count ?>>
+                      <input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      <input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+
+                      <input type="SUBMIT" value="die n&auml;chsten <? echo min( $ds_pro_seite, ($num_rows - $ds_count) ) ?> Ergebnisse" style="width:185px">
+                    </form>
+                  </td>
+                  <? }
+                  if ($ds_count == $num_rows && $ds_count > 5) { ?>
+                  <td align="right"> 
+                  <form>
+                      <input type="BUTTON" name="y" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchtiefe=2&<?session_name()."=".session_id(); ?>')>
+                  </form>
+                  </td> <? } ?> </tr>
+
+                  <? if ($ds_count > $ds_pro_seite && $ds_count != $num_rows) { ?> 
+	        <tr><td colspan=2><form><input type="BUTTON" value="zur Suchmaske" onClick=location.replace('/home/firmen/einblick.phtml?suchtiefe=2&<?=session_name()."=".session_id()?>')></form></td></tR>
+                  <? } ?>
+              </table>
+              <hr>
+              <? } else { ?>               
+              <tr> 
+                <td>Es wurden keine Bewerber gefunden, die mit Ihrern Suchkriterien &uuml;bereinstimmen.<br>Bitte wiederholen Sie die Suche mit anderen Auswahlm&ouml;glichkeiten! 
+                  <form>
+                    <hr>
+                    <input type="BUTTON" value="zur&uuml;ck" onClick=location.replace('/home/firmen/einblick.phtml?suchtiefe=2&<?=session_name()."=".session_id()?>')>
+                    <hr>
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? } 
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+            ?> </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<!-- 
+  Developed by Philip Hutchison, August 2007. 
+  An explanation for this example (and more examples) can be found
+  at http://pipwerks.com/lab/
+-->
+
+<title>Prompt</title>
+<style type="text/css">
+<!--
+body {
+	background-color: #DFDEE6;
+	margin: 10px;
+	font-size: 9pt;
+	font-family: Tahoma;
+	text-align: center;
+}
+input {
+	width: 72px;
+}
+input#promptText {
+	display: block;
+	width: 80%;
+	margin: 1em auto; 
+}
+label {
+	display: block;
+	width: 80%;
+	margin: 0px auto;
+	text-align: left;
+}
+#btnOK {
+	margin-right: 10px;
+}
+-->
+</style>
+
+<script type="text/javascript">
+var cancel = false;
+
+function formSubmit(){
+	if(cancel) return;
+	var str = document.getElementById("promptText").value;
+
+	window.returnValue = str;
+	window.close();
+}
+
+function formCancel(){
+	cancel = true;
+
+	window.returnValue = false;
+	window.close();
+}
+
+window.onload = function (){
+	var str = window.dialogArguments;
+	
+	var parts = str.split("###");
+
+	if(str){
+		document.getElementsByTagName("label")[0].innerHTML = parts[0];
+		document.getElementById("promptText").value = parts[1];
+		document.getElementById("promptText").focus();
+	}
+}
+</script>
+
+</head>
+<body>
+<form id="promptForm" method="post" action="" onSubmit="formSubmit(); return false;">
+<label for="promptText"></label><input type="text" name="promptText" id="promptText" />
+<input type="submit" name="btnOK" id="btnOK" value="OK" /><input onclick='formCancel();' type="button" name="btnCancel" id="btnCancel" value="Cancel" />
+</form>
+</body>
+</html>

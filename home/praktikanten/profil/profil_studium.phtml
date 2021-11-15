@@ -1,0 +1,336 @@
+<?php
+if(!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+	require_once('/home/praktika/etc/gb_config.inc.php');
+} else {
+	require_once('/home/praktika/etc/config.inc.php');	
+}
+
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+if($_POST["act"] == "delete") {
+	$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_studium WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+	if (mysql_num_rows($select) > 0) {
+		$profil = mysql_fetch_array($select);
+		$schularray = wddx_deserialize($profil['studiumarray']);
+		$schularray = ($schularray);
+	}	
+	
+	$reOrder = false;
+	for($a = 0;$a < count($schularray);$a++) {
+		if($a == $_POST["id"]) {
+			$reOrder = true;
+			unset($schularray[$a]);	
+		}
+	}
+	
+	if($reOrder) {
+		$result = array();
+		foreach ($schularray as $key => $value) {
+			$result[] = $schularray[$key];
+		}
+		$schularray = $result;
+	}
+	
+	$beruf = addslashes((wddx_serialize_value($schularray)));
+
+	$updatestring = 'UPDATE profil_studium SET sprachid=\''.$_SESSION['s_sprachid'].'\', studiumarray=\''.$beruf.'\', modify=NOW() WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+
+	mysql_query($updatestring, $praktdbmaster);
+	
+	Praktika_Lebenslauf::deleteCache();	
+	exit();
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+// Sprachausgabe der Textfelder
+if ($_SESSION['s_sprachid'] == 2) {
+	$lang["headline"] = 'Profil zur akademischen Ausbildung';
+	$lang["variable1"]= 'akademische Ausbildung';
+	$lang["variable2"]= 'Art der Bildungseinrichtung';
+	$lang["variable3"]= 'Studiengang';
+	$lang["variable4"]= 'Hochschule';
+	$lang["variable5"]= 'Zeitraum (von)';
+	$lang["variable22"]= 'Zeitraum (bis)';
+	$lang["variable6"]= 'Ausbildungsschwerpunkte';
+	$lang["variable7"]= 'Studienschwerpunkte';
+	$lang["variable9"]= 'Monat';
+	$lang["variable10"]= 'Jahr';
+	$lang["variable11"]= 'Berufsbezeichnung';
+	$lang["variable12"]= 'Abschlussnote';
+	$lang["variable13"]= 'Land';
+	$lang["variable14"]= 'Diplom';
+	$lang["variable15"]= 'Ja';
+	$lang["variable16"]= 'Nein';
+	$lang["variableb1"]= 'Speichern';
+	$lang["variableb2"]= 'Vorschau';
+	$lang["variableb3"]= 'zur&uuml;cksetzen';
+	$lang["variableb4"]= 'zur &Uuml;bersicht';
+	$lang["text1"]= 'Bewerberprofil in';
+	$lang["text2"]= 'Anzahl der Eintr&auml;ge';
+	$lang["text3"]= 'Wenn Sie derzeit an einer Universit&auml;t oder Hochschule eingeschrieben sind, bzw. in der Vergangenheit ein Studium absolviert haben, dann k&ouml;nnen Sie diese Daten hier hinterlegen.';
+	$lang["text4"]= 'Ihr Eintrag wurde gespeichert und steht nun im Onlinebewerbungstool zur Verf&uuml;gung !';
+	$lang["text5"]= 'Baustein';
+	$lang["text6"]= 'von';
+	$lang["giftext"]= 'Vorschau Lebenslauf!';
+	$lang["myaccount"]= 'Mein Account';
+	$lang["lebenslaufprofil"]= 'zum Profil';
+	$lang["delete_entry"] = "Abschnitt entfernen";	
+	$lang["bisJetzt"] = "Bis Jetzt";	
+} elseif ($_SESSION['s_sprachid'] == 1) {
+	$lang["headline"]= 'Higher Education';
+	$lang["variable1"]= 'Studies';
+	$lang["variable2"]= 'Education';
+	$lang["variable3"]= 'Primary Subject';
+	$lang["variable4"]= 'College/University Name';
+	$lang["variable5"]= 'From m/y';
+	$lang["variable22"]= 'To m/y';
+	$lang["variable6"]= 'Career';
+	$lang["variable7"]= 'Major Subjects';
+	$lang["variable8"]= 'Degree';
+	$lang["variable9"]= 'Month';
+	$lang["variable10"]= 'Year';
+	$lang["variable11"]= 'Occupational Title';
+	$lang["variable12"]= 'Degree/Level/Attained';
+	$lang["variable13"]= 'Contry';
+	$lang["variable14"]= 'Diploma';
+	$lang["variable15"]= 'Yes';
+	$lang["variable16"]= 'No';
+	$lang["variableb1"]= 'Speichern';
+	$lang["variableb2"]= 'Preview';
+	$lang["variableb3"]= 'Reset';
+	$lang["variableb4"]= 'Main Menu';
+	$lang["text1"]= 'Profile in';
+	$lang["text2"]= 'choose number of forms below';
+	$lang["text3"]= 'If you are currently a student or have already completed your studies, you can save your information here.';
+	$lang["text4"]= 'Your entry has been saved and may be accessed from the career center !';
+	$lang["text5"]= 'Part';
+	$lang["text6"]= 'of';
+	$lang["giftext"]= 'preview resume!';
+	$lang["myaccount"]= 'my account';
+	$lang["lebenslaufprofil"]= 'profile';
+	$lang["delete_entry"] = "remove segment";	
+	$lang["bisJetzt"] = "present";	
+}
+
+function getEntryForm($number, $values=array()) {
+	global $lang;
+	$i = $number;
+	
+	$return =  '			<br /><h4>'.$lang["variable1"].($number > 0?' &nbsp;&nbsp;<span onclick="lebenslauf.deleteRow('.$i.',\'schulausbildung_\');" class="abschnittEntfernen" style="color:#aaa; font-size:10px;">(Abschnitt entfernen)</span>':'')."</h4>\n";
+	$return .= '			<fieldset>';
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_mvon">'.$lang["variable5"].'</label>'."\n";
+	$return .= '					<select id="submitarray_'.$i.'_mvon" name="submitarray['.$i.'][mvon]" class="month html_controlled">'."\n";
+	$return .= '						<option value="">--</option>'."\n";
+	$j = 1;
+	while ($j < 13) {
+		$return .= '						<option ';
+		if (isset($values['mvon']) && $j == $values['mvon']) {
+			$return .= 'selected="selected" ';
+		}
+		$return .= 'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+		$j++;
+	}
+	$return .= '					</select> / '."\n";
+	$return .= '					<select id="submitarray_'.$i.'_jvon" name="submitarray['.$i.'][jvon]" class="year html_controlled">'."\n";
+	$return .= '						<option value="">--</option>'."\n";
+	$j = (date('Y') - 53);
+	while ($j <= date('Y')) {
+		$return .= '						<option ';
+		if (isset($values['jvon']) && $j == $values['jvon']) {
+			$return .= 'selected="selected" ';
+		}
+		$return .= 'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+		$j++;
+	}
+	$return .= '					</select>'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_mbis">'.$lang["variable22"].'</label>'."\n";
+	$return .= '					<select id="submitarray_'.$i.'_mbis" name="submitarray['.$i.'][mbis]" class="month html_controlled">'."\n";
+	$return .= '						<option value="">--</option>'."\n";
+	$j = 1;
+	while ($j < 13) {
+		$return .= '						<option ';
+		if (isset($values['mbis']) && $j == $values['mbis']) {
+			$return .= 'selected="selected" ';
+		}
+		$return .= 'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+		$j++;
+	}
+	$return .= '					</select> / '."\n";
+	$return .= '					<select id="submitarray_'.$i.'_jbis" name="submitarray['.$i.'][jbis]" class="year html_controlled">'."\n";
+	$return .= '						<option value="">--</option>'."\n";
+	$j = (date('Y') - 53);
+	while ($j <= date('Y') + 5) {
+		$return .= '						<option ';
+		if (isset($values['jbis']) && $j == $values['jbis']) {
+			$return .= 'selected="selected" ';
+		}
+		$return .= 'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+		$j++;
+	}
+	$return .= '					</select>'."\n";
+	$return .=  '					<input type="checkbox" class=" html_controlled" value="true" name="submitarray['.$i.'][toPresent]" '.($values["toPresent"]=="true"?"checked='checked'":"").'> '.$lang["bisJetzt"]."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_hochschule">'.$lang["variable4"].'</label><input id="submitarray_'.$i.'_hochschule" name="submitarray['.$i.'][hochschule]" value="'.(isset($values['hochschule']) ? $values['hochschule'] : '').'" />'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_land">'.$lang["variable13"].'</label><input id="submitarray_'.$i.'_land" name="submitarray['.$i.'][land]" value="'.(isset($values['land']) ? $values['land']:'').'" />'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_studiengang">'.$lang["variable3"].'</label><input id="submitarray_'.$i.'_studiengang" name="submitarray['.$i.'][studiengang]" value="'.(isset($values['studiengang']) ? $values['studiengang']:'').'" />'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_sschwerpunkte">'.$lang["variable7"].'</label><textarea id="submitarray_'.$i.'_sschwerpunkte" name="submitarray['.$i.'][sschwerpunkte]" rows="10" cols="16">'.(isset($values['sschwerpunkte']) ? stripslashes($values['sschwerpunkte']) : '').'</textarea>'."\n";
+	$return .= '				</p>'."\n";
+
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_degree">'.$lang["variable11"].'</label><input id="submitarray_'.$i.'_degree" name="submitarray['.$i.'][degree]" value="'.(isset($values['degree']) ? $values['degree'] : '').'" />'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '				<p>'."\n";
+	$return .= '					<label for="submitarray_'.$i.'_abschlussnote">'.$lang["variable12"].'</label><input id="submitarray_'.$i.'_abschlussnote" name="submitarray['.$i.'][abschlussnote]" value="'.(isset($values['abschlussnote']) ? $values['abschlussnote'] : '').'" />'."\n";
+	$return .= '				</p>'."\n";
+	$return .= '			</fieldset>'."\n";	
+	
+	return $return;	
+}
+
+if($_POST["act"] == "newentry") {
+
+	echo getEntryForm((int)$_POST["number"]);
+		
+	exit();
+}
+
+pageheader(array('page_title' => $lang["headline"], 'externScripts' => array("/scripts/ajax/lebenslauf.js", "/scripts/microajax.js")));
+?>
+<script type="text/javascript" src="/scripts/ajax/lebenslauf.js"></script>
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<?
+if (isset($_POST['save'])) {
+	
+	$reOrder = false;
+	for($a = 0;$a < count($_POST["submitarray"]);$a++) {
+		if($_POST["submitarray"][$a]["toPresent"] == "true") {
+			$_POST["submitarray"][$a]["mbis"] = "";
+			$_POST["submitarray"][$a]["jbis"] = "";
+		}			
+		if($_POST["submitarray"][$a]["delete"] == "1") {
+			$reOrder = true;
+			unset($_POST["submitarray"][$a]);	
+		}
+	}
+	
+	if($reOrder) {
+		$result = array();
+		foreach ($_POST["submitarray"] as $key => $value) {
+			$result[] = $_POST["submitarray"][$key];
+		}
+		$_POST["submitarray"] = $result;
+	}
+		
+	$updatestring = sprintf("INSERT INTO 
+                                 profil_studium (nutzerid, sprachid, studiumarray, datum_eintrag, modify)
+                             VALUES (%1\$d, %2\$d, '%3\$s', NOW(), NOW())
+                             ON DUPLICATE KEY UPDATE 
+                                 studiumarray = '%3\$s',
+                                 modify = NOW();",
+                            $_SESSION['s_loginid'],
+							$_SESSION['s_sprachid'],
+							addslashes((wddx_serialize_value($_POST['submitarray'])))
+							);
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+	recalc_profilquali();
+	Praktika_Lebenslauf::deleteCache();	
+	
+	if($_POST["backToStart"] == "1") {
+		$_SESSION["backToStart"] = "1";
+		header("Location: /lebenslauf/ok/");
+	} else {
+		$_SESSION["backToStart"] = "0";
+	}	
+}
+
+//Auslesen es Profils
+$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_studium WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+if (mysql_num_rows($select) > 0) {
+	$profil = mysql_fetch_array($select);
+	$studiumarray = wddx_deserialize($profil['studiumarray']);
+	$studiumarray = $studiumarray;
+}
+
+if(isset($studiumarray)) {
+	$anzahl = count($studiumarray);
+} else {
+	$anzahl = 1;
+}
+
+#$anzahl = (!isset($studiumarray) || count($studiumarray) == 0) ? 1 : count($studiumarray);
+#$anzahl = (isset($_POST['anzahl']) && intval($_POST['anzahl']) > $anzahl) ? intval($_POST['anzahl']) : $anzahl;
+
+echo '<div id="recruitingCenter">';
+
+# language_select($text1);
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+# echo '		<br /><p>'.$lang["text3"].'</p>'."\n";
+echo '		<form id="contentform" action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post">'."\n";
+echo '			<fieldset id="anz_fieldsets">'."\n";
+echo '				<label for="anzahl">'.$lang["text2"].'</label>'."\n";
+echo '				<select id="anzahl" name="anzahl" cla="html_controlled" onchange="submit();">'."\n";
+
+$i = 1;
+while ($i < 11) {
+	echo '					<option ';
+	if ($i == $anzahl) {
+		echo 'selected="selected" ';
+	}
+	echo 'value="'.$i.'">'.$i.'</option>'."\n";
+	$i++;
+}
+echo '				</select>'."\n";
+echo '			</fieldset>'."\n";
+
+if (isset($_POST['save'])) {
+	echo '			<p class="hint success">'.$lang["text4"].'</p>'."\n";
+}
+
+// Ausgabe der Eingabefelder
+$i=0;
+while ($i < $anzahl) {
+	echo getEntryForm($i, $studiumarray[$i]);
+
+	$i++;
+}
+?>
+<script type="text/javascript">
+	$('#anz_fieldsets').css("display", "none");
+	var countEntries = <?=$anzahl ?>;
+</script>
+<div id="extraContent">
+	
+</div>
+<br />
+<?
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p class="center">'."\n";
+echo '					<a class="button alternative small" href="#" onclick="lebenslauf.addEntry(); return false;">Abschnitt hinzuf&uuml;gen</a>'."\n";
+echo '				</p>'."\n";
+echo '				<br />'."\n";
+echo '				<p class="center"><input class="button small" type="submit" value="'.$lang["variableb1"].'" name="save" /></p>'."\n";
+echo '				<p><label for="backToStart" class="komplette_breite"><input type="checkbox" class="html_controlled" name="backToStart" id="backToStart" value="1" '.(!isset($_SESSION["backToStart"]) || (isset($_SESSION["backToStart"]) && $_SESSION["backToStart"] != "1")?'':'checked="checked"').' /> Nach dem Speichern zur&uuml;ck zur Lebenslauf&uuml;bersicht</label></p>';
+echo '			</fieldset>'."\n";
+echo '		</form>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

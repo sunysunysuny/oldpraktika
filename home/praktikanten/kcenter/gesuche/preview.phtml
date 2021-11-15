@@ -1,0 +1,324 @@
+<?
+// datensatz abfragen //
+switch($_GET["spalte"]) {
+	case '2':
+		$tbl = "prakt2.diplomgesuch";
+		$gesuchTitel = "Bachelor-/Masterarbeits - Gesuch";
+		break;
+	case '3':
+		$tbl = "prakt2.nebenjobgesuch";
+		$gesuchTitel = "Nebenjobgesuch";
+		break;				
+	case '4':
+		$tbl = "prakt2.ausbildungsgesuch";
+		$gesuchTitel = "Ausbildungsgesuch";
+		break;
+	case '5':
+		$tbl = "prakt2.berufseinstieggesuch";
+		$gesuchTitel = "Berufseinstiegsgesuch";
+		break;
+	case '1':
+	default:
+		$tbl = "prakt2.praktikanten";
+		$gesuchTitel = "Praktikumsgesuch";
+		break;			
+}
+
+$monat = array("","Januar", "Februar", "M&auml;rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober","November","Dezember");
+
+$sql_eintrag = '	SELECT
+								*,
+								date_format(praktikanten.modify, \'%d.%m.%Y - %H:%i\') AS modifydatum
+							FROM
+								prakt2.nutzer `nutzer`,
+								'.$tbl.' `praktikanten`
+							WHERE
+								praktikanten.id = '.intval($_GET['id']).'
+								AND (praktikanten.nutzerid = nutzer.id)';		
+
+$result = $hDB->query($sql_eintrag,$praktdbslave);
+
+// array erzeugen //
+$eintrag = mysql_fetch_assoc($result);
+
+/* alter berechnen */
+$zeit = time();
+$geburtstag = strtotime($eintrag['geburtsdatum']);
+$alterdiff = $zeit - $geburtstag;
+$diff = 31560000; // 365 Tage
+$alter = $alterdiff / $diff;
+
+echo "<h3>Vorschau - ".$gesuchTitel."</h3>";
+// datensatzausgabe //
+echo '<form method="post" action="/karriere/gesuche/bearbeiten"><input type="hidden" name="gesucheid" value="'.(int)$_GET['id'].'-'.(int)$_GET["spalte"].'">
+<fieldset class="control_panel"><p class="center"><input type="submit" class="button" value="Gesuch bearbeiten" /></p></fieldset></form>'."\n";
+
+$name = ($eintrag['geschlecht'] == 'weiblich'?"Frau ":"Herr ").'<b>'.$eintrag['vname'].' '.$eintrag['name'].'</b>';
+
+if ($eintrag['grossraum'] <> '94' && $eintrag['grossraum'] > 0) {
+	$such = intval($eintrag['grossraum']);
+	$suchres = $hDB->query('SELECT grossraum FROM prakt2.grossraum WHERE id='.$such, $praktdbslave);
+	$grossraum =  mysql_result($suchres,0,'grossraum');
+} else {
+	$grossraum = "";
+}
+if ($eintrag['bundesland'] > 0) {
+	$bundeslandid = $eintrag['bundesland'];
+	$bland = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+	$bundesland = mysql_result($bland,0, 'german');
+} else {
+	$bundesland = "";
+}
+
+if (empty($eintrag['zeitraum'])) {
+	if(empty($eintrag['zeitraum_ab_m']) || empty($eintrag['zeitraum_ab_y'])) {
+		
+		$zeitraum = "";			
+	} else {
+		$zeitraum = $monat[$eintrag['zeitraum_ab_m']-1].' '.$eintrag['zeitraum_ab_y'];
+	}
+} else {
+	if($eintrag['zeitraum_ab_m'] == 0 || $eintrag['zeitraum_ab_y'] == 0) {
+		$zeitraum = $eintrag['zeitraum'];	
+	} else {
+		$zeitraum = $monat[$eintrag['zeitraum_ab_m']-1].' '.$eintrag['zeitraum_ab_y']."<br/>".$eintrag['zeitraum'];			
+	}
+}
+
+// Berufsfeld wird bei allen Anzeigen ben�tigt, daher zentral
+if (!empty($eintrag['berufsfeld'])) {
+	$suchres = $hDB->query('SELECT german FROM prakt2.berufsfelder WHERE id='.intval($eintrag['berufsfeld']), $praktdbslave);
+	$berufsfeld = mysql_result($suchres, 0, "german");
+}
+
+if(!empty($eintrag["sprachkenntnisse1"])) {
+	$suchres = $hDB->query('SELECT german FROM sprachen WHERE id='.intval($eintrag['sprachkenntnisse1']), $praktdbslave);
+	$sprache1 = mysql_result($suchres,0,"german");
+}
+if(!empty($eintrag["sprachkenntnisse2"])) {		
+	$suchres = $hDB->query('SELECT german FROM sprachen WHERE id='.intval($eintrag['sprachkenntnisse2']), $praktdbslave);
+	$sprache2 = mysql_result($suchres,0,"german");
+}
+if(!empty($eintrag["sprachkenntnisse3"])) {
+	$suchres = $hDB->query('SELECT german FROM sprachen WHERE id='.intval($eintrag['sprachkenntnisse3']), $praktdbslave);
+	$sprache3 = mysql_result($suchres,0,"german");
+}
+
+		
+echo '<h4>Bewerber</h4>';
+echo "<div class='stdDataBox'>";
+	echo Praktika_Layout::formLabel("Name:", $name);
+	echo Praktika_Layout::formLabel("Anschrift:", $eintrag['strasse']."<br/>".$eintrag['plz'].' '.$eintrag['ort']);
+	if(!empty($grossraum)) { echo Praktika_Layout::formLabel("Grossraum:", $grossraum); }
+	if(!empty($bundesland)) { echo Praktika_Layout::formLabel("Bundesland:", $bundesland); }
+	echo Praktika_Layout::formLabel("Alter:", sprintf("%01.0u",$alter).' Jahre');			
+	echo Praktika_Layout::formLabel("Telefon:", $eintrag['tel']);			
+	echo Praktika_Layout::formLabel("Telefax:", $eintrag['fax']);			
+	echo Praktika_Layout::formLabel("Handynummer:", $eintrag['funktel']);			
+	echo Praktika_Layout::formLabel("eMail:", $eintrag['email']);				
+	if(!empty($eintrag['homepage'])) { echo Praktika_Layout::formLabel("Homepage:", '<a href="'.$eintrag['homepage'].'" target="_parent">'.$eintrag['homepage'].'</a>'); }
+	
+echo "</div>";
+		
+
+switch($_GET["spalte"]) {
+	// Praktikum
+	case "1":
+		$suchres = $hDB->query('SELECT qualifikation FROM prakt2.qualifikation WHERE id='.intval($eintrag['qualifikation']), $praktdbslave);
+		$qualifikation = @mysql_result($suchres,0,'qualifikation');
+
+		if (!empty($eintrag['praktikumsart'])) {
+			$suchres = $hDB->query('SELECT art FROM praktikumsart WHERE id='.intval($eintrag['praktikumsart']),$praktdbslave);
+			$praktikumsart = @mysql_result($suchres,0,"art");
+		}		
+		
+		echo '<h4>Qualifikationen</h4>';
+		echo "<div class='stdDataBox'>";
+			echo Praktika_Layout::formLabel("Qualifikation:", $qualifikation);
+			echo Praktika_Layout::formLabel("sonstige Qualifikation:", $eintrag['sonst_qualifikation']);
+			echo Praktika_Layout::formLabel("Besondere Kenntnisse:", $eintrag['umschulung']);			
+			echo Praktika_Layout::formLabel("vorherige Praktika:", $eintrag['vorh_praktika']);			
+			if(!empty($sprache1)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache1); }
+			if(!empty($sprache2)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache2); }
+			if(!empty($sprache3)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache3); }		
+		echo "</div>";
+		echo '<h4>Gesuchte Praktikumsstelle</h4>';
+		echo "<div class='stdDataBox'>";
+		
+			if (!empty($eintrag['berufsfeld'])) {
+				echo Praktika_Layout::formLabel("Berufsfeld:", $berufsfeld);
+			}
+			if (!empty($eintrag['praktikumsart'])) {
+				echo Praktika_Layout::formLabel("Praktikumsart:", $praktikumsart);
+			}
+			if (!empty($eintrag['studienort'])) {
+				echo Praktika_Layout::formLabel("Studienort:", $eintrag['studienort']);
+			}
+			echo Praktika_Layout::formLabel("Zeitraum:", $zeitraum);
+
+			if (!empty($eintrag['beschreibung'])) {
+				echo Praktika_Layout::formLabel("Beschreibung der Praktikumsvorstellungen:", str_replace("\n","<br/>",$eintrag['beschreibung']));
+			}
+			
+					
+		echo "</div>";	
+
+		break;
+		// Bachelor-Masterarbeit
+	case "2":
+
+		echo '<h4>Gesuchte Bachelor-/Masterarbeit</h4>';
+		echo "<div class='stdDataBox'>";
+		
+			echo Praktika_Layout::formLabel("Titel der Bachelor-/Masterarbeit:", $eintrag["titel"]);
+			echo Praktika_Layout::formLabel("Beschreibung der Bachelor-/Masterarbeit:", $eintrag["beschreibung"]);
+			
+			if (!empty($eintrag['studienort'])) {
+				echo Praktika_Layout::formLabel("Ort der Bachelor-/Masterarbeit:", $eintrag['studienort']);				
+			}
+			if (!empty($eintrag['berufsfeld'])) {
+				echo Praktika_Layout::formLabel("Berufsfeld:", $berufsfeld);
+			}
+			
+			echo Praktika_Layout::formLabel("Schlagw�rter:", $eintrag['schlagwort']);				
+			echo Praktika_Layout::formLabel("Zeitraum:", $zeitraum);			
+			
+					
+		echo "</div>";			
+		break;
+		// Nebenjob		
+	case "3":
+		$suchres = $hDB->query('SELECT qualifikation FROM prakt2.qualifikation WHERE id='.intval($eintrag['qualifikation']), $praktdbslave);
+		$qualifikation = mysql_result($suchres,0,'qualifikation');
+
+		echo '<h4>Qualifikationen</h4>';
+		echo "<div class='stdDataBox'>";
+			echo Praktika_Layout::formLabel("Qualifikation::", $qualifikation);
+			echo Praktika_Layout::formLabel("sonstige Qualifikation:", $eintrag['sonst_qualifikation']);
+			echo Praktika_Layout::formLabel("Besondere Kenntnisse:", $eintrag['umschulung']);			
+			echo Praktika_Layout::formLabel("vorherige Arbeitsstellen:", $eintrag['vorh_unternehmen']);			
+			if(!empty($sprache1)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache1); }
+			if(!empty($sprache2)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache2); }
+			if(!empty($sprache3)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache3); }		
+		echo "</div>";
+		echo '<h4>Gesuchter Nebenjob</h4>';
+		echo "<div class='stdDataBox'>";
+			echo Praktika_Layout::formLabel("gew�nschte T�tigkeit:", $eintrag["taetigkeit"]);
+			if (!empty($eintrag['berufsfeld'])) {
+				echo Praktika_Layout::formLabel("Berufsfeld:", $berufsfeld);
+			}
+			if (!empty($eintrag['arbeitsort'])) {
+				echo Praktika_Layout::formLabel("gew�nschter Arbeitsort:", $eintrag["arbeitsort"]);
+			}
+			echo Praktika_Layout::formLabel("Zeitraum:", $zeitraum);			
+
+			if (!empty($eintrag['beschreibung'])) {
+				echo Praktika_Layout::formLabel("Beschreibung der Nebenjobvorstellungen:", str_replace("\n","<br/>",$eintrag['beschreibung']));	
+			}
+			
+					
+		echo "</div>";	
+
+		break;
+		// Ausbildung		
+	case "4":
+
+		if(!empty($eintrag["qualifikation"])) {
+			$suchres = $hDB->query('SELECT qualifikation FROM prakt2.qualifikation WHERE id='.intval($eintrag['qualifikation']), $praktdbslave);
+			$qualifikation = mysql_result($suchres,0,'qualifikation');
+		}
+		if(!empty($eintrag["lehre"])) {
+			$suchres = $hDB->query('SELECT berufswahl FROM prakt2.berufswahl_'.($eintrag["geschlecht"]=="weiblich"?"frau":"mann").' WHERE id='.intval($eintrag['lehre']), $praktdbslave);
+			$berufswunsch = mysql_result($suchres,0,'berufswahl');
+		}
+						
+		echo '<h4>Qualifikationen</h4>';
+		echo "<div class='stdDataBox'>";
+			if(!empty($sprache1)) { echo Praktika_Layout::formLabel("Schulabschluss:", $qualifikation); }
+			if(!empty($sprache1)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache1); }
+			if(!empty($sprache2)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache2); }
+			if(!empty($sprache3)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache3); }		
+		echo "</div>";
+		echo '<h4>Gesuchte Ausbildungsstelle</h4>';
+		echo "<div class='stdDataBox'>";
+			echo Praktika_Layout::formLabel("Berufswunsch:", $berufswunsch);
+			echo Praktika_Layout::formLabel("Beschreibung des Berufswunsches:", $eintrag["beschreibung"]);
+			
+			if(!empty($eintrag["taetigkeit"])) {
+				echo Praktika_Layout::formLabel("Welche T�tigkeiten m�chten Sie in der Lehre ausf�hren?:", $eintrag["taetigkeit"]);
+			}
+
+			echo Praktika_Layout::formLabel("Beschreibung Ihrer Ausbildungsvorstellungen:", $eintrag["beschreibungen"]);
+			
+			if (!empty($eintrag['berufsfeld'])) {
+				echo Praktika_Layout::formLabel("Berufsfeld:", $berufsfeld);
+			}
+			if (!empty($eintrag['arbeitsort'])) {
+				echo Praktika_Layout::formLabel("gew�nschter Arbeitsort:", $eintrag["arbeitsort"]);
+			}
+			echo Praktika_Layout::formLabel("Zeitraum:", $zeitraum);			
+
+					
+		echo "</div>";	
+
+		break;	
+		// Berufseinstieg		
+	case "5":
+
+		if(!empty($eintrag["qualifikation"])) {
+			$suchres = $hDB->query('SELECT qualifikation FROM prakt2.qualifikation WHERE id='.intval($eintrag['qualifikation']), $praktdbslave);
+			$qualifikation = mysql_result($suchres,0,'qualifikation');
+		}
+		if(!empty($eintrag["lehre"])) {
+			$suchres = $hDB->query('SELECT berufswahl FROM prakt2.berufswahl_'.($eintrag["geschlecht"]=="weiblich"?"frau":"mann").' WHERE id='.intval($eintrag['lehre']), $praktdbslave);
+			$berufswunsch = mysql_result($suchres,0,'berufswahl');
+		}
+						
+		echo '<h4>Qualifikationen</h4>';
+		echo "<div class='stdDataBox'>";
+			if(!empty($qualifikation)) { echo Praktika_Layout::formLabel("angestrebter Schulabschluss:", $qualifikation); }
+			if(!empty($berufswunsch)) { echo Praktika_Layout::formLabel("Berufsabschluss:", $berufswunsch); }
+			if(!empty($sprache1)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache1); }
+			if(!empty($sprache2)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache2); }
+			if(!empty($sprache3)) { echo Praktika_Layout::formLabel("Sprachkenntnisse in:", $sprache3); }		
+		echo "</div>";
+		echo '<h4>Gesuchter Berufseinstieg</h4>';
+		echo "<div class='stdDataBox'>";
+			echo Praktika_Layout::formLabel("Derzeitiger oder angestrebter Beruf:", $eintrag["bezeichnung"]);
+			echo Praktika_Layout::formLabel("Berufsfeld:", $berufsfeld);
+			echo Praktika_Layout::formLabel("Art der Besch&auml;ftigung:", $eintrag["beschaeftigung"]);
+			
+			if(!empty($eintrag["beschreibung"])) {
+				echo Praktika_Layout::formLabel("Vorstellung zur zuk&uuml;nftigen T&auml;tigkeit:", $eintrag["beschreibung"]);
+			}
+			
+			if(!empty($eintrag["regionales"])) {
+				echo Praktika_Layout::formLabel("Regionale W&uuml;nsche:", $eintrag["regionales"]);
+			}	
+			
+			if(!empty($eintrag["gehalt"])) {
+				echo Praktika_Layout::formLabel("Gehaltvorstellung p.a.:", $eintrag["gehalt"].($eintrag["waehrung"]=="2"?" $":" �"));
+			}
+					
+			echo Praktika_Layout::formLabel("Zeitraum:", $zeitraum);			
+
+					
+		echo "</div>";	
+
+		break;				
+	
+}
+
+$select = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.$_SESSION['s_nutzerid'],$praktdbmaster);
+
+if (mysql_num_rows($select) > 0) {
+	$lebenlaufwahl = mysql_result($select,0,'lebenslauftemplate');
+}
+
+echo "<h4>Informationen zu diesem Gesuch</h4>";	
+echo "<div class='stdDataBox'>";
+	echo Praktika_Layout::formLabel("zuletzt geändert:", $eintrag['modifydatum']);
+	echo Praktika_Layout::formLabel("Bewerbungsmappe:",'<a href="/greybox.phtml?url=/home/praktikanten/profil/previewlebenslauf'.$lebenlaufwahl.'.phtml&amp;menu=mappe&amp;mappe=1" onclick="window.scrollTo(0,0);" rel="pb_page_fs[]">Bewerbungsmappe ansehen</a>',array("allowTags"=>"<a>"));	
+echo "</div>";
+		
+echo '<p class="control_panel"><a href="/karriere/gesuche" class="button small" name="back">zur&uuml;ck zur &Uuml;bersicht</a></p>'."\n";

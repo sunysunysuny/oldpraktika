@@ -1,0 +1,37 @@
+<?
+header("Location:/bewerber/index.phtml?stellenausgabe=".(int)$_GET["id"]);
+exit();
+
+require("/home/praktika/etc/config.inc.php");
+
+if (isset($_GET['stellenid'])) { 
+	$selectlink = mysql_db_query($database_db,'SELECT link_bewerbung FROM stellen WHERE id = '.$_GET['stellenid'],$praktdbmaster);
+
+	if ($selectlink != false && mysql_num_rows($selectlink) > 0)  {
+		$url = mysql_result($selectlink,0,'link_bewerbung');
+
+		mysql_db_query($database_db,'UPDATE stellen SET extbewerbcount = extbewerbcount + 1 WHERE id = '.intval($_GET['stellenid']),$praktdbmaster);
+
+		if ($status == 'false') {
+			header('Location: '.$url);
+		}
+	} else {
+		header('Location: /bewerber/');
+	}
+}
+?>
+
+<html>
+<head>
+	<title>praktika.de</title>
+</head>
+<body>
+
+<script type="text/javascript">
+<?
+	echo 'document.location.href = \''.$url.'\';'."\n";
+?>
+</script>
+
+</body>
+</html>

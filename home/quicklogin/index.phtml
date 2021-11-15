@@ -1,0 +1,268 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/mitglied.phtml";
+
+require_once ('/home/praktika/etc/config.inc.php');
+
+$_SESSION["sidebar"] = "none";
+
+if ($_SESSION['s_loggedin'] == true) {
+    if (isset($_SESSION['s_firmenid'])) {
+        header("Location: /recruiting/");
+    } else {
+        header("Location: /karriere/");
+    }
+}
+
+$error = array();
+
+//Email Verify versenden
+Praktika_Exception::handle("Es wurde keine Meldung gefunden", 10);
+
+if (isset($_REQUEST["sendemailverify"])) {
+
+    // neues Emailsystem nutzen
+    $aktstunde = date("H");
+    if ($aktstunde < 10) {
+        $begruessung = "Guten Morgen";
+    } elseif ($aktstunde > 19) {
+        $begruessung = "Guten Abend";
+    } else {
+        $begruessung = "Hallo";
+    }
+
+    if (! empty($_REQUEST["email"])) {
+        $verifykeyresults = mysql($database_db, "SELECT id, anrede, name, vname, email, id_md5 AS verifykey FROM nutzer WHERE email = '".mysql_real_escape_string($_REQUEST["email"])."' LIMIT 1", $praktdbslave);
+
+
+        // Templatesystem vorbereiten
+
+        // datensaetze gefunden ? //
+        $verifykeynum_rows = mysql_num_rows($verifykeyresults);
+
+        if ($verifykeynum_rows > 0) {
+            $verifykeydaten = mysql_fetch_array($verifykeyresults);
+
+            $begruessung .= " ".$verifykeydaten["anrede"]." ".$verifykeydaten["name"];
+
+            $emailobj = new emailtemplate(99);
+            // Ersetzungen durchf&uuml;hren
+            $mailto = $verifykeydaten["email"];
+            $emailobj->replace("{ansprache}", $begruessung);
+            $emailobj->replace("{email}", $verifykeydaten["email"]);
+            $emailobj->replace("{id}", $verifykeydaten["id"]);
+            $emailobj->replace("{verifykey}", $verifykeydaten["verifykey"]);
+            $emailobj->replace("{passwort}", "wird nicht mitgesendet");
+
+            // Bestaetigunsmail verschicken
+            $emailobj->send_email($mailto);
+            // Emailobjekt l&ouml;schen
+
+            unset($emailobj);
+            array_push($error, "Wir haben Ihnen die gew&uuml;nschte Best&auml;tigungs-eMail an Ihre Adresse zugesandt. Bitte wechseln Sie nun in Ihr Postfach, um Ihren Accout zu best&auml;tigen. Sollten Sie keine eMail von uns erhalten haben, so bitten wir Sie auch in eventuellen Spam- oder Unerw&uuml;nscht-Ordnern zu schauen. Vielen Dank!");
+        } else {
+            array_push($error, "Die eingegebene eMail-Adresse ist nicht richtig. Bitte geben Sie nachfolgend Ihre korrekte Account-Adresse ein.");
+            $emailverifyfalse = true;
+        }
+    } else {
+        array_push($error, "Die eingegebene eMail-Adresse ist nicht richtig. Bitte geben Sie nachfolgend Ihre korrekte Account-Adresse ein.");
+        $emailverifyfalse = true;
+    }
+}
+
+$send = (isset($_POST['send'])) ? $_POST['send'] : ((isset($_POST['main_send'])) ? $_POST['main_send'] : false);
+
+if (isset($_SESSION['s_loginid']) && ! empty($_SESSION['s_loginid'])) {
+    unset($_SESSION['s_loginid']);
+}
+
+if (! empty($_POST['main_loginidemail'])) {
+    $loginidemail = $_POST['main_loginidemail'];
+} elseif (! empty($_POST['loginidemail'])) {
+    $loginidemail = $_POST['loginidemail'];
+} elseif (! empty($_GET['id'])) {
+    $loginidemail = $_GET['id'];
+} else {
+    $loginidemail = null;
+}
+
+praktikaInclude(array("user.php"));
+
+$passwort = (! empty($_POST['passwort'])) ? $_POST['passwort'] : ((! empty($_POST['main_passwort'])) ? $_POST['main_passwort'] : null);
+/**
+ * Benutzernamen und Passwort ueberpruefen
+ */
+ob_start();
+if (! empty($loginidemail)) {
+
+
+    switch ($_SESSION['current_user_group']) {
+        case USER_GROUP_CANDIDATES:
+            $loginClass = new Praktika_User($loginidemail);
+
+            #if ($loginClass->getMethod() == "openid") {
+           #     header("Location:/login/openid/".base64_encode($loginidemail)."/");
+           # }
+            if (!($result = $loginClass->checkPassword($passwort, LOGIN_CANDIDATES, true))) {
+                $result = $loginClass->checkPassword($passwort, LOGIN_COMPANIES);
+               //$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+            }
+            break;
+        case USER_GROUP_COMPANIES:
+            if (!($result = _logincheck($loginidemail, $passwort, LOGIN_COMPANIES))) {
+                $result = _logincheck($loginidemail, $passwort, LOGIN_CANDIDATES, true);
+                //$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+            }
+            break;
+        case USER_GROUP_ADMIN:
+            $result = _logincheck($loginidemail, $passwort, LOGIN_ADMIN);
+            break;
+        /*...*/
+    }
+
+    if ($result == false) {
+        array_push($error, $language["strKeinLogin"]);
+    } else {
+
+        if ($result['inactive'] == 'true') {
+            array_push($error, $language["strGesperrt"]);
+            /*	} elseif (isset($result['emailverify']) && $result['emailverify'] == "false") {
+             array_push($error, '<font class="toppraktika">Sie haben Ihren praktika.de Account noch nicht best&auml;tigt, bitte klicken Sie auf den Link in der Email, die wir Ihnen nach der Accountregistrierung zukommen lassen haben.</font>');
+             $emailverifyfalse = true;
+             */
+        } else {
+
+
+            setcookie("c_group", $_SESSION['current_user_group'], time() + 31449600, "/");
+            setcookie("c_lid", $result['id'], time() + 31449600, "/");
+
+			Praktika_User::loginById($result['id'], $result['mode'], true);
+
+            if (isset($_SESSION['s_samesite']) && $_SESSION['s_samesite'] == true) {
+
+                if (isset($_SESSION['s_samesite_url'])) {
+                    header("Location: ".$_SESSION['s_samesite_url']);
+                    unset($_SESSION['s_samesite_url']);
+	                exit();
+                } else {
+                    header("Location: /login");
+	                exit();
+                }
+            } else {
+                switch ($_SESSION['current_user_group']) {
+                    case USER_GROUP_CANDIDATES:
+                        // Wenn nen halbes Jahr nicht dagewesen, dann Stammdaten aktualisieren
+			if(!empty($_COOKIE["cookiekey"])) {
+				Praktika_Kcenter_Merkzettel::convertMerkzettel($_COOKIE["cookiekey"], $_SESSION["s_nutzerid"]);
+			}
+						if (intval($_SESSION['lastlogin']) < (time() - (60 * 60 * 24 * 30 * 3))) {
+                            header("Location: /home/praktikanten/stammdaten_aktualisieren.phtml");
+                            exit;
+                        }
+                        header('Location: http://'.$_SERVER['HTTP_HOST'].'/karriere/');
+                        exit;
+                        break;
+                    case USER_GROUP_COMPANIES:
+                        header('Location: http://'.$_SERVER['HTTP_HOST'].'/recruiting/');
+                        exit;
+                        break;
+                    case USER_GROUP_ADMIN:
+                        header('Location: http://'.$_SERVER['HTTP_HOST'].'/admin/adminmenu.phtml');
+                        exit;
+                        break;
+                }
+            }
+        }
+    }
+}
+
+if(Praktika_User::isLoggedIn() == true) {
+    switch ($_SESSION['current_user_group']) {
+        case USER_GROUP_CANDIDATES:
+            header('Location: http://'.$_SERVER['HTTP_HOST'].'/karriere/');
+            exit;
+            break;
+        case USER_GROUP_COMPANIES:
+            header('Location: http://'.$_SERVER['HTTP_HOST'].'/recruiting/');
+            exit;
+            break;
+    }
+}
+
+
+if ($send && empty($loginidemail)) {
+    array_push($error, $language["strLoginleer"]);
+}
+if ($send && empty($passwort)) {
+    array_push($error, $language["strPasswortleer"]);
+}
+
+pageheader(array('page_title' => 'Login', 'grid_system' => '6-0'));
+
+Praktika_Static::addCSSModule("login");
+
+if (isset($_REQUEST["sendemailverify"]) && $emailverifyfalse == true) {
+?>
+<?php foreach ($error as $message): ?>
+<p class="hint error">
+<?= $message?>
+</p>
+<?php endforeach; ?>
+
+<p>Um sich erneut die Best&auml;tigungs-eMail zusenden zu lassen, geben Sie bitte nachfolgend Ihre eMail-Adresse ein.</p>
+<form action="/login" method="post" id="mainlogin" name="mainlogin">
+	<fieldset class="control_panel">
+		<table border="0" width="400">
+			<tr valign="baseline">
+				<td><strong>eMail:</strong></td>
+				<td><input type="text" name="email" value="<?= $email ?>" size="40" /></td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td>
+					<a href="#" class="button" onclick="document.mainlogin.submit(); return false;">Best&auml;tigungsmail zusenden</a>
+					<input type="hidden" name="sendemailverify" value="yes" />
+					<input type="hidden" name="loginwer" value="<?= $loginwer ?>" />
+				</td>
+			</tr>
+		</table>
+	</fieldset>
+</form>
+
+<?php } else { ?>
+
+<form action="/login" method="post" id="mainlogin" name="mainlogin">
+	<input type="hidden" name="uri" value="<?=$_SESSION['s_samesite_url'] ?>" />
+	<fieldset>
+		<p class="hint info"><strong>Anmeldung erforderlich!</strong> Bitte geben Sie Ihre Logindaten ein.</p>
+
+		<?php foreach ($error as $message): ?>
+		<p class="hint error"><?= $message?></p>
+		<?php endforeach; ?>
+
+		<p class="username">
+			<label for="main_loginidemail">Login:</label>
+			<input type="text" id="main_loginidemail" name="main_loginidemail" value="<?=$_COOKIE['c_lid'] ?>" />
+		</p>
+		<p class="password">
+			<label for="main_passwort">Passwort:</label>
+			<input type="password" id="main_passwort" name="main_passwort" />
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="submit" class="button small" value="LOGIN" />
+			<input type="hidden" name="main_send" value="Login" />
+		</p>
+		<p>
+			<a href="#" class="floatleft font11" onclick="smallbox.loadUrl('','/home/quicklogin/passwdwindow_smallbox.phtml','',{id:'login',width:440, title:'Passwort vergessen'}); return false;">Passwort vergessen?</a>
+			<a href="/neuanmeldung/" class="floatright font11">Neu registrieren</a>
+		</p>
+		<p>
+		</p>
+	</fieldset>
+</form>
+
+<? } ?>
+<?php
+bodyoff();
+?>

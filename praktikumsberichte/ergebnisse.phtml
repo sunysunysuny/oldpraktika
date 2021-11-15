@@ -1,0 +1,122 @@
+<?php
+require("/home/praktika/etc/config.inc.php"); 
+
+$_SESSION['current_page'] = PAGE_INTERNSHIP_REPORTS;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = "default";
+
+pageheader(array('page_title' => 'Praktikumsberichte im &Uuml;berblick')); ?>
+
+<p>Sehen Sie hier die Berichte &uuml;ber die Top- und Flop-Unternehmen. Durch Klicken auf den Unternehmensnamen erscheinen die Erfahrungsberichte der (Ex-) Praktikanten. Die Anzahl der Votes zeigt an, wieviele Berichte &uuml;ber dieses Unternehmen abgegeben wurden. Bei der Benotung spiegelt 10 die beste Bewertung und 1 die schlechteste Bewertung wider. Viel Spa&szlig; beim St&ouml;bern!</p>
+
+<?php
+
+mysql_select_db($database_db,$praktdbslave);
+
+// abfrage ausfuehren  //
+$results = mysql_db_query($database_db,'SELECT *, avg(bewertung) AS punkte, COUNT(id) AS anzahl, DATE_FORMAT(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM praktberichte WHERE inactive = \'false\' AND firmenid != 0 GROUP BY firmenid ORDER BY punkte DESC',$praktdbslave);
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows($results);
+
+// uebergabevariablen konvertieren //
+if (isset($_REQUEST['ds_count'])) {
+	$ds_count = intval($_REQUEST['ds_count']);
+}
+if (isset($_REQUEST['ds_pro_seite'])) {
+	$ds_pro_seite = intval($_REQUEST['ds_pro_seite']);
+}
+
+if ($num_rows > 0) {
+	// erste seite? //
+	if (!isset($ds_count)) {
+		$ds_count = 0;
+	}
+	$ds_value = $ds_count;
+
+	// datensaetze pro seite ueberpruefen und setzen //
+	if ($ds_pro_seite != 5 || $ds_pro_seite != 10 || $ds_pro_seite != 20) {
+		$ds_pro_seite = 50; 
+	}	
+
+	$result = mysql_db_query($database_db,'SELECT COUNT(id) AS alle FROM praktberichte WHERE inactive = \'false\'',$praktdbslave); ?>
+
+	<p>Anzahl der Berichte: <? echo mysql_result($result,0,'alle'); ?> (10 = hervorragend; 1 = schlecht)</p>
+	<table cellspacing="0" cellpadding="2">
+		<colgroup>
+			<col width="45%" />
+			<col width="10%" />
+			<col width="15%" />
+			<col width="25%" />
+		</colgroup>
+		<tr>
+			<th><p><strong>Praktikumsberichte</strong></p></th>
+			<th><p><strong>Berichte</strong></p></th>
+			<th><p><strong>&#216; Bewertung</strong></p></th>
+			<th><p><strong>&nbsp;</strong></p></th>              
+		</tr>
+
+	<?php
+	/* Datensaetze anzeigen */
+	mysql_data_seek($results, $ds_count);
+
+	$end_ds = $ds_count + $ds_pro_seite;
+	
+	while ($ds_count < $end_ds && $result_row = mysql_fetch_array($results)) {
+		echo '	<tr>'."\n";
+		echo '		<td><a href="ausgabe.phtml?firmen='.$result_row['firmenid'].'">'.$result_row['firma'].'</a></td>'."\n";
+		echo '		<td>'.sprintf('%01.0f',$result_row['anzahl']).'</td>'."\n";
+		echo '		<td><span style=" font-weight:bold;">'.sprintf('%01.1f',$result_row['punkte']).'</span> <span style="font-size:10px;">/ 10</span></td>'."\n";
+		echo '		<td><a href="./?firmen='.$result_row['firmenid'].'">Eigenen Bericht schreiben</a></td>'."\n";
+		echo '	</tr>'."\n";
+
+		$ds_count += 1;
+	}
+	?> 
+              
+	</table>
+	
+	<?php
+	mysql_free_result($results);
+	
+	if ($ds_count > $ds_pro_seite) { ?>
+	
+	<br />
+
+	<p class="control">
+		<a class="button small alternative" href="<?php echo $_SERVER['PHP_SELF'] ?>?ds_count=<? echo ($ds_value-$ds_pro_seite); ?>&ds_pro_seite=<? echo $ds_pro_seite ?>&ds_value=<? echo $ds_value ?> />&firmen=<? echo $firmen ?>">&laquo; die letzten 50 Bewertungen</a>
+	</p>
+
+	<?php
+	} else {
+	
+	}
+	
+	if ($ds_count < $num_rows) {
+	?>
+	
+	<br />
+	<p class="control">
+		<a class='button small' href='<?php echo $_SERVER['PHP_SELF'] ?>?ds_count=<? echo $ds_count; ?>&ds_pro_seite=<? echo $ds_pro_seite ?>&ds_value=<? echo $ds_value ?> />&firmen=<? echo $firmen ?>'>&raquo; die n&auml;chsten <? echo min($ds_pro_seite, ($num_rows - $ds_count)) ?> Bewertungen</a>
+	</p>
+
+	<?
+	}
+
+	if ($ds_count == $num_rows && $ds_count > 50) {
+	?>
+
+	<p class="control"><a href="javascript: location.replace('./');" class="button">Unternehmen bewerten</a></p>
+
+	<?php
+	}
+} else {
+?> 
+	<p><? echo $language["strKeine"]; ?></p>
+	<p class="control"><a href="javascript: location.replace('./')" class="button">Unternehmen bewerten</a></p>
+
+	<?php
+}
+
+bodyoff();
+?>

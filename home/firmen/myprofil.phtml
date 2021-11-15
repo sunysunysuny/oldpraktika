@@ -1,0 +1,540 @@
+<? 
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['sidebar'] = 'normal';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+pageheader(array('page_title' => 'Unternehmensprofil'));
+
+/*
+-----------------------------------------------------------------------------------
+Abfrage, ob &Auml;nderung in Datenbank erfolgen soll und &Auml;nderung in Datenbank schreiben
+-----------------------------------------------------------------------------------
+*/
+$results = mysql_db_query($database_db,'SELECT * FROM firmenprofil WHERE firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+if (isset($_POST['save'])) { 
+	/* aktuelles Datum bestimmen */
+	$datum_eintrag = date('Y-m-d');
+	
+	/* aktuelles Datum betimmen */
+	$modify = date('YmdHms');
+	
+	/* einfuegestring zusammensetzen */
+	$num_rows = mysql_num_rows($results);
+
+	$final['ueberschrift1'] = $_POST['ueberschrift1'];
+	$final['ueberschrift2'] = $_POST['ueberschrift2'];
+	$final['ueberschrift3'] = $_POST['ueberschrift3'];
+	$final['textfeld1'] = $_POST['textfeld1'];
+	$final['textfeld2'] = $_POST['textfeld2'];
+	$final['textfeld3'] = $_POST['textfeld3'];
+	
+	if (isset($_POST['bild1'])) {
+		$final['bild1'] = $_POST['bild1'];
+	}
+	
+	$final['traineestellen'] = $_POST['traineestellen'];
+	$final['einsteigerstellen'] = $_POST['einsteigerstellen'];
+	
+	$final['inactive'] = $_POST['freischalten'];
+	$final['rechtsform'] = $_POST['rechtsform'];
+	$final['wertpapierkennzahl'] = $_POST['wertpapierkennzahl'];
+	$final['gruendung'] = $_POST['gruendung'];
+	$final['startup'] = $_POST['startup'];
+	$final['produkte'] = $_POST['produkte'];
+	$final['kunden'] = $_POST['kunden'];
+	$final['zielregionen'] = $_POST['zielregionen'];
+	$final['markennamen'] = $_POST['markennamen'];
+	$final['fe_aktivitaeten'] = $_POST['fe_aktivitaeten'];
+	$final['hauptsitz'] = $_POST['hauptsitz'];
+	$final['standorteinland'] = $_POST['standorteinland'];
+	$final['standorteausland'] = $_POST['standorteausland'];
+	$final['mitarbeiterinland'] = $_POST['mitarbeiterinland'];
+	$final['mitarbeitergesamt'] = $_POST['mitarbeitergesamt'];
+	$final['praktikanten'] = $_POST['praktikanten'];
+	$final['praktikantennjahr'] = $_POST['praktikantennjahr'];
+	$final['absolventen'] = $_POST['absolventen'];
+	$final['absolventennjahr'] = $_POST['absolventennjahr'];
+	$final['fachrichtungen'] = $_POST['fachrichtungen'];
+	$final['umsatzinland'] = $_POST['umsatzinland'];
+	$final['umsatzgesamt'] = $_POST['umsatzgesamt'];
+	
+	$final['kritnoten'] = $_POST['kritnoten'];
+	$final['kritpraxis'] = $_POST['kritpraxis'];
+	$final['kritausland'] = $_POST['kritausland'];
+	$final['kritstudium'] = $_POST['kritstudium'];
+	$final['kritstudschwerp'] = $_POST['kritstudschwerp'];
+	$final['kritengagement'] = $_POST['kritengagement'];
+	$final['kritauftreten'] = $_POST['kritauftreten'];
+	$final['kritteam'] = $_POST['kritteam'];
+	$final['kritselbstst'] = $_POST['kritselbstst'];
+	$final['kritanalyt'] = $_POST['kritanalyt'];
+	$final['kritkommunik'] = $_POST['kritkommunik'];
+	$final['kritkreativ'] = $_POST['kritkreativ'];
+	$final['kritbelast'] = $_POST['kritbelast'];
+	$final['kritflex'] = $_POST['kritflex'];
+	$final['kritmobil'] = $_POST['kritmobil'];
+	$final['kritspass'] = $_POST['kritspass'];
+	$final['kritfach'] = $_POST['kritfach'];
+	$final['kritsprach'] = $_POST['kritsprach'];
+	$final['kritedv'] = $_POST['kritedv'];
+	
+	$final['praktikum'] = $_POST['praktikum'];
+	$final['diplomarbeit'] = $_POST['diplomarbeit'];
+	$final['werksstudent'] = $_POST['werksstudent'];
+	$final['trainee'] = $_POST['trainee'];
+	$final['projektarbeit'] = $_POST['projektarbeit'];
+	$final['dissertation'] = $_POST['dissertation'];
+	$final['auslandseinsatz'] = $_POST['auslandseinsatz'];
+	$final['weiterbildung'] = $_POST['weiterbildung'];
+	$final['uebernahme'] = $_POST['uebernahme'];
+	
+	$final['unternehmensphilosophie'] = $_POST['unternehmensphilosophie'];
+	$final['firmennews'] = $_POST['firmennews'];
+	$final['firmenrecruiting'] = $_POST['firmenrecruiting'];
+	
+	if (isset($_POST['firmenhomepage'])) {
+		$final['firmenhomepage'] = $_POST['firmenhomepage'];
+	}
+	
+	if (isset($_POST['firmenchat'])) {
+		$final['firmenchat'] = strtolower($_POST['firmenchat']);
+	}
+	
+	$final['modify'] = $modify;
+	
+	if ($num_rows < 1) { //INSERT
+		$final['firmenid'] = $_SESSION['s_firmenid'];
+		$final['datum_eintrag'] = $datum_eintrag;
+		$values_fields = '';
+		$values = '';
+		
+		$sqlInsertString = 'INSERT INTO firmenprofil SET ';
+		
+		foreach ($final as $key => $value) {
+			$sqlInsertString .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+		}
+		
+		$sqlInsertString = substr($sqlInsertString,0,strlen($sqlInsertString)-2);
+		
+		$res = mysql_db_query($database_db, $sqlInsertString, $praktdbmaster);
+		
+		echo '<p class="success">'.$language['strEintrag'].'</p>'."\n";	
+	} else { // UPDATE
+		$sqlUpdateString = 'UPDATE firmenprofil SET ';
+		
+		foreach ($final as $key => $value) {
+			$sqlUpdateString .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+		}
+		
+		$sqlUpdateString = substr($sqlUpdateString,0,strlen($sqlUpdateString)-2);
+		
+		$sqlUpdateString .= ' WHERE firmenid = '.$_SESSION['s_firmenid'];
+		
+		$res = mysql_db_query($database_db, $sqlUpdateString, $praktdbmaster);
+		
+		echo '<p class="success">'.$language['strAenderung'].'</p>'."\n";	
+	}
+	
+	/* Logfile eintragen */
+	$fp = fopen( $logfile, "a" );
+	fputs( $fp, isset($sqlInsertString) ? $sqlInsertString : $sqlUpdateString);
+	fputs( $fp, "\n");
+	fclose( $fp);
+	
+	echo '<script type="text/javascript">'."\n";
+	echo '	GB_showCenter(\'\',\'/firmen/profilausgabe/'.$_SESSION['s_firmenid'].'/\',700,700);'."\n";
+	echo '</script>'."\n";
+} 
+
+/*
+-----------------------------------------------------------------------------
+&Auml;nderung des Profiles
+-----------------------------------------------------------------------------
+*/
+$results = mysql_db_query($database_db,'SELECT * FROM firmenprofil WHERE firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+$profilrow = mysql_fetch_array($results);
+
+$bildateien = mysql_db_query($database_db,'SELECT * FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' ORDER BY dateiname',$praktdbslave);
+$anz_bildateien = mysql_num_rows($bildateien);
+
+$freischalten = $profilrow['inactive'];
+
+$freigeschaltet = '';
+$nichtfreigeschaltet = '';
+
+if ($freischalten == 'false')  $freigeschaltet = ' selected="selected"';
+if ($freischalten == 'true') $nichtfreigeschaltet = ' selected="selected"';
+
+if ($profilrow['startup'] == 'true') $startupja = ' selected="selected"';
+if ($profilrow['startup'] == 'false') $startupnein = ' selected="selected"';
+
+if (empty($profilrow['unternehmensphilosophie'])) {
+	$profilrow['unternehmensphilosophie'] = 'http://';
+}
+if (empty($profilrow['firmennews'])) {
+	$profilrow['firmennews'] = 'http://';
+}
+if (empty($profilrow['firmenrecruiting'])) {
+	$profilrow['firmenrecruiting'] = 'http://';
+}
+if (empty($profilrow['firmenhomepage'])) {
+	$profilrow['firmenhomepage'] = 'http://';
+}
+?>
+
+<p>Das Unternehmensprofil bildet den Kern Ihrer Stellenausschreibung. Gerade junge Menschen, die am Anfang ihrer Karriere stehen ben&ouml;tigen kompakte Informationen zum Unternehmen und zu den Perspektiven. Hier informieren sich die Bewerber intensiv &uuml;ber Ihr Unternehmen - ungeachtet einer aktuellen Stellenausschreibung. Das bedeutet, dass Sie Ihr Firmenprofil ganz einfach f&uuml;r Ihre strategische Personalplanung nutzen k&ouml;nnen.</p>
+
+<div align="right">
+	<a href="http://<?php echo $_SERVER['HTTP_HOST'] ?>/firmenprofil/47/" onclick="return GB_showCenter('',this.href,700,700)">Beispielprofil</a>&nbsp;&nbsp;
+</div>
+
+<form name="ProfilForm" action="/firmen/profil/" method="post">
+
+<? echo LineTitel("Status",1); ?>
+<fieldset>
+	<p>Legen Sie hier bitte fest, ob interessierte Bewerber Ihr Firmenprofil einsehen d&uuml;rfen. W&auml;hlen Sie in diesem Fall "Profil freigeschaltet".</p>
+	<p>
+		<label for="freischalten">Profil freischalten:</label>
+		<select id="freischalten" name="freischalten" class="eingabe156">
+			<option value="true"<? echo $nichtfreigeschaltet; ?>>Profil nicht freigeschaltet</option>
+			<option value="false"<? echo $freigeschaltet; ?>>Profil freigeschaltet</option>
+		</select>
+	</p>
+</fieldset>
+
+<? echo LineTitel("Stellen"); ?>
+<fieldset>
+	<p>Bitte geben Sie hier die Anzahl der in Ihrem Unternehmen verf&uuml;gbaren Stellen f&uuml;r Trainees und Berufseinsteiger an. Alle anderen Stellen wie Praktika, Diplomstellen usw. werden aus Ihren anderen Stellenangeboten automatisch ermittelt.</p>
+	<p>
+		<label for="praktikumStellen">Anzahl Praktikumsstellen:</label>
+		<input id="praktikumStellen" name="praktikumStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+	<p>
+		<label for="diplomStellen">Anzahl Diplomstellen:</label>
+		<input id="diplomStellen" name="diplomStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+<? echo LineInput("Anzahl Traineestellen","traineestellen",50,9); ?>
+<? echo LineInput("Anzahl Berufseinsteigerstellen","einsteigerstellen",50,9); ?>
+	<p>
+		<label for="nebenjobStellen">Anzahl Nebenjobs:</label>
+		<input id="nebenjobStellen" name="nebenjobStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+	<p>
+		<label for="ausbildungStellen">Anzahl Ausbildungspl&auml;tze:</label>
+		<input id="ausbildungStellen" name="ausbildungStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+	<p>
+		<label for="projektStellen">Anzahl Projekte:</label>
+		<input id="projektStellen" name="projektStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+	<p>
+		<label for="veranstaltungStellen">Anzahl Veranstaltungen:</label>
+		<input id="veranstaltungStellen" name="veranstaltungStellen" type="text" disabled="disabled" value="wird automatisch ermittelt" />
+	</p>
+</fieldset>
+
+<? echo LineTitel("Firmenbeschreibung"); ?>
+<fieldset>
+	<p>Hier k&ouml;nnen Sie Ihr Unternehmenslogo sowie in drei Textabschnitte gegliederte, allgemeine Informationen &uuml;ber Ihr Unternehmen eintragen. Dabei k&ouml;nnen Sie die &Uuml;berschriften und Inhalte frei w&auml;hlen. Die Texte 2 und 3 sind optional.</p>
+	<p>
+		<label for="bild1">Unternehmenslogo:<br /><span class="hint">(<a href="/firmen/bilduebersicht/" onclick="return GB_showCenter('',this.href,700,700)"><?php echo $language['strBilder'] ?></a>)</span></label>
+<?
+// BILDERMANAGEMENT
+if ($anz_bildateien > 0) {
+	echo '		<select id="bild1" name="bild1">'."\n";
+	echo '			<option value="">kein Bild</option>'."\n";
+
+	$i=0;
+	while ($i < $anz_bildateien):
+		echo '			<option ';
+		
+		if ($profilrow['bild1'] == mysql_result($bildateien,$i,'id')) {
+			echo 'selected="selected" ';
+		}
+		
+		echo 'value="' . mysql_result($bildateien,$i,'id').'">'.mysql_result($bildateien,$i,'dateiname').'</option>'."\n";
+		$i++;
+	endwhile;
+	
+	echo '		</select>'."\n";
+} else {
+	echo '		<select id="bild1" name="bild1">'."\n";
+	echo '			<option value="" class="error">bitte ein Bild hochladen</option>'."\n";
+	echo '		</select>'."\n";
+}
+?>
+	</p>
+
+<? echo LineInput("&Uuml;berschrift 1", "ueberschrift1", '',255); ?>
+<? echo LineText("Text 1", "textfeld1", '',6); ?>
+<? echo LineInput("&Uuml;berschrift 2 (optional)", "ueberschrift2", '',255); ?>
+<? echo LineText("Text 2 (optional)", "textfeld2", '',6); ?>
+<? echo LineInput("&Uuml;berschrift 3 (optional)", "ueberschrift3", '',255); ?>
+<? echo LineText("Text 3 (optional)", "textfeld3", '',6); ?>
+</fieldset>
+
+<? echo LineTitel("Kurzprofil"); ?>
+<fieldset>
+	<p>Damit sich Bewerber schnell ein Bild Ihres Unternehmens machen k&ouml;nnen, haben Sie die M&ouml;glichkeit, durch gezielte kurze Antworten auf die folgenden Rubriken Ihr Unternehmen optimal zu pr&auml;sentieren.</p>
+<? echo LineInput("Rechtsform","rechtsform",'',50); ?>
+<? echo LineInput("Wertpapierkennzahl","wertpapierkennzahl",'',20); ?>
+<? echo LineInput("Gr&uuml;ndung","gruendung",'',4); ?>
+<? echo LineInput("Umsatz Inland","umsatzinland",'',50); ?>
+<? echo LineInput("Umsatz Gesamt","umsatzgesamt",'',50); ?>
+	<p>
+		<label for="startup">Startup:</label>
+		<select id="startup" name="startup">
+			<option value="false"<? echo isset($startupnein) ? $startupnein : '' ?>>nein</option>
+			<option value="true"<? echo isset($startupja) ? $startupja : '' ?>>ja</option>
+		</select>
+	</p>
+<? echo LineText("Produkte / Leistungen", "produkte", '',3); ?>
+<? echo LineText("Kunden- / Zielm&auml;rkte", "kunden", '',3); ?>
+<? echo LineText("Zielregionen", "zielregionen", '',3); ?>
+<? echo LineText("eingetragene Marken", "markennamen", '',3); ?>
+<? echo LineText("F&amp;E Aktivit&auml;ten / Bereiche", "fe_aktivitaeten", '',3); ?>
+<? echo LineInput("Hauptsitz","hauptsitz",'',200); ?>
+<? echo LineText("Standorte in Deutschland", "standorteinland", '',3); ?>
+<? echo LineText("Standorte Ausland", "standorteausland", '',3); ?>
+<? echo LineInput("Mitarbeiter in Deutschland","mitarbeiterinland",50,9); ?>
+<? echo LineInput("Mitarbeiter gesamt","mitarbeitergesamt",50,9); ?>
+<? echo LineInput("Bedarf an Praktikanten im laufenden Jahr","praktikanten",50,5); ?>
+<? echo LineInput("Bedarf an Praktikanten im kommenden Jahr","praktikantennjahr",50,5); ?>
+<? echo LineInput("Bedarf an Absolventen im laufenden Jahr","absolventen",50,5); ?>
+<? echo LineInput("Bedarf an Absolventen im kommenden Jahr","absolventennjahr",50,5); ?>
+<? echo LineText("gesuchte Fachrichtungen", "fachrichtungen", '',3); ?>
+</fieldset>
+
+<? echo LineTitel("Einstellungskriterien"); ?>
+<fieldset>
+	<p>Bitte geben Sie nun die Gewichtung der folgenden Einstellungskriterien an. 0% bedeutet, dass Sie dieses Kriterium bei der Auswahl Ihrer Bewerber nicht interessiert, bei 100% legen Sie besonderen Wert darauf.</p>
+<? echo LineKriterium("Noten", "kritnoten"); ?>
+<? echo LineKriterium("Praxiserfahrungen", "kritpraxis"); ?>
+<? echo LineKriterium("Auslandserfahrungen", "kritausland"); ?>
+<? echo LineKriterium("schnelles Studium", "kritstudium"); ?>
+<? echo LineKriterium("Studienschwerpunkte", "kritstudschwerp"); ?>
+<? echo LineKriterium("au&szlig;eruniv. Engagement", "kritengagement"); ?>
+<? echo LineKriterium("Fachkenntnisse", "kritfach"); ?>
+<? echo LineKriterium("Sprachkenntnisse", "kritsprach"); ?>
+<? echo LineKriterium("EDV-Kenntnisse", "kritedv"); ?>
+<? echo LineKriterium("&uuml;berzeugendes Auftreten", "kritauftreten"); ?>
+<? echo LineKriterium("Teamf&auml;higkeit", "kritteam"); ?>
+<? echo LineKriterium("selbstst&auml;nd. Arbeitsstil", "kritselbstst"); ?>
+<? echo LineKriterium("analytische F&auml;higkeiten", "kritanalyt"); ?>
+<? echo LineKriterium("kommunik. F&auml;higkeiten", "kritkommunik"); ?>
+<? echo LineKriterium("Kreativit&auml;t", "kritkreativ"); ?>
+<? echo LineKriterium("Belastbarkeit", "kritbelast"); ?>
+<? echo LineKriterium("Flexibilit&auml;t", "kritflex"); ?>
+<? echo LineKriterium("Mobilit&auml;t", "kritmobil"); ?>
+<? echo LineKriterium("Spa&szlig; an der Arbeit", "kritspass"); ?>
+</fieldset>
+
+<? echo LineTitel("M&ouml;glichkeiten f&uuml;r Bewerber"); ?>
+<fieldset>
+	<p>Um gezielte Bewerbungen zu erhalten, k&ouml;nnen Sie hier angeben, welche M&ouml;glichkeiten prinzipiell f&uuml;r Bewerber/Mitarbeiter in Ihrem Unternehmen zur Verf&uuml;gung stehen. Neben &quot;m&ouml;glich&quot; und &quot;nicht m&ouml;glich&quot; haben Sie auch &uuml;ber den Klick auf &quot;detailliert angeben&quot; die M&ouml;glichkeit, genauere Angaben zum jeweiligen Angebot zu machen.</p>
+<? echo LineSelect("Praktikum","praktikum"); ?>
+<? echo LineSelect("Diplomarbeit","diplomarbeit"); ?>
+<? echo LineSelect("Werksstudent","werksstudent"); ?>
+<? echo LineSelect("Trainee","trainee"); ?>
+<? echo LineSelect("Projektarbeit","projektarbeit"); ?>
+<? echo LineSelect("Dissertation","dissertation"); ?>
+<? echo LineSelect("Auslandseinsatz","auslandseinsatz"); ?>
+<? echo LineSelect("Weiterbildungsm&ouml;gl.","weiterbildung"); ?>
+<? echo LineSelect("anschl. &Uuml;bernahme","uebernahme"); ?>
+</fieldset>
+
+<? echo LineTitel("Links"); ?>
+<fieldset>
+	<p>Wenn Sie weitere Informationen auf Ihrer Website anbieten, k&ouml;nnen Sie in den folgenden Rubriken den entsprechenden Link eintragen.</p>
+<? echo LineInput("Unternehmensphilosophie","unternehmensphilosophie",'',100); ?>
+<? echo LineInput("Firmen-News","firmennews",'',100); ?>
+<? echo LineInput("Firmen-Recruitingsystem","firmenrecruiting",'',100); ?>
+<? echo LineInput("Firmen-Homepage","firmenhomepage",'',100); ?>
+</fieldset>
+
+<? 
+
+function LineSelect($Titel, $InputName) {	
+   	global $profilrow;
+   	
+   	$moeglich = '';
+   	$nichtmoeglich = '';
+   	
+	if (isset($profilrow[$InputName])) {
+   		if ($profilrow[$InputName] == 'm&ouml;glich') {
+   			$moeglich = ' selected="selected"';
+   		}
+   		if ($profilrow[$InputName] == 'nicht m&ouml;glich' || empty($profilrow[$InputName])) {
+   			$nichtmoeglich = ' selected="selected"';
+   		}
+	}
+	
+	$tline = '	<p id="span'.$InputName.'">'."\n";
+	$tline .= '		<label for="'.$InputName.'">'.$Titel.':</label>'."\n"; //	<td class="tdrechts" id="span'.$InputName.'">';
+	$tline .= '		<select id="'.$InputName.'" name="'.$InputName.'" onchange="ChangeSelectToInput(\'span'.$InputName.'\',document.ProfilForm.'.$InputName.')">'."\n";
+	
+	if (isset($profilrow[$InputName]) && $profilrow[$InputName] <> "m&ouml;glich" && $profilrow[$InputName] <> "nicht m&ouml;glich") {
+		$tline .= '			<option value="'.$profilrow[$InputName].'">'.$profilrow[$InputName].'</option>'."\n";
+	}
+	
+	$tline .= '			<option value="m&ouml;glich"'.$moeglich.'>m&ouml;glich</option>'."\n";
+	$tline .= '			<option value="nicht m&ouml;glich"'.$nichtmoeglich.'>nicht m&ouml;glich</option>'."\n";
+	$tline .= '			<option value="detail">detailliert angeben...</option>'."\n";
+	$tline .= '		</select>'."\n";
+   	$tline .= '	</p>'."\n";
+   	
+	return($tline);	
+	
+}
+
+
+function LineTitel($Titel, $NoSave = 0){
+	if ($NoSave == 0) {
+		$tline = '<a href="javascript: document.ProfilForm.submit();" style="float: right; margin: 9px 8px 0 0;"><img src="/styles/images/Buttons/speichern_mini.gif" alt="" /></a>';
+	} else {
+		$tline = '&nbsp;';
+	}
+	
+	$tline .= '<h4>'.$Titel.'</h4>'."\n";
+	
+	return($tline);	
+}
+
+
+function LineKriterium($Label, $InputName){
+   	global $profilrow;
+
+   	$tline = '	<p>'."\n";
+   	$tline .= '		<label for="'.$InputName.'">'.$Label.':</label>'."\n";
+   	$tline .= '		<select id="'.$InputName.'" name="'.$InputName.'">'."\n";
+	
+   	for($i = 0; $i <= 100; $i = $i + 10){
+		$c = ''; 
+		$hinweis = '';
+
+		if ($i == 0) {
+			$hinweis = ' (nicht wichtig)';
+		}
+		
+		if ($i == 100) {
+			$hinweis = ' (sehr wichtig)';
+		}
+		
+		if(isset($profilrow[$InputName])) {
+			if (round($profilrow[$InputName] / 10) == round($i / 10)) {
+				$c = ' selected="selected"';
+			}
+		}
+		$tline .= '			<option value="'.$i.'"'.$c.'>'.$i.'%'.$hinweis.'</option>'."\n";
+	}
+   	$tline .= '		</select>'."\n";
+   	$tline .= '	</p>'."\n";
+	
+	return($tline);
+}
+
+
+function LineInput($Label, $InputName, $Size, $MaxLen = '', $tFormHelp = '') {   	
+   	global $profilrow;
+   	
+   	$tline = '	<p style="clear: both;">'."\n";
+   	$tline .= '		<label for="'.$InputName.'">'.$Label.':</label>'."\n";
+   	$tline .= '		<input id="'.$InputName.'" name="'.$InputName.'" style="width: '.$Size.'px;" ';
+
+   	if ($MaxLen) {
+   		$tline .= 'maxlength="'.$MaxLen.'" ';
+   	}
+   	
+   	if (isset($profilrow[$InputName])) {
+   		$tline .= 'value="'.$profilrow[$InputName].'" ';
+   	}
+   	
+   	$tline .= '/>'."\n";
+   	$tline .= '	</p>'."\n";
+   	
+	return($tline);	
+}
+
+
+function LineText($Label, $InputName, $Size, $Height, $MaxLen = '', $tFormHelp = ''){
+   	global $profilrow;
+   	
+   	$tline = '	<p>'."\n";
+   	$tline .= '		<label for="'.$InputName.'">'.$Label.':</label>'."\n";
+   	$tline .= '		<textarea id="'.$InputName.'" name="'.$InputName.'" style="width:'.$Size.'px;" ';
+   	
+   	if ($MaxLen) {
+   		$tline .= 'maxlength="'.$MaxLen.'" ';
+   	}
+   	
+   	$tline .= 'rows="'.$Height.'" cols="10">';
+
+   	if (isset($profilrow[$InputName])) {
+   		$tline .= $profilrow[$InputName];	
+   	}
+   	
+   	$tline .= '</textarea>'."\n";
+   	$tline .= '	</p>'."\n";
+   	
+	return($tline);	
+}
+?> 
+
+<fieldset class="control_panel">
+	<p>
+		<button type="submit" name="speichern" value="speichern"><span><span><span>SPEICHERN &amp; VORSCHAU</span></span></span></button>
+		<input type="hidden" name="save" value="1" />
+	</p>
+	<p>
+		<button type="button" name="back" value="zur&uuml;ck zur Account&uuml;bersicht" onclick="location.href='/firmen/account/'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>
+	</p>
+</fieldset>
+       
+</form> 
+
+<script type="text/javascript">
+<!--
+function ChangeSelectToInput(txtSpan, objSelect){
+	// NICHT-Kompatibel: NS4 und tiefer, IE3 und tiefer
+	if (!objSelect.value) {
+		alert ('Ihr Browser unterst&uuml;tzt die Angabe von Details nicht.');
+	}
+	
+	if (objSelect.value == 'detail') {
+		if (objSelect.outerHTML) {
+			// Kompatibel zu IE4
+			objSelect.outerHTML = '<input type="text" name="' + objSelect.name + '" style="width:200px;" value="" maxlength="50" />';
+			var NewObj = objSelect.name
+			document.ProfilForm[NewObj].focus();
+		} else {
+			if (document.getElementById(txtSpan).childNodes) {
+				// Kompatibel zu NS6, IE5, Opera7, Firefox, Konq 3.3, Safari 1.2
+				var p = document.getElementById(txtSpan);
+				
+				var NewInput = document.createElement("input");
+	  			
+				p.replaceChild(NewInput, objSelect);
+
+	  			NewInput.setAttribute("type","text");
+				NewInput.setAttribute("name",objSelect.name);
+				NewInput.setAttribute("value","");
+				NewInput.setAttribute("maxLength","50");
+				NewInput.focus();			
+			} else {				
+				alert("Ihr Browser unterst&uuml;tzt die Angabe von Details nicht.");
+			}
+		}
+	}
+}
+//-->
+</script>
+     
+<? bodyoff(); ?>

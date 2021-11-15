@@ -1,0 +1,24 @@
+<?
+ $gruppe = "praktikant";
+ require("/home/praktika/etc/config.inc.php"); 
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); echo "<hallo".$s_nutzerproparray[suche][$s_spalte][meta][result][$id].">";?>
+<TITLE>Individuelles Stellenprofil</TITLE>
+<SCRIPT>
+  window.focus();
+</SCRIPT>
+</HEAD>
+<? 
+if ($s_spalte == 5) { $masterpixel = 68; } else { $masterpixel = 48; }
+if ($firma == "yes") { $bottompixel = 1; } else { $bottompixel = $masterpixel; }
+echo "<frameset rows=\"".$bottompixel.",*\">\n";
+if ($firma != "yes") echo "<frame src=\"metabottom.phtml?id=" . $id . "&partnerid=".$partnerid."\" name=\"advancedprofilebottom\" noresize marginwidth=0 marginheight=0 scrolling=no>\n";
+$results = mysql_db_query($database_metasuche,"SELECT url FROM fmetaangebot_new WHERE partnerid=$partnerid AND id=".$s_nutzerproparray[suche][$s_spalte][meta][result][$id],$praktdbslave);
+echo "<frame src=\"".mysql_result($results,0,"url")."\" name=\"advancedprofilemain\" marginwidth=0 marginheight=0>\n"; 
+?>
+    </frameset>
+</HTML>
+ 

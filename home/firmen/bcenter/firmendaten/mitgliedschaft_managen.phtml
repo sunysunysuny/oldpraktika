@@ -1,0 +1,64 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+praktikaInclude(array("db.php","listen.php"));
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+$hDB = new Praktika_Db();
+
+if(empty($_SESSION['s_firmenid'])) {
+	die("No Access");
+}
+
+$_SESSION['s_firmenproparray']['lastPage'] = 'firmendaten/mitgliedschaft_managen';
+
+$management = new Praktika_Firmen_Management();
+
+echo '<h3>Rechnungs&uuml;bersicht</h3>'."\n";
+
+echo $management->rechnungen();
+
+echo '<p>Wenn Sie die Rechnungsanschrift korrigieren m&ouml;chten, &auml;ndern Sie bitte Ihre <a href="#" onclick="loadContent(\'firmendaten/index\')">Stammdaten</a> und drucken dann Ihre Rechnung erneut aus.</p>'."\n";
+
+$sql = 'SELECT admin FROM '.$database_db.'.bearbeiter WHERE id = '.$_SESSION['s_loginid'].' AND firmenid = '.$_SESSION['s_firmenid'];
+$result = mysql_query($sql, $praktdbslave);
+
+if (mysql_num_rows($result) > 0 && mysql_result($result, 0, 'admin') == 'true') {
+	echo '<h3>Stellenpaket</h3>'."\n";
+	
+	if ($_SESSION['s_firmenlevel'] != 0) {
+	}
+	
+	if ($_SESSION['s_firmenlevel'] != 0) {
+		$management->lizenzDaten();
+
+		echo '<p>Sie besitzen derzeit das Stellenpaket <strong>'.$management->lizenz.'</strong> mit der Laufzeit '.$management->beginn.' bis '.$management->ende.'.</p>'."\n";
+	
+		$sql = 'SELECT DATE_FORMAT(kuendigung_eingang, \'%d.%m.%Y\') AS kuend_datum, DATE_FORMAT(kuendigung, \'%d.%m.%Y\') AS kuend_wirksam FROM '.$database_db.'.firmen_prop_assign WHERE firmenid = '.$_SESSION['s_firmenid'];
+		$result = mysql_query($sql, $praktdbslave);
+			
+		if (mysql_num_rows($result) > 0) {
+			if (mysql_result($result, 0, 'kuend_wirksam') == '00.00.0000') {
+				echo '<p>Stellenpaket '.$management->lizenz.' in kostenlose Mitgliedschaft wandeln? <a href="#" onclick="loadContent(\'firmendaten/abo_kuendigen\',\'art=1\')">Hier klicken</a></p>'."\n";
+			} else {
+				echo '<p>Sie haben Ihre Lizenz in eine kostenfreie Mitgliedschaft am <strong>'.mysql_result($result, 0, 'kuend_datum').'</strong> umgewandelt. Die Umstellung erfolgt zum <strong>'.mysql_result($result, 0, 'kuend_wirksam').'</strong>.</p>'."\n";
+			}
+		}
+	} else {
+		echo '<p>Sie besitzen derzeit eine <strong>kostenfreie Mitgliedschaft</strong>.</p>'."\n";
+		echo '<p>Sie m&ouml;chten Ihre Stellenangebote auf PRAKTIKA schalten? Informieren Sie sich zu unseren Leistungen. <a href="/cms/stellen_pakete.1452.0.html">Hier klicken</a>'."\n";
+		echo '<h3>Firmenaccount l&ouml;schen</h3>'."\n";
+		echo '<p>Sie k&ouml;nnen jederzeit Ihre Firmenmitgliedschaft bei PRAKTIKA beenden. Es werden alle Eintr&auml;ge und hinterlegten Daten und Dateien unwiderruflich gel&ouml;scht. Alle kostenpflichtigen Buchungen bzw. Freischaltungen gehen verloren und k&ouml;nnen nicht &uuml;bertragen werden. Sie k&ouml;nnen sich nach Beendigung der Mitgliedschaft jederzeit neu anmelden.</p>'."\n";
+		echo '<p><a href="#" onclick="loadContent(\'firmendaten/abo_kuendigen\',\'art=2\')">Firmenaccount jetzt unwiderruflich l&ouml;schen.</a></p>'."\n";
+	}
+}
+?>

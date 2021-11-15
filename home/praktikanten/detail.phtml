@@ -1,0 +1,897 @@
+<?
+header("Location:/stelle/".(int)$_GET["id"]."/");
+exit();
+require("/home/praktika/etc/config.inc.php");
+
+//if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+//	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+//}
+Praktika_Log::logOld();
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+include ("/home/praktika/etc/suche/deutschlandwg.inc");
+
+if (isset($_GET['id']) && !empty($_GET['id'])) {
+	$id = intval($_GET['id']);
+} else {
+	$id = 0;
+}
+
+if (isset($_GET['firmenid']) && !empty($_GET['firmenid'])) {
+	$firmenid = intval($_GET['firmenid']);
+} else {
+	$firmenid = 0;
+}
+
+// pr&uuml;fen ob Stelle da ist oder freigeschalten ist
+mysql_select_db($database_db,$praktdbslave);
+$querystring = 'SELECT id, UNIX_TIMESTAMP(modify) AS datum_unix, taetigkeit, beschreibung, stichwort FROM stellen WHERE id = '.$id.' and inactive = \'false\'';
+$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+if ($result != false && mysql_num_rows($result) < 1) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/home/praktikanten/einblick.phtml');
+	exit;
+}
+
+$_SESSION['s_nutzerproparray']['mitglied'][$_SESSION['s_bereich']]['lasturi'] = $_SERVER['PHP_SELF'];
+$_SESSION['s_nutzerproparray']['mitglied'][$_SESSION['s_bereich']]['lastid'] = $id;
+
+$description = strip_tags(mysql_result($result,0,'beschreibung'));
+$description = str_replace(chr(10),' ',$description);
+$description = str_replace(chr(13),' ',$description);
+$description = substr($description, 0, 200);
+
+$metatags['Title'] = mysql_result($result,0,'taetigkeit');
+$metatags['Keywords'] = mysql_result($result,0,'stichwort');
+$metatags['Description'] = $description;
+
+// NutzerPayDaten pr&uuml;fen
+if ($_SESSION['s_loggedin'] == true) {
+	$nutzercheckresult = mysql_db_query($database_db,'SELECT nutzer_prop_assign.searchpay, nutzer.land, nutzer.landfest, nutzer_prop_assign.ausl_timeout FROM nutzer, nutzer_prop_assign WHERE nutzer.id = '.$_SESSION['s_nutzerid'].' AND nutzer_prop_assign.nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+
+	// Nutzerbookmark gelesen
+	if (isset($_GET['kcenter']) && $_GET['kcenter'] == 1 && isset($_GET['gelesen']) && $_GET['gelesen'] == 0) {
+		if ($_SESSION['s_bereich'] == 2) {
+			$dbsel = 'nutzerbookmark';
+		}
+		
+		if ($_SESSION['s_bereich'] == 5) {
+			$dbsel = 'jobmailsend';
+		}
+		
+		mysql_db_query($database_db,'UPDATE '.$dbsel.' SET gelesen = \'true\' WHERE stellenid = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'].' AND spalte = '.$_SESSION['s_spalte'],$praktdbmaster);
+
+
+		$check = 'SELECT * FROM nutzerbookmark WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND stellenid = '.$id.' AND spalte = '.$_SESSION['s_spalte'];
+		$nutzerbookmarkresult = mysql_query($check,$praktdbslave);
+		$num_rows = ($nutzerbookmarkresult != false) ? mysql_num_rows($nutzerbookmarkresult) : 0;
+	}
+}
+
+pageheader(array('page_title' => 'Praktikumsdetails'));
+
+if ($_SESSION['s_unternehmen'] == false) {
+	$usergroup = 'nutzer';
+} else {
+	$usergroup = 'firma';
+}
+
+$dateiname = '/home/praktika/etc/stellencache/stelle_'.$id.'_'.mysql_result($result,0,'datum_unix').'_'.$usergroup.'.html';
+
+if (file_exists($dateiname) == false || $SESSION['s_loggedinnutzer'] == true) {
+	// datensatz abfragen //
+	$querystring = '	SELECT
+							firmen.id AS firmenid,
+							firmen.advanced,
+							firmen.searchtop,
+							firmen.firma,
+							praktikumsstellen.abteilung AS prakabteilung,
+							praktikumsstellen.berufsfeld,
+							praktikumsstellen.jobcode,
+							praktikumsstellen.ansprechpartner,
+							branchen.'.$_SESSION['s_sprache'].',
+							firmen.strasse,
+							firmen.plz,
+							firmen.ort,
+							stellen.grossraum,
+							firmen.grossraum,
+							stellen.bundesland,
+							firmen.bundesland,
+							stellen.land,
+							firmen.land,
+							firmen.tel,
+							firmen.fax,
+							firmen.email,
+							firmen.homepage,
+							stellen.id AS fid,
+							stellen.studienrichtung,
+							stellen.zeitraum_von,
+							stellen.zeitraum_bis,
+							stellen.zeitraum,
+							stellen.taetigkeit,
+							stellen.qualifikation,
+							stellen.sonst_qualifikation,
+							stellen.einsatzort,
+							stellen.beschreibung,
+							stellen.bewerbungperemail,
+							stellen.bewerbungperpost,
+							stellen.bewerbungpertel,
+							stellen.bewerbungperonline,
+							stellen.entgelt,
+							stellen.hochschulprakt,
+							stellen.schuelerprakt,
+							stellen.wprakt,
+							stellen.sonstprakt,
+							bearbeiter.abteilung AS babteilung,
+							bearbeiter.anrede,
+							bearbeiter.titel,
+							bearbeiter.vname,
+							bearbeiter.name,
+							bearbeiter.tel AS dir_tel,
+							bearbeiter.fax AS dir_fax,
+							bearbeiter.funktion,
+							bearbeiter.email AS dir_email,
+							stellen.von_monat,
+							stellen.von_jahr,
+							stellen.zeitraum
+							UNIX_TIMESTAMP(stellen.modify) AS modify
+						FROM
+							firmen,
+							stellen,
+							branchen,
+							bearbeiter
+						WHERE
+							stellen.id = '.$id.'
+							AND stellen.firmenid = firmen.id
+							AND branchen.id = firmen.branche
+							AND bearbeiter.id = stellen.bearbeiterid';
+	$result = mysql_query($querystring,$praktdbslave);
+
+	// array erzeugen //
+	$eintrag = mysql_fetch_array($result);
+
+	// Pr&uuml;fung in der Stellenlaufzeit, ob eine Imageanzeige vorliegt
+	$sel = mysql_db_query($database_db,'SELECT produktid FROM stellenlaufzeit WHERE stellenid = '.$id,$praktdbslave);
+
+	if ($SAVE == "YES") {
+		if ($num_rows < 1 && !isset($_SESSION['s_nutzerid'])) {
+			/* einfuegestring zusammensetzen */
+			$datum_eintrag = date('Y-m-d');
+			$spalte = 'Praktikum';
+			$obewerbung_active = $eintrag['bewerbungperonline'];
+			$insertstring = '	INSERT INTO nutzerbookmark (
+									nutzerid,
+									stellenid,
+									firmenid,
+									spalte,
+									obewerbung_active,
+									datum_eintrag
+								) VALUES (
+									'.$_SESSION['s_nutzerid'].',
+									'.$id.',
+									'.$firmenid.',
+									'.$_SESSION['s_spalte'].',
+									'.$obewerbung_active.',
+									'.$datum_eintrag.')';
+			$gespeichert = true;
+
+			/* datensatz einfuegen */
+			mysql_db_query($database_db,$insertstring,$praktdbmaster);
+			$stellencontent .= $language['strWurdeNotiert'];
+			$stellencontent .= $language['strDirekt'].' <a href="/home/praktikanten/kcenter/?bereich=2">'.$language['strMerkzettel'].'.</a>'."\n";
+		} else {
+			$stellencontent .= $language['strWurdeNichtNotiert']."\n";
+			$gespeichert = true;
+		}
+	}
+
+	/* Firmenlevel bestimmen */
+	$firmenid = $eintrag['firmenid'];
+	$firmenlevelstring = 'SELECT firmenlevel FROM firmen_prop_assign WHERE firmenid = '.$firmenid;
+	$firmenlevelresult = mysql_query($firmenlevelstring,$praktdbslave);
+	// array erzeugen //
+
+	$firmenlevelarray = mysql_fetch_array($firmenlevelresult);
+	$firmenlevel = $firmenlevelarray['firmenlevel'];
+	/* Firmenlevel bestimmen ENDE */
+
+	// Statistikinfos speichern
+	$aktdatum = date('YmdHis');
+	$firmenid = $eintrag['firmenid'];
+	$insert = mysql_db_query($database_db,'INSERT LOW_PRIORITY INTO viewstatsfirmen (stellenid, firmenid, userid, spalte, modify) VALUES ('.$id.', '.$firmenid.', '.$_SESSION['s_nutzerid'].', '.$_SESSION['s_spalte'].', NOW())',$praktdbmaster);
+
+	// Stellenanzeige einblenden
+	$queryadvancedstring = 'SELECT * FROM stellenadvanced WHERE stellenid = '.$id.' AND spalte = '.$_SESSION['s_spalte'].' AND inactive = \'false\'';
+	$queryadvanced = mysql_db_query($database_db,$queryadvancedstring,$praktdbslave);
+
+	// array erzeugen //
+	if (($queryadvanced != false) && mysql_num_rows($queryadvanced) > 0) {
+		$advancedyesno = mysql_fetch_assoc($queryadvanced);
+		$firmenid = $advancedyesno['firmenid'];
+		
+		if($advancedyesno['winfull'] == 'true') {
+			$winfull = 'yes';
+		} else {
+			$winfull = 'no';
+		}
+
+		$stellencontent .= '<script type=\"text/javascript\">'."\n";
+		$stellencontent .= '	advancedview(\'stellenadvanced/?id='.$id.'&firmenid='.$firmenid.'&viewstatsid='.$viewstatsid.'\',\''.session_id().'\',\''.$winfull.'\',\''.$advancedyesno['width'].'\');'."\n";
+		$stellencontent .= '</script>'."\n";
+		$stellencontent .= '<a href=\"javascript:advancedview(\'stellenadvanced/?id='.$id.'&firmenid='.$firmenid.'&viewstatsid='.$viewstatsid.'\',\''.session_id().'\',\''.$winfull.'\',\''.$advancedyesno['width'].'\');"><p class="error">Sollte sich aufgrund eines installierten PopUp-Blockers kein Anzeigenfenster &ouml;ffnen, so klicken Sie auf diesen Link um die Anzeige anzusehen.</a></p>'."\n";
+	}
+
+	// datensatzausgabe //
+	if ($_SESSION['s_loggedinnutzer'] == true) {
+		$pdf = '<a href="detailpdf.phtml?id='.$id.'" target="_blank"><img src="/home/gifs/pdf.gif" alt="'.$language['strPdfDescribe'].'" /></a>'."\n";
+	}
+
+	$firmenprofil = '<a href="/firmenprofil.'.$firmenid.'.html"><img src="/home/gifs/symbole/firmenprofil.gif" alt="'.$language['strProfilDescribe'].'" /></a>'."\n";
+
+	$bildwerte = mysql_db_query($database_db,'SELECT * FROM bilddateien WHERE firmenid = '.$firmenid.' AND dateiname = \'resultlogo.gif\'',$praktdbslave);
+	
+	if (mysql_num_rows($bildwerte) > 0) {
+		$bilddatei = '<img src="'.mysql_result($bildwerte,0,'uri').'" width="'.mysql_result($bildwerte,0,'width').'" height="'.mysql_result($bildwerte,0,'height').'" align="left" style="margin-bottom: 5px;" />'."\n";
+	}
+
+	
+	
+	$stellencontent .= '<table>'."\n";
+	$stellencontent .= '	<colgroup>'."\n";
+	$stellencontent .= '		<col width="20%" />'."\n";
+	$stellencontent .= '		<col width="30%" />'."\n";
+	$stellencontent .= '		<col width="50%" />'."\n";
+	$stellencontent .= '	</colgroup>'."\n";
+echo	$stellencontent .= '	<tr>'."\n";
+
+	if ($_SESSION['s_loggedinnutzer'] == true) {
+		$stellencontent .= '		<td colspan="2">'.$bilddatei.'</td>'."\n";
+		$stellencontent .= '		<td>'.$firmenprofil.'&nbsp;'."\n";
+		$stellencontent .= '			<a href="detailprint.phtml?id='.$id.'" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/home/gifs/symbole/drucken.gif" alt="'.$language['strDruckenDescribe'].'" /></a>&nbsp;&nbsp;'."\n";
+		$stellencontent .= '			<a href="detailsend.phtml?id='.$id.'" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/home/gifs/symbole/versenden.gif" alt="'.$language['strEmailDescribe'].'" /></a>&nbsp;&nbsp;'."\n";
+		$stellencontent .= '			'.$pdf."\n";
+		$stellencontent .= '		</td>'."\n";
+	} else {
+		$stellencontent .= '		<td colspan="2">'.$bilddatei.'</td>'."\n";
+		$stellencontent .= '		<td>'.$firmenprofil.'&nbsp;'."\n";
+		$stellencontent .= '			<a href="detailsend.phtml?id='.$id.'" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/home/gifs/symbole/versenden.gif" alt="'.$language['strEmailDescribe'].'" /></a>&nbsp;&nbsp;'."\n";
+		$stellencontent .= '			'.$pdf."\n";
+		$stellencontent .= '		</td>'."\n";
+	}
+
+	$stellencontent .= '	</tr>'."\n";
+	$stellencontent .= '	<tr>'."\n";
+
+	if ($num_rows < 1 && $gespeichert == false) {
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			$stellencontent .= '		<td colspan="3">'."\n";
+			$stellencontent .= '			<a href="detail.phtml?id='.$id.'&SAVE=YES&userid='.$firmenid.'">('.$language['strMerken'].')</a>'."\n";
+			$stellencontent .= '		</td>'."\n";
+		} else {
+			$stellencontent .= '		<td colspan="3">'."\n";
+			$stellencontent .= '			<a href="mitglied.phtml">('.$language['strMerken'].')</a>'."\n";
+			$stellencontent .= '		</td>'."\n";
+		}
+	}
+
+	$stellencontent .= '	</tr>'."\n";
+	$stellencontent .= '	<tr>'."\n";
+	
+	// Alle Stellen dieser Firma
+	$stellencontent .= '		<td colspan="2">'."\n";
+	$stellencontent .= '			<a href="/praktikumsberichte/bericht.'.$eintrag['firmenid'].'.html" onclick="return GB_showCenter(\'\',this.href,700,700)">(Praktikumsberichte)</a>'."\n";
+	$stellencontent .= '		</td>'."\n";
+	$stellencontent .= '		<td>'."\n";
+	$stellencontent .= '			<a href="/clickin.'.$eintrag['firmenid'].'.html">(Alle Stellen dieser Firma)</a>'."\n";
+	$stellencontent .= '		</td>'."\n";
+	
+	$stellencontent .= '	</tr>'."\n";
+
+	// pr&uuml;fen ob Auslandspraktika gebucht und Firma im Ausland, wenn ja, firmenlevel wird auf 1 gesetzt
+	if ($_SESSION['s_loggedinnutzer'] == true) {
+		if (mysql_result($nutzercheckresult,0,'ausl_timeout') > time() && $firmenlevel == 0) {
+			$firmenlevel = 1;
+		}
+	}
+
+	$stellencontent .= '	<tr>'."\n";
+	$stellencontent .= '		<td colspan="3"><strong>'.$language['strBeschreibung'].'</strong></td>'."\n";
+	$stellencontent .= '	</tr>'."\n";
+
+	if ($_SESSION['s_loggedinnutzer'] == true) {
+		if (!empty($eintrag['jobcode'])) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strJobcode'].':</td>'."\n";
+			$stellencontent .= '		<td>praktika.de '.$eintrag['jobcode'].'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+	} else {
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strJobcode'].':</td>'."\n";
+		$stellencontent .= '		<td><a href="mitglied.phtml">'.$language['strAnzeigen'].'</a></td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+	}
+
+	if (!empty($eintrag['taetigkeit'])) {
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strTaetigkeit'].'</td>'."\n";
+		$stellencontent .= '		<td><strong>'.$eintrag['taetigkeit'].'</strong></td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+	}
+
+	$eintrag['zeitraum_von'] = strtotime($eintrag['zeitraum_von']);
+	$eintrag['zeitraum_bis'] = strtotime($eintrag['zeitraum_bis']);
+
+	if (empty($eintrag['zeitraum'])) {
+		if ($eintrag['jahrvon'] == 0 || $eintrag['jahrbis'] == 0) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strZeitraum'].'</td>'."\n";
+			$stellencontent .= '		<td>keine genauen Angaben hinterlegt</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		} else {
+			if ($eintrag['zeitraum_bis'] > strtotime ("now")) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strZeitraum'].'</td>'."\n";
+				$stellencontent .= '		<td>'.strftime('%x', $eintrag['zeitraum_von']).' - '.strftime('%x', $eintrag['zeitraum_bis']).'</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		}
+	} else {
+		if($eintrag['jahrvon'] == 0 || $eintrag['jahrbis'] == 0) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strZeitraum'].'</td>'."\n";
+				$stellencontent .= '		<td>'.$eintrag['zeitraum'].'</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+		} else {
+			if ($eintrag['zeitraum_bis'] > strtotime ("now")) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strZeitraum'].'</td>'."\n";
+				$stellencontent .= '		<td>'.strftime('%x', $eintrag['zeitraum_von']).' - '.strftime('%x', $eintrag['zeitraum_bis']).'<br />'.$eintrag['zeitraum'].'</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		}
+	}
+
+	$ins = $eintrag['berufsfeld'];
+	$suchres = mysql_db_query($database_db,'SELECT * FROM berufsfelder WHERE id = '.$ins,$praktdbslave);
+	
+	if (($suchres != false) && mysql_num_rows($suchres) > 0) {
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strBerufsfeld'].'</td>'."\n";
+		$stellencontent .= '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+	}
+
+	if ($eintrag['studienrichtung']  > 0) {
+		$ins = $eintrag['studienrichtung'];
+		$suchres = mysql_db_query($database_db,'SELECT studiengang FROM studiengaenge WHERE id = '.$ins,$praktdbslave);
+		
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strStudienrichtung'].'</td>'."\n";
+		$stellencontent .= '		<td>'.mysql_result($suchres,0,'studiengang').'</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+	}
+
+	if (($eintrag['schuelerprakt'] == 'true' || $eintrag['hochschulprakt'] == 'true' || $eintrag['wprakt'] == 'true' || $eintrag['sonstprakt'] == 'true')) {
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strArt'].'</td>'."\n";
+		$stellencontent .= '		<td>';
+
+		if ($eintrag['schuelerprakt'] == 'true') {
+			$stellencontent .= $language ['strSchuelerprakt'].'<br />';
+		}
+		
+		if ($eintrag['hochschulprakt'] == 'true') {
+			$stellencontent .= $language ['strHochschulprakt'].'<br />';
+		}
+		
+		if ($eintrag['wprakt'] == 'true') {
+			$stellencontent .= $language ['strWprakt'].'<br />';
+		}
+		
+		if ($eintrag['sonstprakt'] == 'true') {
+			$stellencontent .= $language ['strSonstprakt'].'<br />';
+		}
+		
+		$stellencontent .= '		</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+
+		$ins = $eintrag['qualifikation'];
+
+		$suchres = mysql_db_query($database_db,'SELECT qualifikation FROM qualifikation WHERE id = '.$ins,$praktdbslave);
+
+		if ($suchres != false && mysql_num_rows($suchres) > 0) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strQualifikation'].'</td>'."\n";
+			$stellencontent .= '		<td>'.mysql_result($suchres,0,'qualifikation').'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		if (!empty($eintrag['sonst_qualifikation'])) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strSonstige'].'</td>'."\n";
+			$stellencontent .= '		<td>'.$eintrag['sonst_qualifikation'].'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		if (!empty($eintrag['sprachkenntnisse'])) {
+			$ins = $eintrag['sprachkenntnisse'];
+			$suchres = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM sprachen WHERE id = '.$ins,$praktdbslave);
+
+			if (($suchres != false) && mysql_num_rows($suchres) > 0) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strSprachkenntnisse'].'</td>'."\n";
+				$stellencontent .= '		<td>'.mysql_result($suchres,0,$_SESSION['s_sprache']).'</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+
+			mysql_free_result($suchres);
+		}
+
+		if (!empty($eintrag['einsatzland'])) {
+			$einsatzlandid = $eintrag['einsatzland'];
+			$einsatzland = mysql_db_query($database_db,'SELECT german FROM land WHERE id = '.$einsatzlandid,$praktdbslave);
+
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strEinsatzland'].'</td>'."\n";
+			$stellencontent .= '		<td>'.mysql_result($einsatzland,0,'german');
+			
+			$grossraumid = $eintrag['einsatzgrossraum'];
+			$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+
+			$bundeslandid = $eintrag['einsatzbundesland'];
+			
+			if ($bundeslandid > 0) {
+				$bland = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+				$stellencontent .= ', '.mysql_result($bland,0,$_SESSION['s_sprache']);
+			}
+
+			if ($eintrag['einsatzgrossraum'] > 0 && $eintrag['einsatzgrossraum'] != 94) {
+				$grossraumid = $eintrag['einsatzgrossraum'];
+				$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+				
+				if ($_SESSION['s_loggedinnutzer'] == true) {
+					$stellencontent .= ', '.mysql_result($grossraum,0,'grossraum');
+				}
+			}
+
+			$stellencontent .= '		</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		if (!empty($eintrag['einsatzort'])) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strEinsatzort'].'</td>'."\n";
+			$stellencontent .= '		<td>'.$eintrag['einsatzort'].'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>$nbsp;</td>'."\n";
+		$stellencontent .= '		<td><a href="https://www.easywg.de/default.aspx?ac=praktikade" target="_blank">passende Wohnung suchen</a></td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+		
+		if ($_SESSION['s_loggedinnutzer'] == false) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strEntgeld'].'</td>'."\n";
+			$stellencontent .= '		<td><a href="mitglied.phtml">'.$language['strAnzeigen'].'</a></td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		} else {
+			if (!empty($eintrag['entgelttext']) && $eintrag['entgelt'] == 0) {
+				if (mysql_result($nutzercheckresult,0,'searchpay') == 'true' || mysql_result($nutzercheckresult,0,'ausl_timeout') > time()) {
+					if ($eintrag['entgelt'] != 0) {
+						$stellencontent .= '	<tr>'."\n";
+						$stellencontent .= '		<td>&nbsp;</td>'."\n";
+						$stellencontent .= '		<td>'.$language['strEntgeld'].'</td>'."\n";
+						$stellencontent .= '		<td>'.$eintrag['entgelt'].' &euro;</td>'."\n";
+						$stellencontent .= '	</tr>'."\n";
+					}
+				} else {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strEntgeld'].'</td>'."\n";
+					$stellencontent .= '		<td><a href="teilsuche_geld.phtml?id=0&id2=&moneysearch=1">'.$language['strFreigeschalten'].'</a></td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			}
+		}
+
+		if (!empty($eintrag['beschreibung'])) {
+			if ($firmenlevel < 1 && mysql_result($sel,0,'produktid') != 7) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>Beschreibung des Praktikums:</td>'."\n";
+				$stellencontent .= '		<td>'.nl2br($eintrag['beschreibung']).'</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			} else {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>Beschreibung des Praktikums:</td>'."\n";
+				$stellencontent .= '		<td>'.$eintrag['beschreibung'].' &euro;</td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		}
+
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<th colspan="3">'.$language['strArten'].'</th>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+							
+		$eintrag['bewerbungpervideo'] = 'true';
+		$language['strVideobebewerbung'] = 'Videobewerbung';
+		
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+
+		// Alles anzeigen, wenn Nutzer nicht eingeloggt
+		if ($_SESSION['s_loggedinnutzer'] == false) {
+			if ($eintrag['bewerbungpervideo'] == 'true') {
+				$stellencontent .= '<a href="https://www.cvone.de" target="_blank">'.$language['strVideobebewerbung'].'</a><br />';
+			}
+			
+			if (($queryadvanced) && (mysql_num_rows($queryadvanced) > 0) && (mysql_result($queryadvanced,0,'bewerbint') != 'true')) {
+				if ($eintrag['bewerbungperonline'] == 'true') {
+					$stellencontent .= '<a href="/home/praktikanten/stellenadvanced/activebewerbung.phtml?status='.mysql_result($queryadvanced,0,'bewerbint').'&stellenid='.$id.'" target="_blank">'.$language['strOnlinebewerbung'].'</a><br />';
+				}
+			} else {
+				if ($eintrag['bewerbungperonline'] == 'true') {
+					$stellencontent .= '<a href="mitglied.phtml">'.$language['strOnlinebewerbung'].'</a><br />';
+				}
+			}
+			
+			if ($eintrag['bewerbungperpost']  == 'true') {
+				$stellencontent .= $language['strPostweg'].'<br />';
+			}
+			
+			if ($eintrag['bewerbungpertel']  == 'true') {
+				$stellencontent .= $language['strTelefonisch'].'<br />';
+			}
+			
+			if ($eintrag['bewerbungperemail']  == 'true') {
+				$stellencontent .= '<a href="mitglied.phtml">'.$language['strEMail'].'</a><br />';
+			}
+		}
+
+		// Etwas anzeigen, wenn Nutzer eingeloggt
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			// Pr&uuml;fen ob Auslandsstelle und dann Freigabe
+			if (mysql_result($nutzercheckresult,0,'landfest') == $eintrag['einsatzland'] || mysql_result($nutzercheckresult,0,'ausl_timeout') > time() || $firmenlevel > 0 || $firmenid == 6896 || $firmenid == 7197 || $firmenid == 7067 || $firmenid == 7199) {
+				if ($eintrag['bewerbungpervideo'] == 'true') {
+					$stellencontent .= '<a href="https://www.cvone.de" target="_blank">'.$language['strVideobebewerbung'].'</a><br />';
+				}
+				
+				if ($eintrag['bewerbungperonline']  == 'true' && ($queryadvanced != false) && (mysql_num_rows($queryadvanced) < 1 || mysql_result($queryadvanced,0,'bewerbint') == 'true')) {
+					$stellencontent .= '<a href="onlinebewerbung.phtml?firmenid='.$eintrag['firmenid'].'&stellenid='.$id.'">'.$language['strOnlinebewerbung'].'</a><br />';
+				}
+
+				if (($queryadvanced) && (mysql_num_rows($queryadvanced) > 0) && (mysql_result($queryadvanced,0,'bewerbint') != 'true')) {
+					$stellencontent .= '<a href="/home/praktikanten/stellenadvanced/activebewerbung.phtml?status='.mysql_result($queryadvanced,0,'bewerbint').'&stellenid='.$id.'" target="_blank">'.$language['strOnlinebewerbung'].'</a><br />';
+				}
+
+				if ($eintrag['bewerbungperkurzm']  == 'true') {
+					$stellencontent .= '<a href="firstkontakt_firma.phtml?fstellenid='.$eintrag['fid'].'&firmenid='.$eintrag['firmenid'].'&spaltenid='.$_SESSION['s_spalte'].'&nutzerid='.$_SESSION['s_nutzerid'].'">'.$language['strFirmmailKVerfassen'].'</a><br />';
+				}
+				
+				if ($eintrag['bewerbungperemail']  == 'true') {
+					$stellencontent .= '<a href="../email/?stelle=yes&id='.$id.'">'.$language['strEMailVerfassen'].'</a><br />';
+				}
+				
+				if ($eintrag['bewerbungpertel']  == 'true') {
+					$stellencontent .= $language['strTelefonisch'].'<br />';
+				}
+				
+				if ($eintrag['bewerbungperpost']  == 'true') {
+					$stellencontent .= $language['strPostweg'].'<br />'."\n";
+				}
+			} else {
+				if ($eintrag['bewerbungpervideo'] == 'true') {
+					$stellencontent .= '<a href="https://www.cvone.de" target="_blank">'.$language['strVideobebewerbung'].'</a><br />';
+				}
+				
+				$stellencontent .= '<a href="commerce/afreischaltung.phtml\">'.$language['strOnlinebewerbung'].'</a><br />';
+				$stellencontent .= '<a href="commerce/afreischaltung.phtml\">'.$language['strFirmmailKVerfassen'].'</a><br />'."\n";
+			}
+		}
+		
+		$stellencontent .= '		</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>aktuell seit:</td>'."\n";
+		$stellencontent .= '		<td>'.strftime("%x",$eintrag['modify']).'</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<th colspan="3">'.$language['strFirmendaten'].'</th>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			if ($eintrag['einsatzland'] == mysql_result($nutzercheckresult,0,'landfest') || $firmenlevel > 0 || mysql_result($nutzercheckresult,0,'ausl_timeout') > time()) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strFirmenname'].'</td>'."\n";
+				$stellencontent .= '		<td><b>'.htmlspecialchars($eintrag['firma']).'</b></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		}
+
+		if (!empty($eintrag['prakabteilung'])) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strAbteilung'].'</td>'."\n";
+			$stellencontent .= '		<td>'.$eintrag['prakabteilung'].'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		} elseif (!empty($eintrag['babteilung'])) {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strAbteilung'].'</td>'."\n";
+			$stellencontent .= '		<td>'.$eintrag['babteilung'].'</td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strBranche'].'</td>'."\n";
+		$stellencontent .= '		<td>'.$eintrag[$_SESSION['s_sprache']].'</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			if (($eintrag['einsatzland'] == mysql_result($nutzercheckresult,0,'landfest') || $firmenlevel > 0 || mysql_result($nutzercheckresult,0,'ausl_timeout') > time()) && $eintrag['bewerbungperpost'] == 'true') {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strAnschrift'].'</td>'."\n";
+				$stellencontent .= '		<td><a href="detail_bewerb_post.phtml?id='.$id.'" onclick="return GB_showCenter(\'\',this.href,700,700)">Bewerbungsanschrift anzeigen</a></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		} else {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>'.$language['strAnschrift'].'</td>'."\n";
+			$stellencontent .= '		<td><a href="mitglied.phtml" onclick="return GB_showCenter(\'\',this.href,700,700)">'.$language['strAnzeigen'].'</a></td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<td>&nbsp;</td>'."\n";
+		$stellencontent .= '		<td>'.$language['strGebiet'].'</td>'."\n";
+		$stellencontent .= '		<td>';
+		
+		if (!empty($eintrag['land']) && $eintrag['land'] != 0) {
+			$land = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].', ccode FROM land WHERE id = '.$eintrag['land'],$praktdbslave);
+			$stellencontent .= mysql_result($land,0,$_SESSION['s_sprache']).', ';
+		}
+
+		$bundeslandid = $eintrag['bundesland'];
+		
+		if ($bundeslandid > 0) {
+			$bland = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM bundesland WHERE id = '.$bundeslandid,$praktdbslave);
+			$stellencontent .= mysql_result($bland,0,$_SESSION['s_sprache']);
+		}
+
+		if ($eintrag['grossraum'] > 0 && $eintrag['grossraum'] != 94) {
+			$grossraumid = $eintrag['grossraum'];
+			$grossraum = mysql_db_query($database_db,'SELECT grossraum FROM grossraum WHERE id = '.$grossraumid,$praktdbslave);
+			if ($_SESSION['s_loggedinnutzer'] == true) {
+				$stellencontent .= ', '.mysql_result($grossraum,0,'grossraum');
+			}
+		}
+
+		$stellencontent .= '</td>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+
+		if ($firmenlevel > 0) {
+			if ($_SESSION['s_loggedinnutzer'] == true) {
+				if (!empty($eintrag['tel'])) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strTelefon'].'</td>'."\n";
+					$stellencontent .= '		<td>'.$eintrag['tel'].'</td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			} else {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strTelefon'].'</td>'."\n";
+				$stellencontent .= '		<td><a href="mitglied.phtml" onclick="return GB_showCenter(\'\',this.href,700,700)">'.$language['strAnzeigen'].'</a></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+
+			if ($_SESSION['s_loggedinnutzer'] == true) {
+				if (!empty($eintrag['fax'])) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strFax'].'</td>'."\n";
+					$stellencontent .= '		<td>'.$eintrag['fax'].'</td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			} else {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strFax'].'</td>'."\n";
+				$stellencontent .= '		<td><a href="mitglied.phtml" onclick="return GB_showCenter(\'\',this.href,700,700)">'.$language['strAnzeigen'].'</a></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+
+			if ($_SESSION['s_loggedinnutzer'] == true) {
+				if (!empty($eintrag['homepage']) && $eintrag['searchtop'] == 'true') {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strURL'].'</td>'."\n";
+					$stellencontent .= '		<td><a href="'.$eintrag['homepage'].'" target="_blank">'.$eintrag['homepage'].'</a></td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			} else {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strURL'].'</td>'."\n";
+				$stellencontent .= '		<td><a href="mitglied.phtml" onclick="return GB_showCenter(\'\',this.href,700,700)">'.$language['strAnzeigen'].'</a></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+		}
+			}
+
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			if ($eintrag['einsatzland'] == mysql_result($nutzercheckresult,0,'landfest') || mysql_result($nutzercheckresult,0,'ausl_timeout') > time()) {
+				$sprachidresult = mysql_db_query($database_db,'SELECT ccode FROM sprachen WHERE master = '.$_SESSION['s_sprache'],$praktdbslave);
+				$sprachccode = mysql_result($sprachidresult, 0, 'ccode');
+				$firmenname = urlencode($eintrag['firma']);
+				$street = urlencode($eintrag['strasse']);
+				$zip = urlencode($eintrag['plz']);
+				$city = urlencode($eintrag['ort']);
+				$sprachidresult = mysql_db_query($database_db,'SELECT ccode FROM sprachen WHERE id = '.$_SESSION['s_sprachid'],$praktdbslave);
+				$sprachccode = mysql_result($sprachidresult, 0, 'ccode');
+				$country = mysql_result($land,0,'ccode');
+				
+				if ($_SESSION['s_sprache'] == 'german') {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td><a href="http://link2.map24.com/?lid=dbcde04c&maptype=CGIJS&street0='.$street.'&zip0='.$zip.'&city0='.$city.'&country0='.$country.'&description0='.$firmenname.'&lang='.$sprachccode.'" target="_blank"><img src="https://www.map24.com/images/adressesuchen_gelb.gif" alt="map24" /></a></td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				} else {
+					$zip = urlencode(intval($eintrag['plz']));
+
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td><a href=\"https://www.mapquest.com/cgi-bin/ia_free?country='.mysql_result($land,0,$_SESSION['s_sprache']).'&city='.$city.'&zip='.$zip.'&address='.$street.'" target="_blank"><img src="/home/gifs/mapquest.gif" alt="mapquest" /></a></td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			}
+		}
+
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			if ($eintrag['einsatzland'] == mysql_result($nutzercheckresult,0,'landfest') || mysql_result($nutzercheckresult,0,'ausl_timeout') > time()) {
+				$firmenprofilresult = mysql_db_query($database_db,'SELECT id FROM firmenprofil WHERE firmenid = '.$firmenid.' AND inactive = \'false\'',$praktdbslave);
+				
+				if(($firmenprofilresult != false) && mysql_num_rows($firmenprofilresult) > 0) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td><a href="/home/toppraktika/profiltemplate.phtml?id='.$firmenid.'">Firmenprofil anzeigen</a></td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			}
+		}
+
+		$stellencontent .= '	<tr>'."\n";
+		$stellencontent .= '		<th colspan="3">'.$language['strAnsprechpartner'].'</th>'."\n";
+		$stellencontent .= '	</tr>'."\n";
+
+		if ($_SESSION['s_loggedinnutzer'] == true) {
+			if (empty($eintrag['ansprechpartner'])) {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strName'].'</td>'."\n";
+				$stellencontent .= '		<td><strong>'.$eintrag['anrede'];
+				
+				if (!empty($eintrag['titel'])) {
+					$stellencontent .= ' '.$eintrag['titel'];
+				}
+				
+				$stellencontent .= ' '.htmlspecialchars($eintrag['vname']).' '.htmlspecialchars($eintrag['name']).'</strong></td>'."\n";
+			} else {
+				$stellencontent .= '	<tr>'."\n";
+				$stellencontent .= '		<td>&nbsp;</td>'."\n";
+				$stellencontent .= '		<td>'.$language['strName'].'</td>'."\n";
+				$stellencontent .= '		<td><b>'.$eintrag['ansprechpartner'].'</b></td>'."\n";
+				$stellencontent .= '	</tr>'."\n";
+			}
+
+			if ($firmenlevel > 0) {
+				if (!empty($eintrag['funktion'])) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strFunktion'].'</td>'."\n";
+					$stellencontent .= '		<td>'.$eintrag['funktion'].'</td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+				if (!empty($eintrag['anspdurchwahl'])) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strDurchwahl'].'</td>'."\n";
+					$stellencontent .= '		<td>'.$eintrag['anspdurchwahl'].'</td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+				if (!empty($eintrag['dir_fax'])) {
+					$stellencontent .= '	<tr>'."\n";
+					$stellencontent .= '		<td>&nbsp;</td>'."\n";
+					$stellencontent .= '		<td>'.$language['strAbteilungsfax'].'</td>'."\n";
+					$stellencontent .= '		<td>'.$eintrag['dir_fax'].'</td>'."\n";
+					$stellencontent .= '	</tr>'."\n";
+				}
+			}
+		} else {
+			$stellencontent .= '	<tr>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td>&nbsp;</td>'."\n";
+			$stellencontent .= '		<td><a href="mitglied.phtml" onclick="return GB_showCenter(\'\',this.href,700,700)">'.$language['strAnzeigen'].'</a></td>'."\n";
+			$stellencontent .= '	</tr>'."\n";
+		}
+
+		$stellencontent .= '</table>'."\n";
+		
+		$stellencontent .= '<p class="hint">'.$language['strHinweis'].'</p>'."\n";
+
+		/* Anzeige nur, wenn Land = UK oder Irland */
+		if ($eintrag['einsatzland'] ==87 || $eintrag['einsatzland'] == 170 && $firmenid != 6896) {
+			$stellencontent .= '<p><strong>'.$language['UKhead'].'</strong></p>'."\n";
+			$stellencontent .= '<p><a href="/cms/praktikum_uk_grossbritannien_irland.1041.0.html"><img src="/home/gifs/ukpraktika/englandbild.gif" alt="Praktikum UK / Ireland" /></a> '.$language['UKText1'].'<br /><a href="/cms/praktikum_uk_grossbritannien_irland.1041.0.html">'.$language['UKText2'].'...</a></p>'."\n";
+		}
+
+
+		/* Auflistung 10 interessanter Stellen */
+		$stellencontent .= '<p><strong>'.$language['strMehrStellen'].'</strong></p>'."\n";
+
+		$berufsfeld = $eintrag['berufsfeld'];
+		$selectpraktikumsstellen = mysql_db_query($database_db,'SELECT stellen.id AS prakid, stellen.taetigkeit FROM firmen, stellen WHERE firmen.inactive = \'false\' AND firmen.gesperrt = \'false\' AND stellen.firmenid = firmen.id AND stellen.inactive = \'false\' AND stellen.berufsfeld = '.$berufsfeld.' AND stellen.id != '.$id.' ORDER BY RAND() LIMIT 10',$praktdbslave);
+		
+		$stellencontent .= '<ul>'."\n";
+		
+		while (list($prakid, $taetigkeit) = mysql_fetch_row($selectpraktikumsstellen)) {
+			$stellencontent .= '	<li><a href="stellen.'.$prakid.'.html">'.$taetigkeit.'</a></li>'."\n";
+		}
+		
+		$stellencontent .= '</ul>'."\n";
+
+		if ($_SESSION['s_loggedinnutzer'] == false) {
+			$fp = fopen($dateiname, 'w+');
+			fputs($fp, $stellencontent);
+			fclose($fp);
+		}
+
+		echo $stellencontent;
+	} else {
+		readfile($dateiname);
+	}
+
+if ($_GET['kcenter'] == 1) {
+	echo '<a href="/home/praktikanten/kcenter/">'.$language['strKcenter'].'</a>'."\n";
+} else {
+	if ($SAVE=="YES") {
+		$values = -2;
+	} else {
+		$values = -1;
+	}
+
+	echo '<a href="javascript: history.go('.$values.');">'.$language['strZurueck'].'</a>'."\n";
+}
+
+bodyoff();

@@ -1,0 +1,325 @@
+<?php
+require('/home/praktika/etc/config.inc.php');
+require_once('/home/praktika/etc/mysql_class.inc.php');
+require('include/config.inc.php');
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Veranstaltungen ver&ouml;ffentlichen', 'jqueryui' => true));
+
+$DB_Link = new DB($praktdbslave);
+
+$err = array();
+
+for ($i = 0; $i <= 13; $i++) {
+	$err[] = false;
+}
+
+// POST-Variablen "speichern"
+$firmenid = isset($_SESSION['s_firmenid']) ? $_SESSION['s_firmenid'] : 0;
+$name = !empty($_POST['name']) ? $_POST['name'] : null;
+$category = !empty($_POST['category']) ? $_POST['category'] : null;
+$datumanfang = !empty($_POST['beginn']) ? $_POST['beginn'] : null;
+$datumanfang_view = !empty($_POST['beginn_view']) ? $_POST['beginn_view'] : null;
+$datumendung = !empty($_POST['end']) ? $_POST['end'] : null;
+$datumendung_view = !empty($_POST['end_view']) ? $_POST['end_view'] : null;
+$land = !empty($_POST['land']) && isset($_POST['land']) ? $_POST['land'] : 68;
+$bundesland = !empty($_POST['bundesland']) ? $_POST['bundesland'] : null;
+$plz = !empty($_POST['plz']) ? $_POST['plz'] : null;
+$ort = !empty($_POST['ort']) ? $_POST['ort'] : null;
+$strasse = !empty($_POST['strasse']) ? $_POST['strasse'] : null;
+$kurzbeschreibung = !empty($_POST['kurzbeschreibung']) ? $_POST['kurzbeschreibung'] : null;
+$veranstalter = !empty($_POST['veranstalter']) ? $_POST['veranstalter'] : null;
+$kontaktperson = !empty($_POST['kontaktperson']) ? $_POST['kontaktperson'] : null;
+$telefon = !empty($_POST['telefon']) ? $_POST['telefon'] : null;
+$fax = !empty($_POST['fax']) ? $_POST['fax'] : null;
+$link = !empty($_POST['link']) ? $_POST['link'] : null;
+$mail = !empty($_POST['mail']) ? $_POST['mail'] : null;
+
+if (!isset($_POST['firstshow']) && isset($_SESSION['s_firmenid'])) {
+	$sql = 'SELECT * FROM firmen WHERE id = '.intval($_SESSION['s_firmenid']);
+	$result = $DB_Link->query($sql);
+	
+	if ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+		$land = $record['land'];
+		$bundesland = $record['bundesland'];
+		$ort = $record['ort'];
+		$plz = $record['plz'];
+		$strasse = $record['strasse'];
+		$veranstalter = $record['firma'];
+		$telefon = $record['tel'];
+		$fax = $record['fax'];
+		$link = $record['homepage'];
+		$mail = $record['email'];
+	}
+}
+
+$checked = false;
+?>
+
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#beginn_view').datepicker({
+			dateFormat: 'dd.mm.yy',
+			altField: '#beginn',
+			altFormat: 'yy-mm-dd',
+			changeMonth: true,
+			changeYear: true,
+			minDate: '+1d',
+			defaultDate: '+1d',
+			yearRange: '0:+3'
+		});
+		
+		$('#end_view').datepicker({
+			dateFormat: 'dd.mm.yy',
+			altField: '#end',
+			altFormat: 'yy-mm-dd',
+			changeMonth: true,
+			changeYear: true,
+			minDate: '+1d',
+			defaultDate: '+1d',
+			yearRange: '0:+3'
+		});
+	});
+</script>
+
+<?php
+if (isset($_POST['send'])) {
+	// Checken der Variablen
+	if (!isset($name)) {
+		$err[0] = true;
+	}
+	if (!isset($category)) {
+		$err[1] = true;
+	}
+	if (!isset($datumanfang)) {
+		$err[2] = true;
+	}
+	if (!isset($datumendung)) {
+		$err[3] = true;
+	}
+	if (strtotime($datumendung) < strtotime($datumanfang)) {
+		$err[2] = true;
+		$err[3] = true;
+		
+		var_dump(123);
+	}
+	if (!isset($land)) {
+		$err[4] = true;
+	}
+	if (!isset($bundesland)) {
+		$err[5] = true;
+	}
+	if (!isset($ort)) {
+		$err[6] = true;
+	}
+	if (!isset($strasse)) {
+		$err[7] = true;
+	}
+	if (!isset($kurzbeschreibung)) {
+		$err[8] = true;
+	}
+	if (!isset($veranstalter)) {
+		$err[9] = true;
+	}
+	if (!isset($kontaktperson)) {
+		$err[10] = true;
+	}
+	if (!isset($telefon)) {
+		$err[11] = true;
+	}
+	if (!isset($link) || $link == 'http://') {
+		$err[12] = true;
+	}
+	if (!isset($mail)) {
+		$err[13] = true;
+	}
+
+	$checked = true;
+
+	for ($i = 0; $i < count($err); $i++ ) {
+		if ($err[$i]) {
+			$checked = false;
+		}
+	}
+}
+
+if (!$checked) {
+?>
+<p class="hint info">Bitte geben Sie hier die Informationen zu Ihren Veranstaltungen ein.</p>
+
+<form action="<?php echo $_SERVER["PHP_SELF"]; ?>" name="neuantrag" method="post">
+	<fieldset>
+		<input type="hidden" name="eintrag" value="1" />
+		<input type="hidden" name="firstshow" value="1" />
+		<input type="hidden" name="pruefung" value="2" />
+		<p>
+			<label <?php echo $err[0] ? ' class="error"' : null; ?> for="name">Veranstaltungsname:</label>
+			<input id="name" name="name" value="<?= isset($name) ? $name : null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[1] ? ' class="error"' : null; ?> for="category">Kategorie:</label>
+			<select id="category" name="category">
+				<option value="0">Bitte w&auml;hlen</option>
+<?php
+	$sql = 'SELECT * FROM kategorie ORDER BY id';
+	$result = $DB_Link->query($sql);
+
+	while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+?>
+				<option value="<?php echo $record['id']; ?>"<?php echo (isset($category) && $record['id'] == $category) ? ' selected="selected"' : null; ?>><?php echo $record['kategorie']; ?></option>
+<?php
+	}
+?>
+			</select>
+		</p>
+		<p>
+			<label for="beginn_view"<?php echo $err[2] ? ' class="error"' : null; ?>>Beginn:<sup>*</sup></label>
+			<input type="text" id="beginn_view" name="beginn_view" value="<?= isset($datumanfang_view) ? $datumanfang_view : null; ?>" />
+			<input type="hidden" id="beginn" name="beginn" value="<?= isset($datumanfang) ? $datumanfang : null; ?>" />
+		</p>
+		<p>
+			<label for="end_view"<?php echo $err[3] ? ' class="error"' : null; ?>>Ende:<sup>*</sup></label>
+			<input type="text" id="end_view" name="end_view" value="<?= isset($datumendung_view) ? $datumendung_view : null; ?>" />
+			<input type="hidden" id="end" name="end" value="<?= isset($datumendung) ? $datumendung : null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[4] ? ' class="error"' : null; ?> for="land">Land:</label>
+			<select id="land" name="land">
+<?php
+	$sql = 'SELECT id, german FROM land ORDER BY german';
+	$result = $DB_Link->query($sql);
+	
+	while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+		$html = htmlspecialchars($record['german']);
+?>
+				<option value="<?php echo $record['id']; ?>"<?php echo (isset($land) && $record['id'] == $land) ? ' selected="selected"' : null; ?>><?php echo $html; ?></option>
+<?php
+	}
+?>
+			</select>
+		</p>
+		<p>
+			<label <?php echo $err[5] ? ' class="error"' : null; ?> for="bundesland">Bundesland:</label>
+			<select id="bundesland" name="bundesland">
+<?php
+	$sql = 'SELECT id, german FROM bundesland WHERE landid = '.intval($land).' ORDER BY german';
+	$result = $DB_Link->query($sql);
+	
+	while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+		$html = htmlspecialchars($record['german']);
+?>
+				<option value="<?php echo $record['id']; ?>"<?php echo (isset($bundesland) && $record['id'] == $bundesland) ? ' selected="selected"' : null; ?>><?php echo $html; ?></option>
+<?php
+	}
+?>
+			</select>
+		</p>
+		<p>
+			<label <?php echo $err[6] ? ' class="error"' : null; ?> for="plz">PLZ / Ort:</label>
+			<input id="plz" name="plz" value="<?php echo isset($plz) ? $plz: null; ?>" />
+			<input id="ort" name="ort" value="<?php echo isset($ort) ? $ort: null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[7] ? ' class="error"' : null; ?> for="strasse">Stra&szlig;e:</label>
+			<input id="strasse" name="strasse" value="<?php echo isset($strasse) ? $strasse: null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[8] ? ' class="error"' : null; ?> for="kurzbeschreibung">Kurzbeschreibung:<br/>(Bitte tragen Sie passend zur Zielgruppe die wichtigen Daten zur Veranstaltung ein.)</label>
+			<textarea id="kurzbeschreibung" name="kurzbeschreibung" cols="17" rows="6"><?php echo isset($kurzbeschreibung) ? $kurzbeschreibung: null; ?></textarea>
+		</p>
+		<p>
+			<label <?php echo $err[9] ? ' class="error"' : null; ?> for="veranstalter">Veranstalter:</label>
+			<input id="veranstalter" name="veranstalter" value="<?php echo isset($veranstalter) ? $veranstalter: null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[10] ? ' class="error"' : null; ?> for="kontaktperson">Ansprechspartner:</label>
+			<input id="kontaktperson" name="kontaktperson" value="<?php echo isset($kontaktperson) ? $kontaktperson: null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[11] ? ' class="error"' : null; ?> for="telefon">Telefon:</label>
+			<input id="telefon" name="telefon" value="<?php echo isset($telefon) ? $telefon: null; ?>" />
+		</p>
+		<p>
+			<label for="fax">Info-Fax / Abruf:</label>
+			<input id="fax" name="fax" value="<?php echo isset($fax) ? $fax: null; ?>" />
+		</p>
+		<p>
+			<label <?php echo $err[12] ? ' class="error"' : null; ?> for="link">Veranstaltungslink:</label>
+			<input id="link" name="link" value="http://<?php echo isset($link) ? str_replace("http://", "", $link): null; ?>"/>
+		</p>
+		<p>
+			<label <?php echo $err[13] ? ' class="error"' : null; ?> for="mail">eMail:</label>
+			<input id="mail" name="mail" value="<?php echo isset($mail) ? $mail: null; ?>"/>
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<input type="submit" id="send" name="send" class="button red small" value="ver&ouml;ffentlichen" />
+		</p>
+	</fieldset>
+</form>
+
+<?php
+} else {
+	$posts = array(
+				'firmenid' => $firmenid,
+				'veranstltname' => $name,
+				'kategorie' => $category,
+				'datumanfang' => $datumanfang,
+				'datumendung' => $datumendung,
+				'land' => $land,
+				'bundesland' => $bundesland,
+				'ort' => $ort,
+				'plz' => $plz,
+				'strasse' => $strasse,
+				'kurzbeschreibung' => $kurzbeschreibung,
+				'veranstalter' => $veranstalter,
+				'kontaktperson' => $kontaktperson,
+				'telefon' => $telefon,
+				'fax' => $fax,
+				'link' => $link,
+				'mail' => $mail,
+				'aktuellesdatum' => date('Y-m-d')
+			);
+	
+	$insertString = '';
+	
+	foreach ($posts as $key => $value) {
+		$insertString .= $key . '= \'' . $value . '\', ';
+	}
+
+	$insertString = substr($insertString, 0, (strlen($insertString) - 2));
+	
+	$sql = 'INSERT INTO veranstaltungskalender SET '.$insertString;
+	
+	$insert = $DB_Link->query($sql);
+	$id = mysql_insert_id();
+	
+	$href = 'index.phtml?year='.date('Y').'&amp;month='.$month1.'&amp;id='.$id.'#'.$id;
+?>
+
+<p class="hint success">Vielen Dank! Ihre Veranstaltung wurde soeben in den Kalender hinzugef&uuml;gt.</p> 
+<p class="hint info">Sollte die Weiterleitung nicht funktionieren, k&ouml;nnen Sie sich <a href="<?php echo $href; ?>">hier</a> ihre Veranstaltung ansehen.</p>
+
+<?php
+	$mailaddr = 'info@praktika.de';
+	$mailsender = '';
+	$subject = 'Neue Veranstaltung';
+	$mailstring = 'Sehr geehrte Damen und Herren'."\n\n";
+	$mailstring .= 'gerade wurde eine neue Veranstaltung eingestellt.'."\n\n";
+	$mailstring .= 'Diese Veranstaltung ist ab sofort unter folgendem Link zu ereichen:'."\n\n";
+	$mailstring .= 'http://'.$_SERVER['HTTP_HOST'].'/events/'.$href;
+
+	/* info verschicken */
+	mail($mailaddr, $subject, $mailstring, 'From: $mailsender'."\n".'X-Mailer: praktika.de Mailscript PHP');
+	echo '<meta http-equiv="refresh" content="5; URL='.$href.'">'; 
+}
+
+bodyoff();
+?>

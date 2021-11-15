@@ -1,0 +1,463 @@
+<?php
+require('/home/praktika/etc/advertisehomepage.inc.php');
+require('/home/praktika/etc/config.inc.php');
+require_once('/home/praktika/etc/mysql_class.inc.php');
+require_once('include/calender.inc.php');
+require('include/config.inc.php');
+
+pageheader(array('page_title' => 'Veranstaltungskalender', 'grid_system' => '6-0'));
+
+Praktika_Static::__('events');
+
+// Link zu 'Veranstaltung eintragen'
+$new = 'neu.phtml';
+
+?>
+
+<script type="text/javascript">
+function submit_setoptions_form(objForm, details, anchor, month){
+	objForm.sel_det_event.value = details;
+	objForm.show_det_month.value = month;
+
+	if (anchor != 0) {
+		action = objForm.action;
+		objForm.action = action + '#' + anchor;
+	} else if(details == 0 && anchor == 0 && month == 0) {
+		action = objForm.action;
+		objForm.action = action + '#mn';
+	}
+
+	objForm.submit();
+}
+</script>
+
+<?php
+$DB_Link = new DB($praktdbslave);
+
+if (empty($_POST) && !empty($_GET)) {
+	$_POST['sel_year'] = !empty($_GET['year']) ? $_GET['year'] : null;
+	$_POST['sel_month'] = !empty($_GET['month']) ? intval($_GET['month']) : null;
+	$_REQUEST['sel_det_event'] = !empty($_GET['id']) ? $_GET['id'] : null;
+	$_REQUEST['show_det_month'] = !empty($_GET['month']) ? intval($_GET['month']) : null;
+	$_POST['sel_area'] = 0;
+	$_POST['sel_category'] = 0;
+}
+
+$g_sel_category = (isset($_POST['sel_category']) && !empty($_POST['sel_category'])) ? $_POST['sel_category'] : 0;
+
+$g_sel_year = !empty($_POST['sel_year']) ? $_POST['sel_year'] : date('Y');
+
+$g_sel_month = !empty($_POST['sel_month']) ? $_POST['sel_month'] : 0;
+
+if (!isset($_POST['sel_month']) && !isset($_POST['sel_year'])) {
+	$g_sel_month = date('n');
+	$g_sel_year = date('Y');
+}
+
+$g_sel_area = (isset($_POST['sel_area']) && !empty($_POST['sel_area'])) ? $_POST['sel_area'] : 0;
+$g_sel_det_event = !empty($_REQUEST['sel_det_event']) ? $_REQUEST['sel_det_event'] : 0;
+$g_show_det_month = !empty($_REQUEST['show_det_month']) ?  $_REQUEST['show_det_month'] : 0;
+
+$year_cur = date('Y');
+settype($year_cur,'integer');
+$l_curr_year = ($g_sel_year != 0) ? $g_sel_year : date('Y');
+$l_curr_month = ($g_sel_month != 0) ? $g_sel_month : (($l_curr_year>$year_cur) ? 1 : date('n'));
+
+if ($l_curr_year == $year_cur) {
+	$l_curr_month = date('n');
+}
+
+$actual_years_arr[1]=$year_cur;
+$lst_month_arr = array('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12');
+$lst_years_arr = sel_year(date('Y'));
+
+$mail = !empty($_POST['mail']) ? $_POST['mail'] : null;
+
+function sel_year($curr_year) {
+	global $DB_Link,$year_deapth,$lst_tbls,$look_backwards;
+	global $arr_dbev_lngv,$ev_db_lngv;
+
+	$startyear = intval($curr_year);
+
+	return array($curr_year, ($startyear + 1));
+}
+
+if( isset($_POST['info']) && !empty($_POST['mail']) ) {
+	$vdetails = mysql_db_query($database_db, 'SELECT * FROM veranstaltungskalender WHERE id = '.($g_sel_det_event), $praktdbslave);
+	$veranstltdaten = mysql_fetch_array($vdetails);
+	$mailaddr = $veranstltdaten['mail'];
+	$subject = 'Informationsanforderung &uuml;ber praktika.de';
+	$mailstring = 'Sehr geehrte Damen und Herren'."\n\n";
+
+	if (isset($_SESSION['s_firmenid'])) { //Firma?
+		$ndetails = mysql_db_query($database_db, 'SELECT id, anrede, titel, vname, name, email, firmenid FROM bearbeiter WHERE id = '.intval($login), $praktdbslave);
+		$nutzerdaten = mysql_fetch_array($ndetails);
+		$firmenid = $nutzerdaten['firmenid'];
+		$fdetails = mysql_db_query($database_db, 'SELECT * FROM firmen WHERE id='.intval($_SESSION['s_firmenid']), $praktdbslave);
+		$firmendaten = mysql_fetch_array($fdetails);
+
+		$mailsender = $nutzerdaten['email'];
+		$mailstring .= 'gerade hat uns eine Firma von praktika.de &uuml;ber Ihr Interesse an Ihrer Veranstaltung "'.$veranstltdaten['veranstltname'].'" informiert. Bitte nehmen Sie mit ihr Kontakt auf oder / und senden ihr weitere Informationen.'."\n\n";
+		$mailstring .= 'Firmendaten:'."\n\n";
+		$mailstring .= $firmendaten['firma']."\n";
+		$mailstring .= $nutzerdaten['anrede'].' '.$nutzerdaten['vname'].' '.$nutzerdaten['name']."\n";
+		$mailstring .= $firmendaten['strasse']."\n";
+		$mailstring .= $firmendaten['plz'].' '.$firmendaten['ort']."\n";
+		$mailstring .= $nutzerdaten['email']."\n";
+	} elseif (isset($_SESSION['s_nutzerid']) ) { //Bewerber?
+		$ndetails = mysql_db_query($database_db, 'SELECT * FROM nutzer WHERE id = '.intval($_SESSION['s_nutzerid']), $praktdbslave);
+		$nutzerdaten = mysql_fetch_array($ndetails);
+
+		$mailsender = $nutzerdaten['email'];
+		$mailstring .= 'gerade hat uns ein Nutzer von praktika.de &uuml;ber sein Interesse an Ihrer Veranstaltung "'.$veranstltdaten['veranstltname'].'" informiert. Bitte nehmen Sie mit ihm Kontakt auf oder / und senden ihm weitere Informationen.'."\n\n";
+		$mailstring .= 'Nutzerdaten:'."\n\n";
+		$mailstring .= $nutzerdaten['anrede'].' '.$nutzerdaten['vname'].' '.$nutzerdaten['name']."\n";
+		$mailstring .= $nutzerdaten['strasse']."\n";
+		$mailstring .= $nutzerdaten['plz'].' '.$nutzerdaten['ort']."\n";
+		$mailstring .= $nutzerdaten['email']."\n";
+	} else {
+		$mailsender = $mail;
+		$mailstring .= 'gerade hat uns ein Nutzer von praktika.de &uuml;ber sein Interesse an Ihrer Veranstaltung "'.$veranstltdaten['veranstltname'].'" informiert. Bitte nehmen Sie mit ihm Kontakt auf oder / und senden ihm weitere Informationen.'."\n\n";
+		$mailstring .= 'Nutzerdaten:'."\n\n";
+		$mailstring .= $mail;
+	}
+
+	$mailstring .= "\n\n";
+	$mailstring .= 'Mit freundlichen Grüßen,'."\n\n";
+	$mailstring .= 'Ihr PRAKTIKA-Team'."\n\n";
+
+	mail($mailaddr, $subject, $mailstring, 'From: '.$mailsender."\n".'X-Mailer: praktika.de Mailscript PHP');
+}
+
+?>
+
+<div class="outer">
+	<div class="left">
+		<form name="frm_date_cnfg" action="<?= $_SERVER['PHP_SELF'] ?>" method="post">
+			<input type="hidden" name="sel_det_event" />
+			<input type="hidden" name="show_det_month" />
+			<fieldset>
+				<p>
+					<label for="sel_category">Kategorie:</label>
+					<select id="sel_category" name="sel_category" onchange="javascript:submit_setoptions_form(document.frm_date_cnfg,0,0,0);">
+						<option value="0">Alle</option>
+<?php
+$sql = 'SELECT * FROM kategorie ORDER BY id';
+$result = $DB_Link->query($sql);
+
+while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+?>
+						<option value="<?= $record['id']; ?>"<?= (isset($g_sel_category) && $record['id'] == $g_sel_category) ? ' selected="selected"' : null; ?>><?php echo $record['kategorie']; ?></option>
+<?php
+}
+?>
+					</select>
+				</p>
+				<p>
+					<label for="sel_month">Monat / Jahr:</label>
+					<select class="html_controlled" id="sel_month" name="sel_month" onchange="javascript:submit_setoptions_form(document.frm_date_cnfg,0,0,0);">
+						<option value="0">Alle</option>
+<?php
+while( list($key, $value) = each($lst_month_arr) ) {
+?>
+						<option value="<?= $value ?>"<?= (isset($g_sel_month) && $g_sel_month == $value) ? ' selected="selected"' : null; ?>><?= intval($value) < 10 ? '0'.$value : $value; ?></option>
+<?php
+}
+?>
+					</select>&nbsp;/&nbsp;
+					<select class="html_controlled" id="sel_year" name="sel_year" onchange="javascript:submit_setoptions_form(document.frm_date_cnfg,0,0,0);">
+<?php
+while( list($key, $value) = each($lst_years_arr) ) {
+?>
+						<option value="<?= $value ?>"<?= (isset($g_sel_year) && $g_sel_year == $value) ? ' selected="selected"' : null; ?>><?php echo $value; ?></option>
+<?php
+}
+?>
+					</select>
+				</p>
+				<p>
+					<label for="sel_area">Bundesland:</label>
+					<select id="sel_area" name="sel_area" onchange="javascript:submit_setoptions_form(document.frm_date_cnfg,0,0,0);">
+						<option value="0">Alle</option>
+<?php
+if ( !isset($_SESSION['s_landid']) ) $_SESSION['s_landid'] = 68;
+$sql = 'SELECT * FROM bundesland WHERE landid = '.intval($_SESSION['s_landid']);
+$result = $DB_Link->query($sql);
+
+while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+?>
+						<option value="<?= $record['id'] ?>"<?= (isset($g_sel_area) && $record['id'] == $g_sel_area) ? ' selected="selected"' : null; ?>><?php echo $record['german']; ?></option>
+<?php
+}
+?>
+					</select>
+				</p>
+			</fieldset>
+		</form>
+	</div>
+	<div class="right">
+		<p>Hier k&ouml;nnen Sie schnell und einfach neue Veranstaltungen kostenfrei selbst eintragen! <a href="<?= $new ?>" class="button red small">Veranstaltung eintragen</a></p>
+	</div>
+	<div class="clear"></div>
+</div>
+
+<!-- Veranstaltungsuebersicht - Anfang -->
+
+<?= tableTab($g_sel_year); ?>
+<table id="events">
+	<colgroup>
+		<col width="15%" />
+		<col width="25%" />
+		<col width="50%" />
+		<col width="10%" />
+	</colgroup>
+<?php
+for($i = 0; $i < count($lst_month_arr); $i++) {
+	if($g_sel_month == 0 || ($g_sel_month != 0 && $g_sel_month == $lst_month_arr[$i]) ) {
+		setlocale(LC_TIME, 'de_DE');
+?>
+	<tr class="header">
+		<th><?= strftime('%B', mktime(0, 0, 0, $lst_month_arr[$i], 1, 1980) ) ?></th>
+		<th>Ort</th>
+		<th>Event</th>
+		<th>Infos</th>
+	</tr>
+<?php
+		$l_year = $g_sel_year;
+		$sql_area_cat = '';
+
+		if ($g_sel_area != 0) {
+			$sql_area_cat .= ' AND bundesland = '.$g_sel_area;
+		}
+		if ($g_sel_category != 0) {
+			$sql_area_cat .= ' AND '.$lst_tbls[1].'.kategorie = '.$g_sel_category;
+		}
+		$sql = 'SELECT 
+					*, veranstaltungskalender.id AS ev_id 
+				FROM 
+					veranstaltungskalender
+					LEFT JOIN kategorie ON (veranstaltungskalender.kategorie = kategorie.id)
+				WHERE
+					(YEAR(datumanfang) = "'.$l_year.'" AND MONTH(datumanfang) = "'.$lst_month_arr[$i].'")
+					AND inactive = "false"
+					'.$sql_area_cat.'
+				ORDER BY
+					datumanfang, datumendung';
+		$result = $DB_Link->query($sql);
+		
+		$nmbr = $DB_Link->num_rows();
+
+		if ($nmbr) {
+			$j = 0;
+			while ($record = mysql_fetch_array($result, MYSQL_ASSOC)) {
+				// Datum - Anfang
+            	$m_beg = substr($record['datumanfang'], 5, 2);
+            	$d_beg = substr($record['datumanfang'], 8, 2);
+            	$y_beg = substr($record['datumanfang'], 0, 4);
+
+            	// Datum - Ende
+            	$m_end = substr($record['datumendung'], 5, 2);
+            	$d_end = substr($record['datumendung'], 8, 2);
+            	$y_end = substr($record['datumendung'], 0, 4);
+?>
+	<tr class="row_<?= ($j % 2) ?>">
+		<td><?php echo $d_beg.'.'.$m_beg.'.'; if($record['datumanfang'] != $record['datumendung']) echo '-'.$d_end.'.'.$m_end.'.'; ?></td>
+		<td><?php echo strlen($record['ort']) > 24 ? '<span title="'.$record['ort'].'">'.substr($record['ort'],0,21).'...</span>': $record['ort']; ?></td>
+		<td><?php echo strlen($record['veranstltname']) > 48 ? '<span title="'.$record['veranstltname'].'">'.substr($record['veranstltname'],0,21).'...</span>': $record['veranstltname']; ?></td>
+<?php
+				if ($g_sel_det_event != 0 && $g_sel_det_event == $record['ev_id'] && $g_show_det_month != 0 && $g_show_det_month == $lst_month_arr[$i]) {
+?>
+		<td><a name="<?= $record['ev_id'] ?>" href="javascript:submit_setoptions_form(document.frm_date_cnfg,0,<?php echo $record['ev_id'].','.$lst_month_arr[$i]; ?>);" title="Details zur Veranstaltung schlie&szlig;en">zuklappen ...</a></td>
+<?php
+				} else {
+?>
+		<td><a name="<?= $record['ev_id'] ?>" href="javascript:submit_setoptions_form(document.frm_date_cnfg,<?php echo $record['ev_id'].','.$record['ev_id'].','.$lst_month_arr[$i]; ?>);">mehr ...</a></td>
+<?php
+				}
+?>
+	</tr>
+<?php
+				if ($g_sel_det_event != 0 && $g_sel_det_event == $record['ev_id']  && $g_show_det_month != 0 && $g_show_det_month == $lst_month_arr[$i]) {
+                	//**************************************************    insert CLICKS into Database
+                	$sql = sprintf("UPDATE
+										%1\$s
+									SET
+										click = click + 1
+									WHERE
+										id = %2\$s",
+									$lst_tbls[1],
+									$record['ev_id']);
+					$DB_Link->query($sql);
+                	//***********************\\\\\\\\\\\\\\\\\\\\\\\\\\\    insert CLICKS into Database
+                	// select land anhand der id
+					$sql = sprintf("SELECT
+										german
+									FROM
+										%1\$s
+									WHERE
+										id = %2\$d",
+									$lst_tbls[3],
+									$record['land']);
+					$result2 = $DB_Link->query($sql);
+					$record2 = mysql_fetch_array($result2, MYSQL_ASSOC);
+					// select bundesland anhand der id
+					$sql = sprintf("SELECT
+										german
+									FROM
+										%1\$s
+									WHERE
+										id = %2\$d",
+									$lst_tbls[4],
+									$record['bundesland']);
+					$result3 = $DB_Link->query($sql);
+					
+					$record3 = mysql_fetch_array($result3, MYSQL_ASSOC);
+					
+					$date_beg = mktime (0,0,0,$m_beg,$d_beg,$y_beg);
+					$date_end = mktime (0,0,0,$m_end,$d_end,$y_end);
+					
+					$day_array = array (
+									1 => 'Montag',
+									2 => 'Dienstag',
+									3 => 'Mittwoch',
+									4 => 'Donnerstag',
+									5 => 'Freitag',
+									6 => 'Sonnabend',
+									7 => 'Sonntag',
+								);
+					
+					$day_beg = intval(date('N', $date_beg));
+					$day_beg = $day_array[$day_beg];
+
+					$day_end = intval(date('N', $date_end));
+					$day_end = $day_array[$day_end];
+?>
+
+<!-- Veranstaltungsdetails - Anfang -->
+	<tr class="row_<?= ($j % 2) ?>">
+		<td colspan="5">
+			<table id="details" cellpadding="0" cellspacing="0" rules="none">
+				<colgroup>
+					<col width="160" />
+					<col width="*" />
+				</colgroup>
+				<tr>
+					<th colspan="2"><p><?= $record['veranstltname'] ?></p></th>
+				</tr>
+				<tr>
+					<td><p><strong>Kategorie:</strong></p></td>
+					<td><p><?= $record['kategorie']; ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Datum:</strong></p></td>
+					<td><p><?php echo $day_beg.', '.$d_beg.'.'.$m_beg.'.'; if ($y_end > $y_beg) echo $y_beg; if($record['datumanfang'] != $record['datumendung']) echo ' - '.$day_end.', '.$d_end.'.'.$m_end.'.'.$y_end; ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Stra&szlig;e:</strong></p></td>
+					<td><p><?= $record['strasse'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Veranstaltungsort:</strong></p></td>
+					<td><p><?= $record['plz'].' '.$record['ort'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Land:</strong></p></td>
+					<td><p><?= $record2['german'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Bundesland:</strong></p></td>
+					<td><p><?= $record3['german'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Veranstaltungs-<br/>kurzbeschreibung:</strong></p></td>
+					<td><p><?= nl2br($record['kurzbeschreibung']) ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Veranstalter:</strong></p></td>
+					<td><p><?= $record['veranstalter'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Ansprechspartner:</strong></p></td>
+					<td><p><?= $record['kontaktperson'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Telefon:</strong></p></td>
+					<td><p><?= $record['telefon'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Fax:</strong></p></td>
+					<td><p><?= $record['fax'] ?></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Veranstaltungslink:</strong></p></td>
+					<td><p><a href="<?= $record['link'] ?>" target="_blank"><?= $record['link'] ?></a></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>eMail:</strong></p></td>
+					<td><p><a href="mailto:<?= $record['mail'] ?>"><?= $record['mail'] ?></a></p></td>
+				</tr>
+				<tr>
+					<td><p><strong>Termin merken:</strong></p></td>
+					<td><p><a href="merken.phtml?id=<?= $record['ev_id'] ?>">Zum Kalender hinzuf&uuml;gen</a> (z.B.: Outlook, Lotus, usw.)</p></td>
+				</tr>
+				<tr>
+					<td></td>
+					<td><p>Interesse geweckt? Dann schnell und unverbindlich Informationen per eMail anfordern! Der Veranstalter wird dann Kontakt aufnehmen.</p></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<form action="" method="post" name="info">
+							<input type="hidden" name="info" value="true" />
+							<input type="hidden" name="sel_area" value="<?= $g_sel_area ?>" />
+							<input type="hidden" name="sel_category" value="<?= $g_sel_category ?>" />
+							<input type="hidden" name="sel_det_event" value="<?= $g_sel_det_event ?>" />
+							<input type="hidden" name="sel_month" value="<?= $g_sel_month ?>" />
+							<input type="hidden" name="sel_year" value="<?= $g_sel_year ?>" />
+							<input type="hidden" name="show_det_month" value="<?= $g_show_det_month ?>" />
+<?php
+					if ( $_SESSION['s_loggedin'] == false ) {
+?>
+							<fieldset>
+								<p>
+									<label <?= (isset($_POST['mail']) && empty($_POST['mail'])) ? ' class="error"' : null; ?> for="mail">eMail:</label>
+									<input id="mail" name="mail" type="text" class="button small" value="<?= isset($mail) ? $mail : 'Ihre eMail-Adresse eintragen'; ?>" />
+								</p>
+							</fieldset>
+<?php
+					}
+?>
+							<fieldset class="control_panel">
+								<p>
+									<input type="submit" name="send_info" class="button small" value="HIER INFORMATIONEN ANFORDERN" />
+								</p>
+							</fieldset>
+						</form>
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+<!-- Veranstaltungsdetails - Ende -->
+
+<?php
+            	}
+            	
+				$j++;
+			}
+		} else {
+?>
+	<tr class="no">
+		<td colspan="5">Es sind keine Veranstaltungen f&uuml;r diesen Zeitraum eingetragen.</td>
+	</tr>
+<?php
+		}
+	}
+}
+?>
+</table>
+
+<!-- Veranstaltungsuebersicht - Ende -->
+
+<?php
+bodyoff();
+?>

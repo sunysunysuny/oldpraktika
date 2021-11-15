@@ -1,0 +1,747 @@
+form fieldset {
+	border-width: 0;
+	clear: left;
+	margin-bottom: 1em;
+}
+
+label, 
+input[type=checkbox], 
+input[type=radio], 
+input[type=button], 
+input[type=submit],
+select {
+	cursor: pointer;
+}
+
+input:focus, 
+textarea:focus, 
+select:focus {
+	color: #000000;
+ 	background: #efefef;
+	/*outline: 1px solid #000000;*/
+}
+
+
+form fieldset legend {
+	background: #c6d7ef;
+}
+
+form fieldset label {
+	display: block;
+	float: left;
+	width: 49%;
+}
+
+
+form fieldset label.error {
+	text-align: left !important;
+}
+
+
+
+
+
+
+form#lang_select {}
+
+
+form#mainlogin {
+	border: 1px solid #0A889E;
+}
+
+form#mainlogin fieldset legend {
+	display: none;
+}
+
+form#mainlogin fieldset p label {
+	/*display: block;*/
+	float: left;
+	text-align: right;
+	width: 45%;
+}
+
+form#mainlogin fieldset p input {
+	width: 25%;
+	margin-left: 5%;
+}
+
+form#mainlogin fieldset p {
+	margin-bottom: .2em;
+}
+
+form#mainlogin fieldset p.username {
+	margin-top: 1.3em;
+}
+
+form#mainlogin fieldset p.notice {
+	background: #ccdede;
+	line-height: 1.5em;
+	margin-bottom: 1em;
+	text-align: center;
+}
+
+
+form#mainlogin fieldset p.sendform input {
+	margin-left: 50%;
+	width: auto;
+}
+
+form#mainlogin fieldset p.forgotpw {
+	margin: 1.5em 0 1em;
+	text-align: center;
+}
+
+
+
+
+
+
+
+/*style profil begin*/
+.saved_entry {
+	color: #ff0000;
+}
+
+div#content form fieldset {
+	border-top: 1px solid #000000;
+	padding: 1em 1em .5em;
+}
+
+div#content form fieldset legend {
+	display: none;
+}
+
+
+div#content input,
+div#content textarea,
+div#content select {
+	width: 49%;
+	border: 1px solid #706e62;
+	/*border: 1px solid #c6d7ef;
+	background: #ffffe7;*/
+	/*padding: 1px 0 0;3px 0;*/
+}
+
+div#content input {
+	padding: 2px 2px 3px;
+	width: 47%;
+}
+
+div#content select {
+	padding: 1px;
+	/*padding: 0;
+}
+#content form h3 {
+	width: 100%;
+	background: #c6d7ef;
+	font-weight: bold;
+	font-size: 1em;
+	color: #000000;
+	display: block;
+	margin-top: 1em;
+}
+#content form label {
+	width: 49%;*/
+}
+#content form .hint {
+	font-size: 0.7em;
+	width: 49%;
+}
+
+#community div#content form .hint {
+	width: auto;
+}
+
+#content form #anz_fieldsets {
+	border-width: 0 !important;
+}
+#content form #anz_fieldsets label {
+	width: auto;
+}
+#content form #anz_fieldsets select {
+	margin-left: 2em;
+	width: 10%;
+}
+#content form p.ja_nein_labeltext,
+#content form p.checkbox_labeltext {
+	float: left;
+	width: 49%;
+}
+#content form p.ja_nein label {
+	width: 15%;
+	float: left;
+}
+#content form p.ja_nein input {
+	width: 10%;
+	float: left;
+	border: 0;
+	background: transparent;
+	text-align: center;
+}
+#content form fieldset table select {
+	width: 100%;
+	margin: 0.1em 0;
+}
+#content form .hidden_hr {
+	width: 100%;
+	visibility: hidden;
+}
+#content form .clear_left {
+	clear: left;
+}
+#content form p.big_textarea label {
+	width: 100%;
+}
+#content form p.big_textarea textarea {
+	width: 100%;
+	height: 17em;
+}
+#content form fieldset.kurzbewerbung p {
+	clear: both;
+	width: 98%;
+	margin: 0.2em;
+}
+#content form fieldset.kurzbewerbung input {
+	float: left;
+	width: auto;
+	margin: 0.5em 0;
+}
+#content form fieldset.kurzbewerbung label {
+	margin: 0.5em;
+	width: 90%;
+}
+#content form fieldset div.col_1,
+#content form fieldset div.col_2 {
+	margin: 0;
+	padding: 0;
+}
+#content form fieldset div.col_2 {
+	float: right;
+	padding-right: 2%;
+}
+#content form fieldset p.checkboxes,
+#content form fieldset p.checkboxes {
+	clear: left;
+	padding: 0.3em 0;
+}
+#content form fieldset p.checkboxes input,
+#content form fieldset p.checkboxes input {
+	float: left;
+	width: 5%;
+	margin-right: 0.3em;
+	border: 0;
+}
+#content form fieldset p.checkboxes label,
+#content form fieldset p.checkboxes label {
+	width: 90%;
+}
+#content form fieldset p.checkboxes input.input_text {
+	width: 200px;
+	border: 1px solid #736d63;
+}
+
+#content form.folderadmin {
+	float: right;
+	width: 60%;
+}
+#content form.folderadmin fieldset p {
+	clear: both;
+	padding: 5px 0;
+	height: 15px;
+ }
+#content form.folderadmin fieldset p.submit input {
+	width: auto;
+	padding: 1px 3px;
+}
+#content form.folderadmin fieldset p input,
+#content form.folderadmin fieldset p select {
+	float: right;
+}
+#content form.folderadmin fieldset p.checkboxes input {
+	float: left;
+}
+/*style profil end*/
+
+
+
+
+#content form fieldset p.gesuche_inputs {
+	width: 150px;
+	float: right;
+}
+#content form fieldset p.gesuche_inputs input {
+	width: 120px;
+}
+
+
+
+
+/*
+div#content form#anzeigeoptionen {
+	margin-top: 2em;
+}
+
+div#content form#anzeigeoptionen fieldset {
+	display: none;
+	width: 50%;
+}
+
+div#content form#anzeigeoptionen fieldset select {
+	float: left;
+}
+
+div#content form#anzeigeoptionen fieldset select#spalte {
+	width: 10em;
+}
+
+div#content form#anzeigeoptionen fieldset select#sortierung {
+	width: 7.5em;
+}
+
+div#content form#anzeigeoptionen fieldset legend {
+	font-style: italic;
+}
+
+div#content form#anzeigeoptionen fieldset p {
+	float: left;
+	margin-bottom: .5em;
+	width: 50%;
+}
+
+div#content form#anzeigeoptionen h5 {
+	cursor: pointer;
+	text-align: center;
+}*/
+
+
+
+div#content form fieldset p {
+	margin-bottom: .5em;
+}
+
+div#content form fieldset.control_panel, div#content div.control_panel {
+	border-style: none !important;
+	clear: left;
+}
+div.control_panel {
+	margin-top: 10px;
+}
+
+div#content form fieldset.control_panel p, div#content div.control_panel p {
+	text-align: center;
+}
+
+
+
+div#content form fieldset.control_panel input {
+	width: auto;
+	padding: 0.2em;
+}
+
+/*div#content form fieldset.control_panel p.back_btn {
+	width: 100%;
+	text-align: center;
+	line-height: 2em;
+}*/
+
+
+
+form#jobAdvertisementForm fieldset table th {
+	width: auto;
+}
+
+
+
+
+
+#content form ul.bereiche {
+	margin-left: 48%;
+}
+
+#content form li {
+	margin: .2em 0 .5em;
+}
+
+#content form li.veranstaltungen {
+	margin-top: 1.2em;
+}
+
+#content form li label {
+	float: none;
+}
+
+#content form li label input {
+	width: auto;
+}
+
+
+
+
+
+#community div#content form fieldset {
+	border-width: 1px;
+	padding: .25em .5em;
+}
+
+#community div#content form fieldset label {
+	float: none;
+}
+
+#community div#content form fieldset input {
+	width: 98%;
+}
+#community div#content form fieldset select {
+	width: 100%;
+}
+#community div#content form fieldset textarea {
+	width: 98.5%;
+}
+#community div#content form > p {
+	text-align: center;
+}
+div#content #map #googlemap a.contact,
+#community div#content #buddylist input,
+#community div#content #buddylist a,
+#community div#content #merkzettel input,
+#community div#content #merkzettel a {
+	background:  no-repeat 2px center; 
+	padding-left: 25px;
+	width: auto;
+}
+
+#community div#content #buddylist a,
+#community div#content #merkzettel a { border: 1px solid #706e62;
+	padding-left: 28px;
+}
+
+
+#community div#content #buddylist input.delete,
+#community div#content #merkzettel input.delete {
+	background-image: url(/gifs/community/mann_del.gif); 
+}
+
+#community div#content #buddylist a.profile,
+#community div#content #merkzettel a.profile {
+	background-image: url(/gifs/community/usermap.gif); 
+}
+
+div#content #map #googlemap a.contact,
+#community div#content #merkzettel input.contact {
+	background-image: url(/gifs/community/mann_plus.gif); 
+}
+
+
+
+
+
+
+#my form fieldset label input {
+	/*float: left;
+}
+
+#my form fieldset {
+	padding: 0;
+
+	clear: none;*/
+}
+
+#my form fieldset fieldset {
+	border: 1px solid #000; /*-style: none;*/
+	margin: 0 1% 1em;
+	width: 48%;
+}
+
+#my form fieldset legend {
+	background: transparent;
+	display: block !important;
+}
+
+#my form fieldset fieldset p {
+	margin: 0;
+}
+
+
+#my form fieldset.col_1 label,
+#my form fieldset.col_2 label {
+	float: none;
+	line-height: 1.7em;
+	width: auto;
+}
+
+
+
+
+
+#profile form {
+	margin-left: auto;
+	width: 15em;
+}
+
+#profile form fieldset {
+	margin-bottom: 0;
+}
+
+#profile form input,
+#profile form label {
+	width: auto; 
+}
+
+#profile form input {
+	margin-right: 1.5em;
+}
+
+div#content #profile form p {
+	line-height: 25px;
+	margin-bottom: 0;
+}
+
+
+
+
+
+
+
+
+
+div#content table label {
+	width: auto;
+}
+
+div#content form#lang_select label {
+	display: block;
+	float: left;
+	margin-top: .1em;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+label input {
+	margin-right: .3em !important;
+	width: auto !important;
+}
+
+
+
+input#geb_tag,
+input#geb_monat,
+input#geb_jahr,
+input.day,
+input.month,
+input.year {
+	display: inline !important;
+	text-align: center !important;
+	width: 2em !important;
+	padding: 1px 0 2px !important;
+}
+
+input#geb_jahr,
+input.year {
+	width: 3em !important;
+}
+input#ort {
+	margin-left: 1.2% !important;
+	width: 40% !important;
+}
+
+input#plz {
+	float: left !important;
+	text-align: right !important;
+	width: 6.5% !important;
+}
+
+input#semester {
+	display: inline !important;
+	text-align: right !important;
+	width: 1em !important;
+}
+
+input#titel {
+	width: 17em !important;
+}
+
+
+
+select#anrede,
+select#anredeabt {
+	width: 7em !important;
+}
+
+select.day,
+select.month {
+	display: inline !important;
+	width: 3.5em !important;
+}
+
+select.year {
+	display: inline !important;
+	width: 5em !important;
+}
+
+select.money {
+	display: inline !important;
+	width: 8.5em !important;
+}
+
+select.currency {
+	display: inline !important;
+	width: 7em !important;
+}
+
+select#lang {
+	margin-left: 2em !important;
+	width: 8em !important;
+}
+
+
+
+
+td.no_profile {
+	text-align: center;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+form#quicklogin {
+	background-repeat: no-repeat;
+	background-position: left center;
+	font-size: .8em;
+	padding-left: 1%;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 30%;
+	z-index: 2;
+}
+
+form#quicklogin fieldset {
+	background-repeat: no-repeat;
+	background-position: right bottom;
+	height: 10em;
+	padding-top: .5em;
+	position: relative;
+	margin-bottom: 0;
+}
+
+form#quicklogin fieldset input.text {
+	border: 1px solid #1A87BF;
+}
+
+form#quicklogin fieldset label {
+	display: block;
+	float: none;
+	font-weight: bold;
+	width: 100%;
+}
+
+form#quicklogin fieldset legend {
+	display: none;
+}
+
+form#quicklogin fieldset p.username,
+form#quicklogin fieldset p.password {
+	float: left;
+	margin-top: 1em;
+	width: 50%;
+}
+
+form#quicklogin fieldset p.password {
+	clear: left;
+}
+
+form#quicklogin fieldset p.sendform {
+	margin: 6.1em 0 0 50%;
+}
+
+form#quicklogin fieldset ul {
+	position: absolute;
+	top: 1.5em;
+	left: 50%;
+}
+
+
+
+
+
+
+form#quicksearch {
+	margin: 0 35% 0 28%;
+	padding-top: 2.5em;
+}
+
+form#quicksearch fieldset {
+	/*background: #A8D8E2;*/
+	background: url("/gifs/zentralelemente/suche_middle.png") repeat-x center;
+	clear: none;
+	margin-bottom: 0;
+}
+
+form#quicksearch fieldset legend,
+form#quicksearch fieldset label {
+	display: none;
+}
+
+form#quicksearch fieldset p {
+}
+
+form#quicksearch fieldset p.searchterm {
+	background: url("/gifs/zentralelemente/suche_left.png") no-repeat center left;
+	float: left;
+	padding: 9px 0 10px 10px;
+	margin-left: -9px;
+}
+
+form#quicksearch fieldset p.searchterm input {
+	border: 1px solid #3698C5;
+	margin-right: .5em;
+	padding: 2px 4px;
+	width: 278px;
+}
+
+form#quicksearch fieldset p.searchsubmit {
+	background: url("/gifs/zentralelemente/suche_right.png") no-repeat bottom right;
+	float: right;
+	margin-right: -9px;
+	padding: 9px 10px 9px 0;
+}
+
+form#quicksearch p.extensive_search {
+	margin-top: .5em;
+	text-align: center;
+}

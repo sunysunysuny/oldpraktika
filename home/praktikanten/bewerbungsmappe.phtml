@@ -1,0 +1,823 @@
+<?php
+// File called by Smallbox.loadUrl per Ajax
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+require("/home/praktika/etc/gb_config.inc.php");
+
+$stelleMerkenScript = false;
+$gemerkt = false;
+
+$id = isset($_GET["id"])?$_GET["id"]:0;
+
+$spaltenarray = array();
+$spaltenarray[1] = "Praktikumsstellen";
+$spaltenarray[2] = "Bachelor- / Masterarbeiten";
+$spaltenarray[3] = "Nebenjobstellen";
+$spaltenarray[4] = "Ausbildungsstellen";
+$spaltenarray[5] = "Berufseinstiegsstellen";
+
+$sid = intval($_GET['id']);
+
+$url = $_GET["url"];
+$id_nutzer = empty($_GET["nutzerid"])?$_SESSION["s_nutzerid"]:intval($_GET["nutzerid"]);
+
+if(!empty($id_nutzer)) {
+	$sql = "SELECT vname, name FROM nutzer WHERE id = ".$id_nutzer;
+	$bewerber = mysql_fetch_assoc(mysql_query($sql, $praktdbslave));
+}
+
+$templateLebenslauf = empty($_GET["lebenslauftemplate"])?"01":$_GET["lebenslauftemplate"];
+if($templateLebenslauf == "00") {
+	$templateLebenslauf = "01";
+}
+switch($_GET["menu"]) {
+	case "mappe":
+		$anschreibenID = intval($_GET['b']);
+
+
+		if($_GET["preview"] == "1") {
+			mysql_query("UPDATE prakt2.bewerbung SET preview_done = 1 WHERE id = ".$anschreibenID." AND nutzerid = ".$_SESSION["s_nutzerid"], $praktdbmaster);
+		}
+
+		$menuitems = array(
+			array(
+				'title' => 'Anschreiben',
+				'url' => '/bewerbungsmappe_ansehen/'.$anschreibenID.'/',
+				'target' => 'iframe',
+				'break' => '0',
+				'className' => '',
+				'style' => ''
+			),
+			array(
+				'title' 	=> 'Lebenslauf',
+				'url'		=> '/profil_lebenslauf/'.$templateLebenslauf.'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '0'
+			),
+			array(
+				'title' 	=> 'Leistungsprofil',
+				'url'		=> '/profil_leistung/'.$templateLebenslauf.'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '1'
+			),
+			array(
+				'title'	 	=> 'Zukunftsprofil',
+				'url'		=> '/profil_zukunft/'.$templateLebenslauf.'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '0'
+			),
+			array(
+				'title' 	=> 'Diese Seite drucken',
+				'url'		=> '#',
+				'target'	=> '0',
+				'break' 	=> '0',
+				'onclick' => 'printform(); return false;',
+				'style' => "background-color:transparent; text-decoration:underline; font-weight:normal !important;",
+				'className' => 'printButton'
+			)
+		);
+
+		$sql = "SELECT profil_freischalten FROM prakt2_bprofil.einstellungen WHERE nutzerid = ".$id_nutzer;
+		$result = mysql_query($sql, $praktdbslave);
+
+                if(mysql_num_rows($result) == 0) {
+                    $freigeschalten = false;
+                } else {
+                    $freigeschalten = mysql_result($result, 0, "profil_freischalten")=="false"?false:true;
+                }
+
+		if($freigeschalten == false) {
+			array_splice($menuitems, 2, 2);
+		} else if($id_nutzer != $_SESSION["s_nutzerid"]) {
+			// Zukunftsprofil
+            $result = $hDB->query('SELECT id FROM '.$database_bprofil.'.profil_zukunft WHERE nutzerid='.$id_nutzer.' AND sprachid='.(substr($templateLebenslauf,1)=="0"?"2":"1"), $praktdbslave);
+
+			if (mysql_num_rows($result) == 0) {
+				array_splice($menuitems, 3, 1);
+			}
+		}
+
+		$pageTitle = "Bewerbungsmappe - ".$bewerber["vname"]." ".$bewerber["name"];
+	break;
+	case "previewlf":
+		# $templateLebenslauf = "01";
+		$id_nutzer = $_SESSION["s_nutzerid"];
+
+		$menuitems = array(
+			array(
+				'title' => 'Anschreiben',
+				'url' => '#',
+				'target' => 'iframe',
+				'break' => '0',
+				'className' => 'tab_deactive',
+				'onclick' => 'return false;',
+				'style' => ''
+			),
+			array(
+				'title' 	=> 'Lebenslauf',
+				'url'		=> '/profil_lebenslauf/'.$templateLebenslauf.'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '0'
+			),
+			array(
+				'title' 	=> 'Leistungsprofil',
+				'url'		=> '/profil_leistung/0'.substr($templateLebenslauf,1).'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '1'
+			),
+			array(
+				'title'	 	=> 'Zukunftsprofil',
+				'url'		=> '/profil_zukunft/0'.substr($templateLebenslauf,1).'/'.$id_nutzer.'/',
+				'target'	=> '1',
+				'break' 	=> '0'
+			)
+		);
+
+		$pageTitle = "Lebenslaufvorschau - ".$bewerber["vname"]." ".$bewerber["name"];
+	break;
+}
+
+$found = false;
+for($a = 0;$a < count($menuitems);$a++) {
+#		echo $menuitems[$a]["url"]."<br />";
+#		echo $url."<br />";
+
+	if($menuitems[$a]["url"] == $url) {
+		$found = true;
+		$menuitems[$a]["className"] .= " active";
+		$activeTab = $a+1;
+	}
+}
+if($found == false) {
+	$menuitems[0]["className"] .= " active";
+}
+
+
+$zView = new Praktika_Template();
+
+$zView->assign("activeTab", $activeTab);
+$zView->assign("pageTitle", $pageTitle);
+$zView->assign("startURL",$url);
+$zView->assign("tabs", $menuitems);
+$zView->assign("bewerber_vname", $bewerber["vname"]);
+$zView->assign("bewerber_name", $bewerber["name"]);
+
+echo $zView->render("GB_bewerbungsmappe.php");
+
+if (isset($_GET['log'])) {
+	$sid = intval($_GET['id']);
+	$sql = sprintf('SELECT
+						id
+					FROM
+						search_log
+					WHERE
+						stellenid = %d',
+	$sid);
+	#var_dump($sql);
+	$result = mysql_db_query($database_temp, $sql, $praktdbslave);
+	if (mysql_num_rows($result) != 0) {
+		$sql = sprintf('UPDATE
+							search_log
+						SET
+							anzahl_views = anzahl_views + 1
+						WHERE
+							stellenid = %d',
+		$sid);
+		$result = mysql_db_query($database_temp, $sql, $praktdbmaster);
+	} else {
+		$sql = sprintf('SELECT
+							firmenid,
+							studienrichtung,
+							berufsfeld,
+							branche,
+							einsatzland AS land,
+							bundesland,
+							grossraum
+						FROM
+							tmp_stellensuche
+						WHERE
+							stellenid = %d',
+		$sid);
+		#var_dump($sql);
+		$result = mysql_db_query($database_temp, $sql, $praktdbslave);
+		$row = mysql_fetch_assoc($result);
+		$sqlstring = 'stellenid = '.$sid.',jahr = '.date('Y').',monat = '.date('m');
+		foreach ($row as $key => $value) {
+			$sqlstring .= ','.$key.' = '.$value;
+		}
+		$sql = sprintf('INSERT INTO
+							search_log
+						SET
+							%s',
+		$sqlstring);
+		#var_dump($sql);
+		$result = mysql_db_query($database_temp, $sql, $praktdbmaster);
+	}
+
+	$sql = 'INSERT LOW_PRIORITY INTO
+				viewstatsfirmen
+			SET
+				spalte = '.$rowstellenresult['spalte'].',
+				stellenid = '.$sid.',
+				firmenid = '.$rowstellenresult['firmenid'].',
+				userid = '.(isset($_SESSION['s_nutzerid']) ? $_SESSION['s_nutzerid'] : '0');
+	$result = mysql_db_query($database_db, $sql, $praktdbmaster);
+}
+
+while (@ob_end_flush());
+exit();
+
+if (isset($_GET['menu']) && $_GET['menu'] == 'mappe') {
+	preg_match('/\d+/', $_GET['url'], $match);
+	$lebenslaufwahl = $match[0];
+
+	if (isset($_GET['lebenslauftemplate'])) {
+		$lebenslaufwahl = $_GET['lebenslauftemplate'];
+		$leistung = $_GET['lebenslauftemplate'];
+		$zukunft = $_GET['lebenslauftemplate'];
+
+		if ($lebenslaufwahl == '20' || $lebenslaufwahl == '10') {
+			$lebenslaufwahl = '01';
+		}
+
+		if ($lebenslaufwahl == '01') {
+			$leistung = '01';
+			$zukunft = '01';
+		}
+		if ($lebenslaufwahl == '02' || $lebenslaufwahl == '12' || $lebenslaufwahl == '22') {
+			$leistung = '02';
+			$zukunft = '02';
+		}
+		if ($lebenslaufwahl == '03' || $lebenslaufwahl == '13' || $lebenslaufwahl == '23') {
+			$leistung = '03';
+			$zukunft = '03';
+		}
+	} else {
+		if ($lebenslaufwahl == '01' || $lebenslaufwahl == '02' || $lebenslaufwahl == '03') {
+			$sprachid = '2';
+		} else {
+			$sprachid = '1';
+		}
+
+		if (empty($lebenslaufwahl)) {
+			$lebenslaufwahl = '01';
+		}
+		if ($lebenslaufwahl == '01') {
+			$leistung = '01';
+			$zukunft = '01';
+		}
+		if ($lebenslaufwahl == '02' || $lebenslaufwahl == '12' || $lebenslaufwahl == '22') {
+			$leistung = '02';
+			$zukunft = '02';
+		}
+		if ($lebenslaufwahl == '03' || $lebenslaufwahl == '13' || $lebenslaufwahl == '23') {
+			$leistung = '03';
+			$zukunft = '03';
+		}
+	}
+
+	if (isset($_GET['nutzerid'])) {
+		$id_nutzer = intval($_GET['nutzerid']);
+	} else {
+		$id_nutzer = '';
+	}
+	if(empty($id_nutzer)) $id_nutzer = $_SESSION["s_nutzerid"];
+	if (isset($_GET['anschreiben'])) {
+		$menuitems = array(
+		array(
+		'title' => 'Anschreiben',
+		'url' => '/bewerbungsmappe_ansehen/'.intval($_GET['b']).'/',
+		'target' => '1',
+		'break' => '0'
+		),
+		array(
+		'title' 	=> 'Lebenslauf',
+		'url'		=> '/profil_lebenslauf/'.$lebenslaufwahl.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '0'
+		),
+		array(
+		'title' 	=> 'Leistungsprofil',
+		'url'		=> '/profil_leistung/'.$leistung.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '1'
+		),
+		array(
+		'title'	 	=> 'Zukunftsprofil',
+		'url'		=> '/profil_zukunft/'.$zukunft.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '0'
+		),
+		array(
+		'title' 	=> 'Drucken',
+		'url'		=> 'javascript:printform();',
+		'target'	=> '0',
+		'break' 	=> '0'
+		)
+		);
+	} else {
+		$menuitems = array(
+		array(
+		'title' 	=> 'Lebenslauf',
+		'url'		=> '/profil_lebenslauf/'.$lebenslaufwahl.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '0'
+		),
+		array(
+		'title' 	=> 'Leistungsprofil',
+		'url'		=> '/profil_leistung/'.$leistung.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '1'
+		),
+		array(
+		'title'	 	=> 'Zukunftsprofil',
+		'url'		=> '/profil_zukunft/'.$zukunft.'/'.$id_nutzer.'/',
+		'target'	=> '1',
+		'break' 	=> '0'
+		),
+		array(
+		'title' 	=> 'Drucken',
+		'url'		=> 'javascript:printform();',
+		'target'	=> '0',
+		'break' 	=> '0'
+		)
+		);
+	}
+} elseif (isset($_GET['previewlf'])) {
+
+} else {
+	$sql = sprintf('SELECT
+						spalte,
+						prakt2.firmen.firma,
+						prakt2.stellen.branche,
+						berufsfeld,
+						firmenid,
+						taetigkeit,
+						stellen.modify,
+						stichwort
+					FROM
+						prakt2.stellen
+					LEFT JOIN
+						prakt2.firmen ON(firmen.id = prakt2.stellen.firmenid)
+					WHERE
+						prakt2.stellen.id = %d',
+	$sid);
+
+	$result = mysql_db_query($database_temp, $sql, $praktdbslave);
+	$rowstellenresult = mysql_fetch_assoc($result);
+
+	if (isset($_SESSION['s_unternehmen']) && $_SESSION['s_unternehmen'] == true) {
+
+	} else {
+		$stellenid = intval($_GET['id']);
+		$firmenid = $rowstellenresult['firmenid'];
+
+		$bewerbdiv = true;
+
+		if (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true) {
+			$menuitems = array(
+			array(
+			'title' 	=> 'Online bewerben',
+			'url'		=> '#',
+			'target'	=> '0',
+			'break' 	=> '1',
+			'id'		=> 'stelleMerken',
+			'onclick'	=> 'merken('.$stellenid.','.(isset($firmenid) ? intval($firmenid) : $_SESSION['s_firmenid']).');'
+			),
+			array(
+			'title' 	=> 'Anzeige',
+			'url'		=> '/firmen/stelle/'.$stellenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+			array(
+			'title' 	=> 'alle Jobs dieser Firma',
+			'url'		=> '/firmen/allestellen/'.$firmenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+			array(
+			'title' 	=> 'Firmenprofil',
+			'url'		=> '/firmenprofil/'.$firmenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+			array(
+			'title' 	=> 'Drucken',
+			'url'		=> 'javascript:printform();',
+			'target'	=> '0',
+			'break' 	=> '0'
+			),
+			array(
+			'title' 	=> 'Empfehlen',
+			'url'		=> '/firmen/empfehlen/'.$stellenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			)
+			);
+			$stelleMerkenScript = true;
+
+			$sql = '	SELECT
+							id
+						FROM
+							nutzerbookmark
+						WHERE
+							nutzerid = '.$_SESSION['s_nutzerid'].'
+							AND stellenid = '.$stellenid;
+
+			$eintrag = mysql_db_query($database_db,$sql,$praktdbmaster);
+
+			if (mysql_affected_rows() != 0) {
+				$gemerkt = true;
+			}
+		} else {
+			$menuitems = array(
+			array(
+			'title' 	=> 'Online bewerben',
+			'url'		=> '/minilogin/Bewerber/',
+			'target'	=> '1',
+			'break' 	=> '1',
+			'id'		=> 'stelleMerken',
+			'onclick'	=> 'error_handle();'
+			),
+			array(
+			'title' 	=> 'Anzeige',
+			'url'		=> '/firmen/stelle/'.$stellenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+			array(
+			'title' 	=> 'alle Jobs dieser Firma',
+			'url'		=> '/firmen/allestellen/'.$firmenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+			array(
+			'title' 	=> 'Firmenprofil',
+			'url'		=> '/firmenprofil/'.$firmenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			),
+
+			array(
+			'title' 	=> 'Drucken',
+			'url'		=> 'javascript:printform();',
+			'target'	=> '0',
+			'break' 	=> '0'
+			),
+			array(
+			'title' 	=> 'Empfehlen',
+			'url'		=> '/firmen/empfehlen/'.$stellenid.'/',
+			'target'	=> '1',
+			'break' 	=> '1'
+			)
+			);
+
+			$stelleMerkenScript = true;
+		}
+/*
+		if (isset($firmenid)) {
+			$_GET['url'] = $_GET['url'].'&amp;firmenid='.$firmenid.'';
+		}
+*/
+	}
+}
+
+
+exit();
+?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+    <meta http-equiv="Content-Language" content="de" />
+    <meta name="description" content="Stellenangebot: <?php if (is_array($rowstellenresult)) echo htmlentities(strip_tags($rowstellenresult['taetigkeit']." bei ".$rowstellenresult['firma'])); ?>" />
+    <meta name="keywords" content="Stelle, Praktika, Praktikum, Angebot,<?php if (is_array($rowstellenresult)) echo htmlentities($rowstellenresult['stichwort']); ?>" />
+    <meta name="abstract" content="<?php if (is_array($rowstellenresult)) echo htmlentities(strip_tags($rowstellenresult['taetigkeit']." - ".$rowstellenresult['firma'].": ".substr($rowstellenresult['volltext'],0,100))); ?>" />
+    <meta name="author" content="CONNEX Internetservice" />
+    <meta name="publisher" content="CONNEX Internetservice" />
+    <meta name="copyright" content="CONNEX Internetservice" />
+    <meta name="language" content="de" />
+    <meta name="dc.language" content="de" />
+    <meta name="robots" content="all" />
+    <meta name="revisit-after" content="2 days" />
+    <meta name="distribution" content="global" />
+    <meta http-equiv="imagetoolbar" content="no" />
+   	<title>Anzeige<?php if (is_array($rowstellenresult)) echo " ".$rowstellenresult['firma']." - ".$rowstellenresult['taetigkeit']; ?></title>
+
+	<link type="text/css" rel="stylesheet" href="/styles/praktika_box/praktika_box.css" />
+
+	<script type="text/javascript">
+
+	function printform() {
+		if (frames['frame_content'].window.print) {
+			frames['frame_content'].focus();
+			frames['frame_content'].print();
+		} else if (document.all) {
+			WebBrowser1.ExecWB(6,1);
+		}
+	}
+
+	function parent(element) {
+		document.getElementById('curr_select').removeAttribute('id');
+		element.parentNode.setAttribute('id','curr_select');
+		//element.parentNode.setAttribute('style','text-decoration: underline;');
+	}
+
+	</script>
+
+<?php echo ($stelleMerkenScript == true ? '	<script type="text/javascript" src="/scripts/ajax/stelle_merken.js"></script>' : '')."\n"; ?>
+
+</head>
+
+<body<?php echo isset($_REQUEST['include']) ? ' onload="window.resizeTo(780,screen.height-30)"' : '' ?>>
+
+<div id="main">
+	<div id="frame">
+		<div id="innermenu">
+			<ul>
+				<li class="first">&nbsp;</li>
+<?php
+if (isset($menuitems)) {
+	$i = 0;
+	$last = count($menuitems);
+	foreach ($menuitems as $key => $value) {
+/*		if ($key == 0) {
+			echo '				<li class="middle_first" id="curr_select">'.(isset($value['id']) ? '<span id="'.$value['id'].'">' : '').'<a href="'.$value['url'].'" '.(intval($value['target']) == 1 ? 'target="frame_content"' : '').' onclick="parent(this);">'.$value['title'].'</a>'.(isset($value['id']) ? '</span>' : '').'</li>'."\n";
+		} elseif ($key == $last) {
+			echo '				<li class="last">'.(isset($value['id']) ? '<span id="'.$value['id'].'">' : '').'<a href="'.$value['url'].'" '.(intval($value['target']) == 1 ? 'target="frame_content"' : '').' onclick="parent(this);">'.$value['title'].'</a>'.(isset($value['id']) ? '</span>' : '').'</li>'."\n";
+		} else {
+			if ($gemerkt == true && $key == 3) {
+				echo '				<li class="middle"><span style="color: #009900 !important;">Stelle gemerkt</span></li>'."\n";
+			} else {
+				echo '				<li class="middle">'.(isset($value['id']) ? '<span id="'.$value['id'].'">' : '').'<a href="'.$value['url'].'" '.(intval($value['target']) == 1 ? 'target="frame_content"' : '').' onclick="'.(isset($value['onclick']) ? $value['onclick'] : 'parent(this);').'">'.$value['title'].'</a>'.(isset($value['id']) ? '</span>' : '').'</li>'."\n";
+			}
+		} */
+
+		$className = "middle";
+		if($key == 0) {
+			if(!isset($_GET['anschreiben']) && $_GET['menu'] != "mappe") {
+				$className = "middle_first ".($_SESSION['s_loggedin'] == true?"loggedin":"loggedout")." ".($gemerkt==true?"gemerkt":"nichtaktiv");
+			} else {
+				$className = "middle";
+			}
+			if($gemerkt == true) $value["title"] = "Stelle gemerkt";
+		}
+
+		$content = (isset($value['id']) ? '<span id="'.$value['id'].'">' : '').'<a href="'.$value['url'].'" '.(intval($value['target']) == 1 ? 'target="frame_content"' : '').' onclick="'.(isset($value['onclick']) ? $value['onclick'] : 'parent(this);').'">'.$value['title'].'</a>'.(isset($value['id']) ? '</span>' : '');
+
+
+
+
+		echo '				<li class="'.$className.'"'.($value["url"] == $_GET["url"] ? ' id="curr_select"' : "").'>'.$content.'</li>'."\n";
+		$i++;
+	}
+}
+
+if (isset($_REQUEST['include']) || !empty($_GET["popup"])) {
+	echo '				<li class="betweenLastClose"><a href="#" onclick="window.close();">Schlie&szlig;en</a></li>'."\n";
+} else {
+	echo '				<li class="betweenLastClose"><a href="#" onclick="if(top.PB_hide == undefined) window.close(); '.(isset($_GET['anschreiben']) ? 'top.location.reload();' : 'top.PB_hide();').'">Fenster schlie&szlig;en</a></li>'."\n";
+}
+?>
+			</ul>
+		</div>
+	</div>
+
+	<div id="content">
+
+		<div id="errorText">Um sich auf eine Stelle bei praktika.de zu bewerben, m&uuml;ssen Sie <a href="/minilogin<?php echo isset($_REQUEST['include']) ? '_include/' : '' ?>/Bewerber/" target="frame_content">in Ihrem Account eingeloggt</a> sein.</div>
+		<div id="infoText"<?php echo $gemerkt == true ? ' style="display: block;"' : '' ?>>Die Anzeige wurde in Ihrem <a href="http://<?php echo $_SERVER['HTTP_HOST'] ?>/karriere/hauptordner/2/" <?php echo isset($_REQUEST['include']) ? 'onclick="window.open(\'http://'.$_SERVER['HTTP_HOST'].'/karriere/hauptordner/2/\'); return false;"' : 'target="_top"' ?>>Karriere Center</a> unter Merkzettel gespeichert. Dort k&ouml;nnen Sie eine Bewerbung an das Unternehmen senden. Sie k&ouml;nnen nun weitere Stellen auf Ihren pers&ouml;nlichen Merkzettel speichern oder in das <a href="http://<?php echo $_SERVER['HTTP_HOST'] ?>/karriere/hauptordner/2/" <?php echo isset($_REQUEST['include']) ? 'onclick="window.open(\'http://'.$_SERVER['HTTP_HOST'].'/karriere/hauptordner/2/\'); return false;"' : 'target="_top"' ?>>Karriere Center</a> wechseln.</div>
+		<iframe id="frame_content" name="frame_content" src="<?php echo $_GET['url']; ?>" width="100%" height="100%" scrolling="no" frameborder="0"></iframe>
+
+
+<? 		$datum_unix = "";
+/* Auflistung 10 interessanter Stellen */
+if (isset($bewerbdiv) && $bewerbdiv == true) {
+	$dateiname = '/home/praktika/cache/stellen/stelleothers_'.$id.'_'.$datum_unix.'.html';
+	if (!file_exists($dateiname) || $_SESSION["s_loggedin"] == true) { # || $_SERVER['HTTP_HOST'] == 'lokal.praktika.de') {
+		$i = 1;
+
+		if (is_array($rowstellenresult)) {
+			$berufsfeld = 'AND stellen.berufsfeld = '.$rowstellenresult['berufsfeld'].' AND spalte = '.$rowstellenresult['spalte'];
+
+		}
+
+		$selectpraktikumsstellen = mysql_db_query($database_db,'SELECT stellen.id AS prakid, stellen.taetigkeit FROM firmen, stellen WHERE firmen.inactive = \'false\' AND firmen.gesperrt = \'false\' AND stellen.firmenid = firmen.id AND stellen.inactive = \'false\' '.$berufsfeld.' AND stellen.id != '.$sid.' ORDER BY RAND() LIMIT 14',$praktdbslave);
+
+		if (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true) {
+			$onclickstring = 'merken('.$stellenid.','.(isset($firmenid) ? intval($firmenid) : $_SESSION['s_firmenid']).');alert(\'Die Anzeige wurde in Ihrem Karriere Center unter Merkzettel gespeichert. Dort k�nnen Sie eine Bewerbung an das Unternehmen senden. Sie k�nnen nun weitere Stellen auf Ihren pers�nlichen Merkzettel speichern oder in das Karriere Center wechseln.\');';
+		} else {
+			$onclickstring = 'alert(\'Um sich auf eine Stelle bei praktika.de zu bewerben, m�ssen Sie in Ihrem Account eingeloggt sein.\');error_handle();top.scrollTo(0,0);frame_content.location.href = \'/minilogin/Bewerber/\'';
+		}
+
+		echo '	<div id="bewerben"><button type="button" onclick="'. $onclickstring .'" value="Auf diese Stelle Bewerben"><span><span><span>Auf diese Stelle Bewerben</span></span></span></button></div>';
+
+		$stellenotheroutput .= '	<div id="weitere_stellen" class="clearfix">
+				<ul>
+					<li><strong>&Auml;hnliche '. $spaltenarray[$rowstellenresult['spalte']] .':</strong></li>';
+
+		while (list($prakid, $taetigkeit) = mysql_fetch_row($selectpraktikumsstellen)) {
+			if ($i > 7) {
+				$weitere[$prakid] = $taetigkeit;
+			} else {
+				$stellenotheroutput .= '				<li><a href="/anzeige/'.$prakid.'/" target="PB_frame" title="'.stripslashes($taetigkeit).'" onclick="top.scrollTo(0,0)">'.stripslashes($taetigkeit).'</a></li>'."\n";
+			}
+
+			$i++;
+		}
+
+		$stellenotheroutput .= '</ul>
+				<ul>
+					<li><strong>Weitere '. $spaltenarray[$rowstellenresult['spalte']].':</strong></li>';
+
+		if (is_array($weitere))	{
+			foreach ($weitere as $prakid => $taetigkeit) {
+				$stellenotheroutput .= '				<li><a href="/anzeige/'.$prakid.'/" target="PB_frame" title="'.stripslashes($taetigkeit).'" onclick="top.scrollTo(0,0)">'.stripslashes($taetigkeit).'</a></li>'."\n";
+			}
+		}
+
+	echo $stellenotheroutput;
+	$fp = fopen( $dateiname, "w+" );
+	fputs( $fp, $stellenotheroutput);
+	fclose( $fp);
+
+	} else {
+		readfile($dateiname);
+	}
+?>
+			</ul>
+			<ul class="stadt">
+				<li><strong>Stellen in:</strong></li>
+				<li><a href="https://www.praktika.de/suche/Berlin" target="_top">Berlin</a></li>
+				<li><a href="https://www.praktika.de/suche/Hamburg" target="_top">Hamburg</a></li>
+				<li><a href="https://www.praktika.de/suche/M�nchen" target="_top">M&uuml;nchen</a></li>
+				<li><a href="https://www.praktika.de/suche/K�ln" target="_top">K&ouml;ln</a></li>
+				<li><a href="https://www.praktika.de/suche/Frankfurt" target="_top">Frankfurt</a></li>
+				<li><a href="https://www.praktika.de/suche/Stuttgart" target="_top">Stuttgart</a></li>
+				<li><a href="https://www.praktika.de/suche/Dortmund" target="_top">Dortmund</a></li>
+				<li><a href="https://www.praktika.de/suche/Essen" target="_top">Essen</a></li>
+				<li><a href="https://www.praktika.de/suche/D�sseldorf" target="_top">D&uuml;sseldorf</a></li>
+				<li><a href="https://www.praktika.de/suche/Bremen" target="_top">Bremen</a></li>
+				<li><a href="https://www.praktika.de/suche/Hannover" target="_top">Hannover</a></li>
+				<li><a href="https://www.praktika.de/suche/Leipzig" target="_top">Leipzig</a></li>
+			</ul>
+		</div>
+<?
+}
+?>
+
+	</div>
+</div>
+
+
+
+<script type="text/javascript">
+<!--
+/**
+* THX an Quaese f?r Ausbesserung des Codes
+* https://www.tutorials.de/forum/members/quaese.html
+**/
+
+function resize_me(n){
+	d = 30;
+	return true;
+/*
+	ifObj = document.getElementsByName(n)[0];
+	sndObj = document.getElementsByName('main')[0];
+
+	p=(document.all)?'scroll':'offset';
+
+	// w = (W3C-DOM)? Breite in px : ((IEs)? Breite in px : Breite in px sonstige Browser)
+	w = (window.getComputedStyle) ? window.getComputedStyle(ifObj, null).getPropertyValue('width') :
+	((ifObj.currentStyle) ? ifObj.currentStyle['width'] : eval("window.frames[n].document.getElementsByTagName('body')[0]."+p+"Width+"+20+"+'px'"));
+
+	ifObj.style.width = w;
+
+	eval("ifObj.style.height=Math.max(200,window.frames[n].document.getElementsByTagName('body')[0]."+p+"Height+"+d+")+'px'");
+
+	*/
+}
+//-->
+</script>
+<script type="text/javascript">
+	var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "https://www.");
+	document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+	try {
+		var pageTracker = _gat._getTracker("UA-69651-1");
+		pageTracker._trackPageview();
+	} catch(err) {}
+</script>
+<?
+// AGOF + IVW Tracking
+$selfsplit = explode ("/",$_SERVER['PHP_SELF']);
+
+if ($_SERVER['PHP_SELF'] == "/cms/index.php") {
+	$selfval = explode("/",$_SERVER["REQUEST_URI"]);
+	$selfval = end($selfval);
+} elseif (end($selfsplit) == "index.phtml") {
+	$selfval = $selfsplit[(count($selfsplit)-2)];
+} else {
+	$selfval = end($selfsplit);
+}
+
+$selfval = explode (".",$selfval);
+
+if ((isset($_SESSION['s_loggedinnutzer']) && $_SESSION['s_loggedinnutzer'] == true) || (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true)) {
+	if (isset($_SESSION['s_loggedinnutzer'])) {
+		$comment = 'LoggedInBewerber';
+	} elseif (isset($_SESSION['s_loggedin'])) {
+		$comment = 'LoggedInUnternehmen';
+	}
+} else {
+	$comment = 'LoggedOut';
+}
+
+if (!isset($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] != "on")
+$ivwvalues = '
+<script type="text/javascript">
+<!--
+	if(window.location.protocol==\'http:\') {
+		var IVW=window.location.protocol+"//praktika.ivwbox.de/cgi-bin/ivw/CP/'.$selfval[0].';'.$comment.'";
+		document.write("<img src=\""+IVW+"?r="+escape(document.referrer)+"&d="+(Math.random()*100000)+"\" width=\"1\" height=\"1\" alt=\"\" align=\"left\" />");
+	}
+//-->
+</script>
+<noscript>
+	<img src="http://praktika.ivwbox.de/cgi-bin/ivw/CP/'.$selfval[0].';'.$comment.'" width="1" height="1" alt="" align="left" />
+</noscript>'."\n";
+
+// AGOF MClient Tag - geschlossener Bereich
+if (((isset($_SESSION['s_loggedinnutzer']) && $_SESSION['s_loggedinnutzer'] == true) || (isset($_SESSION['s_loggedin']) && $_SESSION['s_loggedin'] == true)) && (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != 'on')) {
+	$hashval = sha1($comment.$_SESSION['s_loginid'].'H8sN29prakthash');
+	$ivwvalues .= '		<img src="http://mclient.ivwbox.de/cgi-bin/ivw/CP/0608/praktika/01'.$hashval.'" width="1" height="1" alt="szmmctag" align="left" />'."\n";
+}
+
+echo $ivwvalues;
+
+//Logging
+if (isset($_GET['log'])) {
+	$sid = intval($_GET['id']);
+	$sql = sprintf('SELECT
+						id
+					FROM
+						search_log
+					WHERE
+						stellenid = %d',
+	$sid);
+	#var_dump($sql);
+	$result = mysql_db_query($database_temp, $sql, $praktdbslave);
+	if (mysql_num_rows($result) != 0) {
+		$sql = sprintf('UPDATE
+							search_log
+						SET
+							anzahl_views = anzahl_views + 1
+						WHERE
+							stellenid = %d',
+		$sid);
+		$result = mysql_db_query($database_temp, $sql, $praktdbmaster);
+	} else {
+		$sql = sprintf('SELECT
+							firmenid,
+							studienrichtung,
+							berufsfeld,
+							branche,
+							einsatzland AS land,
+							bundesland,
+							grossraum
+						FROM
+							tmp_stellensuche
+						WHERE
+							stellenid = %d',
+		$sid);
+		#var_dump($sql);
+		$result = mysql_db_query($database_temp, $sql, $praktdbslave);
+		$row = mysql_fetch_assoc($result);
+		$sqlstring = 'stellenid = '.$sid.',jahr = '.date('Y').',monat = '.date('m');
+		foreach ($row as $key => $value) {
+			$sqlstring .= ','.$key.' = '.$value;
+		}
+		$sql = sprintf('INSERT INTO
+							search_log
+						SET
+							%s',
+		$sqlstring);
+		#var_dump($sql);
+		$result = mysql_db_query($database_temp, $sql, $praktdbmaster);
+	}
+
+	$sql = 'INSERT LOW_PRIORITY INTO
+				viewstatsfirmen
+			SET
+				spalte = '.$rowstellenresult['spalte'].',
+				stellenid = '.$sid.',
+				firmenid = '.$rowstellenresult['firmenid'].',
+				userid = '.(isset($_SESSION['s_nutzerid']) ? $_SESSION['s_nutzerid'] : '0');
+	$result = mysql_db_query($database_db, $sql, $praktdbmaster);
+}
+?>
+</body>
+</html>
+<?php
+while (@ob_end_flush());
+?>

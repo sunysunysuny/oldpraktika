@@ -1,0 +1,131 @@
+div#bewerbungsvideo {
+	margin-top: 15px;
+}
+div#bewerbungsvideo a {
+	display: block;
+	width: 100%;
+	height: 360px;
+}
+div#allianz_ad {
+	margin-top: 4px;
+	width: 660px;
+}
+div#allianz_ad div#div-gpt-ad-1352107739825-0 {
+	float: left;
+}
+div#allianz_ad img {
+	float: right;
+	z-index: 100;
+}
+h2 {
+	margin-top: 70px;
+	margin-bottom: 5px;
+}
+table#bewerbungsdokumente {
+	border: 0;
+	margin-bottom: 20px;
+	margin-top: 0;
+}
+table#bewerbungsdokumente td {
+	padding: 2px;
+}
+#umschalterdiv {
+	border-bottom: 1px solid #f27000;
+	font-weight: bold;
+	margin-top: 15px;
+}
+div#kommentar_abegeben img {
+	float: left;
+	margin-top: 15px;
+}
+div#kommentar_abegeben form {
+	clear: none;
+	float: right;
+	text-align: left;
+	margin-bottom: 10px;
+}
+div#kommentar_abegeben form fieldset.control_panel p input.button {
+	float: right;
+	margin-right: 0;
+	margin-top: -10px;
+}
+div#kommentar_liste {
+	clear: both;
+}
+div#kommentar_liste hr {
+	border: 0;
+	color: #ddd;
+	background-color: #ddd;
+	height: 1px;
+	clear: both;
+}
+p.kommentar {
+	padding: 30px 0 0 0;
+	width: 660px;
+	clear: both;
+}
+p.kommentar img {
+	float: left;
+}
+p.kommentar span.name_date {
+	display: block;
+	float: left;
+	padding-left: 10px;
+	padding-top: 4px;
+}
+p.kommentar span.date {
+	font-size: 10px;
+	color: #aaaaaa;
+}
+p.kommentar span.kommentar {
+	display: block;
+	text-align: left;
+	float: right;
+	border: 1px solid #aaa;
+	width: 440px;
+	padding: 3px 5px;
+	min-height: 30px;
+}
+p.kommentar span.edge {
+	background: transparent url(/styles/images/bewerbungstraining/ecke.png) no-repeat bottom right;
+	height: 25px;
+	width: 15px;
+	float: right;
+	margin-right: -1px;
+}
+p#paging {
+	text-align: center;
+	clear: both;
+}
+div#playlist p, div#next_video p {
+	clear: both;
+	height: 90px;
+}
+div#playlist img, div#next_video img {
+	float: left;
+	margin-right: 10px;
+	margin-top: 3px;
+}
+div#playlist span, div#next_video span {
+	font-size: 11px;
+}
+div#playlist span.watched, div#next_video span.watched {
+	color: #009900;
+}
+div#mein_cv ol {
+	margin-left: 20px;
+}
+div#sidebar {
+	margin-top: 2px;
+}
+div#sidebar table {
+	border: 0;
+}
+div#sidebar table th {
+	background: transparent;
+	vertical-align: top;
+	color: #333333;
+}
+div#sidebar table th, div#sidebar table td {
+	padding: 3px 0;
+}

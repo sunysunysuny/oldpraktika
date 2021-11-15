@@ -1,0 +1,130 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+praktikaInclude(array("db.php"));
+$hDB = new Praktika_Db();
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_GET['statusartid'])) {
+	$statusartid = intval($_GET['statusartid']);
+} else {
+	$statusartid = intval($_POST['statusartid']);
+}
+
+if (isset($_GET['nutzerid'])) {
+	$nutzerid = intval($_GET['nutzerid']);
+} else {
+	$nutzerid = intval($_POST['nutzerid']);
+}
+
+if (isset($_GET['id'])) {
+	$id = intval($_GET['id']);
+} else {
+	$id = intval($_POST['id']);
+}
+
+if ($statusartid == '0') {
+	$text = 'gelesen';
+	$db_spalte = 'gelesen';
+} elseif ($statusartid == '1') {
+	$text = 'in Bearbeitung';
+	$db_spalte = 'bearbeitung';
+} elseif ($statusartid == '2') {
+	$text = 'beantwortet';
+	$db_spalte = 'beantwortet';
+} elseif ($statusartid == '3') {
+	$text = 'R&uuml;ckantwort';
+	$db_spalte = 'rueckantwort';
+} elseif ($statusartid == '4') {
+	$text = 'Zusage';
+	$db_spalte = 'zusage';
+} elseif ($statusartid == '5') {
+	$text = 'Absage';
+	$db_spalte = 'absage';
+}
+
+pageheader(array('page_title' => 'Nachricht an Bewerber senden: '.$text));
+
+if (isset($_POST['send']) && substr_count($_POST['betreff'],'@') < 1 && substr_count($_POST['nachricht'],'@') < 1 && !empty($_POST['betreff']) && !empty($_POST['nachricht'])) { 
+	if ($_POST['m'] < 1) {
+		$insert = 'INSERT INTO fstatusmails (firmenid,nutzerid,statusartid,betreff,nachricht) VALUES ('.$_SESSION['s_firmenid'].','.intval($_POST['nutzerid']).','.$statusartid.',\''.htmlspecialchars($_POST['betreff']).'\',\''.htmlspecialchars($_POST['nachricht']).'\')';
+	} else {	
+		$insert = 'UPDATE fstatusmails SET firmenid = '.$_SESSION['s_firmenid'].', statusartid = '.$statusartid.', betreff = \''.htmlspecialchars($_POST['betreff']).'\',nachricht = \''.htmlspecialchars($_POST['nachricht']).'\' WHERE firmenid = '.$_SESSION['s_firmenid'].' AND statusartid= '.$statusartid;
+	}
+
+	$hDB->query($insert, $praktdbmaster);
+	
+	// Email des Nutzers ermitteln
+	$email = $hDB->query('SELECT email FROM nutzer WHERE id = '.intval($_POST['nutzerid']), $praktdbslave);
+	$emailnutzer = mysql_result($email, 0, 'email');
+	
+	$betreff = ereg_replace ("'", "", $_POST['betreff']);
+	$nachricht = ereg_replace ("'", "", $_POST['nachricht']);
+	$firmenname = $hDB->query('SELECT firma FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+	
+	$emailobj = new emailtemplate(43);
+	$emailobj->replace('{betreff}',$betreff);
+	$emailobj->replace('{nachricht}',$nachricht);
+	$emailobj->replace('{firma}',mysql_result($firmenname,0,'firma'));
+	$emailobj->send_email($emailnutzer);
+	unset($emailobj);
+
+	mysql_db_query($database_db,'UPDATE bewerbung SET '.$db_spalte.' = \'true\' WHERE id = '.$id,$praktdbmaster);
+	
+	echo '<p class="success">Ihre Nachricht wurde dem Bewerber erfolgreich zugestellt.</p>'."\n";
+	echo '<script type="text/javascript">'."\n";
+	echo '	document.write = setTimeout(\'top.GB_hide()\', 3000);'."\n";
+	echo '</script>'."\n";	
+} else {
+	echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+	echo '	<p>Senden Sie hier dem Bewerber eine kurze Mail &uuml;ber den Bearbeitungsstand seiner Bewerbung.</p>'."\n";
+
+	$nutzer =mysql_db_query($database_db,'SELECT anrede,vname,name FROM nutzer WHERE id = '.(isset($_GET['nutzerid']) ? intval($_GET['nutzerid']) : intval($_POST['nutzerid'])),$praktdbslave);
+	$mailsda = mysql_db_query($database_db,'SELECT * FROM fstatusmails WHERE firmenid = '.$_SESSION['s_firmenid'].' AND statusartid = '.$statusartid,$praktdbslave);
+
+	if (mysql_num_rows($mailsda) > 0 && !isset($_POST['send'])) {
+		$_POST['betreff'] = mysql_result($mailsda,0,'betreff');
+		$_POST['nachricht'] = mysql_result($mailsda,0,'nachricht');
+	} elseif (!isset($_POST['send'])) {
+		$_POST['betreff'] = '';
+		$_POST['nachricht'] = '';
+	}
+
+	echo '	<p>Name des Bewerbers: '.mysql_result($nutzer,0,'anrede').' '.mysql_result($nutzer,0,'vname').' '.mysql_result($nutzer,0,'name').'</p>'."\n";
+
+	if (isset($_POST['send']) && (substr_count($_POST['betreff'],'@') > 0 || substr_count($_POST['nachricht'],'@') > 0)) {
+		echo '<p class="error">Bitte verwenden Sie keine eMail-Adressen in den Nachrichtenfeldern.</p>'."\n";
+	} elseif (isset($_POST['send'])) {
+		echo '<p class="error">Bitte hinterlegen Sie einen Betreff und eine Nachricht.</p>'."\n";
+	} ?>
+
+	<fieldset style="margin-top: 1em;">
+		<p>
+			<label for="betreff">Betreff:</label>
+			<input type="text" style="padding:3px;" class="stdFont" maxlength="100" value="<? echo $_POST['betreff'] ?>" id="betreff" name="betreff" />
+		</p>
+		<p>
+			<label for="nachricht">Nachricht:</label>
+			<textarea cols="50" style="padding:3px;" class="stdFont" rows="11" id="nachricht" name="nachricht"><? echo $_POST['nachricht'] ?></textarea>
+		</p>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<button type="submit" name="send" value="senden"><span><span><span>SENDEN</span></span></span></button>
+			<input type="hidden" name="id" value="<? echo $id ?>" />
+			<input type="hidden" name="statusartid" value="<? echo $statusartid ?>" />
+			<input type="hidden" name="nutzerid" value="<? echo $nutzerid ?>" />
+			<input type="hidden" name="m" value="<? echo mysql_num_rows($mailsda); ?>" />
+		</p>
+	</fieldset>
+</form>
+<? } ?>
+
+</body>
+</html>

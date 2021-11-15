@@ -1,0 +1,95 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = '';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_POST['senden'])) {
+	pageheader(array('page_title' => 'Beratungsservice - Anfrage versendet'));
+	
+	/* datensatz auslesen */
+	$eintrag = mysql_db_query($database_db,'SELECT *,bearbeiter.email AS bemail,bearbeiter.tel AS btel,bearbeiter.fax AS bfax FROM firmen,bearbeiter WHERE bearbeiter.id = '.$_SESSION['s_loginid'].' AND firmen.id = bearbeiter.firmenid',$praktdbslave);
+	
+	/* infomail zusammenbauen */
+	$sendermail = mysql_result( $eintrag, 0, "email");
+	$mailaddr = "service@praktika.de";
+	$subject = "Subject: praktika.de Firmen-Beratung: ".mysql_result( $eintrag, 0, "firma")." - ID: ".mysql_result( $eintrag, 0, "id");
+	$mailstring = "FIRMEN - BERATUNG\n\n";
+	$mailstring = $mailstring."ID: ".mysql_result( $eintrag, 0, "id")."\n\n";
+	$mailstring = $mailstring."Firma: ".mysql_result( $eintrag, 0, "firma")."\n";
+	$mailstring = $mailstring."Strasse: ".mysql_result( $eintrag, 0, "strasse")."\n";
+	$mailstring = $mailstring."Ort: ".mysql_result( $eintrag, 0, "plz")." ".mysql_result( $eintrag, 0, "ort")."\n";
+	$mailstring = $mailstring."Land: ".mysql_result( $eintrag, 0, "land")." ".mysql_result( $eintrag, 0, "bundesland")." ".mysql_result( $eintrag, 0, "grossraum")."\n";
+	$mailstring = $mailstring."Tel: ".mysql_result( $eintrag, 0, "tel")."\n";
+	$mailstring = $mailstring."Fax: ".mysql_result( $eintrag, 0, "fax")."\n";
+	$mailstring = $mailstring."Homepage: ".mysql_result( $eintrag, 0, "homepage")."\n";
+	$mailstring = $mailstring."Ansprechpartner: ".mysql_result( $eintrag, 0, "anrede")." ".mysql_result( $eintrag, 0, "vname")." ".mysql_result( $eintrag, 0, "name")."\n";
+	$mailstring = $mailstring."Abteilung: ".mysql_result( $eintrag, 0, "abteilung")."\n";
+	$mailstring = $mailstring."Funktion: ".mysql_result( $eintrag, 0, "funktion")."\n";
+	$mailstring = $mailstring."Durchwahl: ".mysql_result( $eintrag, 0, "btel")."\n";
+	$mailstring = $mailstring."PersonalFax: ".mysql_result( $eintrag, 0, "bfax")."\n";
+	$mailstring = $mailstring."PersonalMail: ".mysql_result( $eintrag, 0, "email")."\n";
+	$mailstring = $mailstring."\n\nANFRAGE:\n";
+	$mailstring = $mailstring.$language ["strAuswahl".$auswahl]."\n\n";
+	$mailstring = $mailstring.$infos."\n";
+
+	/* infomail verschicken */
+	mail($mailaddr, $subject, $mailstring, 'From: '.$sendermail.'\nX-Mailer: praktika.de Mailscript PHP');
+	echo '<p>Vielen Danke für Ihre Anfrage.<br />Wir werden uns alsbald bei Ihnen melden, um Sie effektiv bei der Optimierung Ihrer Anzeigen zu unterst&uuml;tzen.</p>'."\n";
+		echo '<p class="control_panel">'."\n";
+		echo '	<button type="button" onclick="location.href = \'/firmen/account/\'" value="zur&uuml;ck"><span><span><span>zur&uuml;ck</span></span></span></button>'."\n";
+		echo '</p>'."\n";
+} else {
+	pageheader(array('page_title' => 'Beratungsservice'));
+
+	echo '<p>Sie m&ouml;chten mehr Erfolg mit Ihren Anzeigen erzielen?<br />Sie w&uuml;nschen Unterst&uuml;tzung bei der Optimierung Ihrer Firmendarstellung?<br /><br />Praktika.de bietet mit der Servicelizenz "Komfort" eine Beratung zur Gestaltung und Wirkung Ihrer Stellenausschreibungen und Ihres Firmenprofils an. Nutzen Sie unser Wissen &uuml;ber erfolgreiche Textgestaltung und Wirkung auf eine junge Zielgruppe. Dieser Service wird von praktika.de innerhalb von 3 Werktagen f&uuml;r Sie ausgef&uuml;hrt.</p>'."\n";
+	echo '<p>Bitte gehen Sie wie folgt vor:</p>'."\n";
+	echo '<ol>'."\n";
+	echo '	<li>Gestalten Sie Ihr Firmenprofil</li>'."\n";
+	echo '	<li>Geben Sie Ihre offenen Praktikastellen ein</li>'."\n";
+	echo '	<li>Fordern Sie per Mausklick eine der zur Auswahl stehenden Leistungen an</li>'."\n";
+	echo '	<li>Lesen Sie unsere Vorschl&auml;ge und/oder sehen Sie die &auml;nderungen ein</li>'."\n";
+	echo '	<li>Sehen Sie die Erfolge!</li>'."\n";
+	echo '</ol>'."\n";
+
+	if ($_SESSION['s_firmenlevel'] > 0) {
+		echo '<form name="beratung" action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+		echo '	<fieldset>'."\n";
+		echo '		<p>'."\n";
+		echo '			<label for="auswahl">Leistung:</label>'."\n";
+		echo '			<select id="auswahl" name="auswahl">'."\n";
+		echo '				<option value="1">Schlagen Sie mir bitte &Auml;nderungen per Email vor.</option>'."\n";
+		echo '				<option value="2">Nehmen Sie vorgeschlagene &Auml;nderungen selbst vor.</option>'."\n";
+		echo '				<option value="3">Ich w&uuml;nsche ein telefonische Beratung. Bitte rufen Sie mich an.</option>'."\n";
+		echo '			</select>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p style="clear: both;">'."\n";
+		echo '			<label for="infos"> Eingabefeld für Ihre Hinweise:</label>'."\n";
+		echo '			<textarea id="infos" name="infos" rows="10" cols="16"></textarea>'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '	<fieldset class="control_panel">'."\n";
+		echo '		<p>'."\n";
+		echo '			<button type="submit" name="senden" value="Anfrage senden"><span><span><span>Anfrage senden</span></span></span></button>'."\n";
+		echo '		</p>'."\n";
+		echo '		<p>'."\n";
+		echo '			<button type="button" onclickf="location.href = \'/firmen/profil/\'" value="zur&uuml;ck"><span><span><span>zur&uuml;ck</span></span></span></button>'."\n";
+		echo '		</p>'."\n";
+		echo '	</fieldset>'."\n";
+		echo '</form>'."\n";
+	} else {
+		echo '<p>Leider verf&uuml;gen Sie nicht &uuml;ber unsere Servicelizenz "KOMFORT". Daher steht Ihnen diese Funktion noch nicht zur Verf&uuml;gung.<br />Bitte buchen Sie unsere Servicefunktion "KOMFORT" im BuchungsCenter, um die Beratungsfunktion nutzen zu k&ouml;nnen.</p>'."\n";
+	
+		echo '<p class="control_panel">'."\n";
+		echo '	<button type="button" onclick="location.href = \'/home/werbung/index.phtml\'" value="Mehr Informationen zu unseren Produkten"><span><span><span>Mehr Informationen zu unseren Produkten</span></span></span></button>'."\n";
+		echo '	<button type="button" onclick="location.href = \'/firmen/profil/\'" value="zur&uuml;ck"><span><span><span>zur&uuml;ck</span></span></span></button>'."\n";
+		echo '</p>'."\n";
+	}
+}
+bodyoff();

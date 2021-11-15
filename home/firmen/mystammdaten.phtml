@@ -1,0 +1,347 @@
+<?
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_YOUR_ACCOUNT;
+
+pageheader(array('page_title' => '&Auml;nderung der Firmenstammdaten'));
+
+if (isset($_POST['save'])) {
+	if (!isset($_POST['firma']) ||
+		!isset($_POST['strasse']) ||
+		!isset($_POST['plz']) ||
+		!isset($_POST['ort']) ||
+		empty($_POST['firma']) ||
+		empty($_POST['strasse']) ||
+		empty($_POST['plz']) ||
+		empty($_POST['ort'])) {
+		
+		echo '<p class="error">Ihre &Auml;nderungen wurden nicht &uuml;bernommen.<br />Firma, Stra&szlig;e, Postleitzahl und Ort m&uuml;ssen stets g&uuml;ltige Werte beinhalten.</p>'."\n";
+	} elseif (	isset($_POST['firma']) &&
+				isset($_POST['strasse']) &&
+				isset($_POST['plz']) &&
+				isset($_POST['ort']) &&
+				isset($_POST['save']) &&
+				!empty($_POST['firma']) &&
+				!empty($_POST['strasse']) &&
+				!empty($_POST['plz']) &&
+				!empty($_POST['ort'])) {
+		
+		/* email checken */
+		$firmen = mysql_db_query($database_db,'SELECT email FROM firmen WHERE id = '.intval($_SESSION['s_firmenid']),$praktdbslave);
+		$oldemail = mysql_result($firmen,0,'email');
+		
+		if (isset($_POST['email']) && empty($_POST['email'])) {
+			$email = mysql_result($firmen, 0, 'email');
+		} else {
+			$validtext = ValidateMail($_POST['email']);
+			
+			if (($validtext[0]) == true) {
+				$email = $_POST['email'];
+			} else {
+				$email = mysql_result($firmen, 0, 'email');
+			}
+		}
+		
+		/* Check ob http:// vor der Homepage steht (falls eine angegeben wurde) */
+		if (isset($_POST['homepage']) && !empty($_POST['homepage'])) {
+			if (strlen($_POST['homepage']) > 7) {
+				$anfang = substr($_POST['homepage'],0,7);
+			} else {
+				$anfang = '';
+			}
+			
+			if ($anfang != 'http://') {
+				$_POST['homepage'] = 'http://'.$_POST['homepage'];
+			}
+		} 
+		
+		/* einfuegestring zusammensetzen */
+		$updatestring = 'UPDATE firmen SET
+							firma=\''.mysql_real_escape_string($_POST['firma']).'\',
+							branche=\''.mysql_real_escape_string($_POST['branche']).'\',
+							strasse=\''.mysql_real_escape_string($_POST['strasse']).'\',
+							plz=\''.mysql_real_escape_string($_POST['plz']).'\',
+							ort=\''.mysql_real_escape_string($_POST['ort']).'\',
+							bundesland='.intval($_POST['bundesland']).',
+							land='.intval($_POST['land']).',
+							grossraum='.intval($_POST['grossraum']).',
+							tel=\''.mysql_real_escape_string(isset($_POST['tel']) ? $_POST['tel'] : '').'\',
+							fax=\''.mysql_real_escape_string(isset($_POST['fax']) ? $_POST['fax'] : '').'\',
+							email=\''.mysql_real_escape_string($email).'\',
+							homepage=\''.mysql_real_escape_string(isset($_POST['homepage']) ? $_POST['homepage'] : '').'\',
+							host=\''.mysql_real_escape_string($host).'\',
+							ip=\''.mysql_real_escape_string($ip).'\',
+							modify=NOW()
+						WHERE id='.$_SESSION['s_firmenid'];
+		
+		mysql_db_query($database_db,$updatestring,$praktdbmaster);
+		
+		echo '<p class="success">Ihre &Auml;nderung wurden erfolgreich &uuml;bernommen.</p>'."\n";
+
+		/* einfuegestring zusammensetzen */
+		switch ($_POST['umsatz']) {
+			case -1:
+				$umsatz = "keine Angabe";
+			break;
+			case 0:
+				$umsatz = "0-5000000";
+			break;
+			case 5:
+				$umsatz = "5000000-25000000";
+			break;
+			case 25:
+				$umsatz = "25000000-50000000";
+			break;
+			case 50:
+				$umsatz = "50000000-100000000";
+			break;							
+			case 100:
+				$umsatz = "100000000";
+			break;			
+		}
+		
+		$updatestring2 = '	UPDATE firmen_prop_assign SET
+								steuernummer = \''.mysql_real_escape_string($_POST['steuernummer']).'\',
+								vatid = \''.mysql_real_escape_string($_POST['vatid']).'\',
+								umsatz=\''.mysql_real_escape_string($umsatz).'\',
+								mitarbeiter=\''.mysql_real_escape_string($_POST['mitarbeiter']).'\'
+							WHERE firmenid='.$_SESSION['s_firmenid'];
+		
+		/* datensatz aendern */
+		mysql_db_query($database_db,$updatestring2,$praktdbmaster);
+		
+		/* Logfile eintragen */
+		$fp = fopen($logfile, 'a');
+		fputs($fp, $updatestring);
+		fputs($fp, $updatestring2);
+		fputs($fp, "\n");
+		fclose($fp);
+		
+		/* infomail zusammenbauen */
+		$subject = 'praktika.de Firmen-&Auml;nderung: '.$_POST['firma'].' - ID: '.$_SESSION['s_firmenid'];
+		$mailstring = 'FIRMENDATENBANK - &Auml;nderung'."\n\n";
+		$mailstring = $mailstring.'ID: '.$_SESSION['s_firmenid']."\n\n";
+		$mailstring = $mailstring.'Firma: '.$_POST['firma']."\n";
+		$mailstring = $mailstring.'Branche: '.$_POST['branche']."\n";
+		$mailstring = $mailstring.'Strasse: '.$_POST['strasse']."\n";
+		$mailstring = $mailstring.'Ort: '.$_POST['plz'].' '.$_POST['ort']."\n";
+		$mailstring = $mailstring.'Land: '.$_POST['land'].' '.$_POST['bundesland'].' '.$_POST['grossraum']."\n";
+		$mailstring = $mailstring.'Tel: '.$_POST['tel']."\n";
+		$mailstring = $mailstring.'Fax: '.$_POST['fax']."\n";
+		$mailstring = $mailstring.'eMail: '.$email."\n";
+		$mailstring = $mailstring.'Homepage: '.$_POST['homepage']."\n";
+		$mailstring = $mailstring.'Host: '.$host."\n";
+		$mailstring = $mailstring.'IP: '.$ip."\n";
+		$mailstring = $mailstring."\n\n".'DATENBANKSTRING:'."\n";
+		$mailstring = $mailstring.$updatestring."\n\n";
+		
+		/* infomail verschicken */
+		mail($infomail, $subject, $mailstring, "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+	}
+}
+/*
+-----------------------------------------------------------------------------
+&Auml;nderung der Stammdaten
+-----------------------------------------------------------------------------
+*/
+
+$firmen = mysql_db_query($database_db,'SELECT * FROM firmen WHERE id = '.intval($_SESSION['s_firmenid']),$praktdbslave);
+
+if (isset($_POST['land'])) {
+	$landid = $_POST['land'];
+} else {
+	$landid = 68;
+}
+
+$firmen_prop = mysql_db_query($database_db,'SELECT steuernummer,vatid,mitarbeiter,umsatz FROM firmen_prop_assign WHERE firmenid = '.intval($_SESSION['s_firmenid']),$praktdbslave);
+
+$branchen = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM branchen WHERE '.$_SESSION['s_sprache'].' != \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+$anz_branchen = mysql_num_rows($branchen);
+
+$landselect = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].',id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+$anz_land = mysql_num_rows($landselect);
+
+$bundeslandselect = mysql_db_query($database_db,'SELECT * FROM bundesland WHERE landid='.intval($landid).' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+$anz_bundesland = mysql_num_rows($bundeslandselect);
+
+if ($anz_bundesland > 0) {
+	$bundeslandsel = mysql_result($bundeslandselect,0,'id');
+	
+	if (isset($_POST['bundesland']) && empty($_POST['bundesland'])) {
+		$_POST['bundesland'] = $bundeslandsel;
+	}
+	
+	$grossraumselect = mysql_db_query($database_db,'SELECT grossraum,id FROM grossraum WHERE bundesland='.(isset($_POST['bundesland']) ? intval($_POST['bundesland']) : htmlspecialchars(mysql_result($firmen,0,'bundesland'))).' ORDER BY grossraum',$praktdbslave);
+	$anz_grossraum = mysql_num_rows($grossraumselect);
+}
+
+echo '<form action="/firmen/daten/" method="post" name="stammdaten">'."\n";
+echo '	<h4>Firmenstammdaten verwalten</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="firma"'.((isset($_POST['save']) && isset($_POST['firma']) && empty($_POST['firma'])) ? ' class="error"' : '').'>Firma:</label>'."\n";
+echo '			<input type="text" id="firma" name="firma" maxlength="100" value="'.htmlspecialchars(mysql_result($firmen,0,'firma')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="branche">Branche:</label>'."\n";
+echo '			<select id="branche" name="branche">'."\n";
+
+$i=0;
+while ($i < $anz_branchen) {
+	$html = htmlspecialchars(mysql_result($branchen,$i,$_SESSION['s_sprache']));
+	echo '				<option '.(htmlspecialchars(mysql_result($firmen,0,'branche')) == mysql_result($branchen,$i,'id') ? 'selected="selected" ' : '').'value="'.mysql_result($branchen,$i,'id').'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="strasse"'.((isset($_POST['save']) && isset($_POST['strasse']) && empty($_POST['strasse'])) ? ' class="error"' : '').'>Stra&szlig;e:</label>'."\n";
+echo '			<input type="text" id="strasse" name="strasse" value="'.htmlspecialchars(mysql_result($firmen,0,'strasse')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="plz"'.((isset($_POST['save']) && ((isset($_POST['plz']) && empty($_POST['plz'])) || (isset($_POST['ort']) && empty($_POST['ort'])))) ? ' class="error"' : '').'>PLZ / Ort:</label>'."\n";
+echo '			<input type="text" id="plz" name="plz" value="'.htmlspecialchars(mysql_result($firmen,0,'plz')).'" /><input type="text" id="ort" name="ort" value="'.htmlspecialchars(mysql_result($firmen,0,'ort')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="land">Land:</label>'."\n";
+echo '			<select id="land" name="land">'."\n";
+
+$i=0;
+while ($i < $anz_land) {
+	$html = htmlspecialchars(mysql_result($landselect,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($landselect,$i,'id') == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($landselect,$i,'id').'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="bundesland">Bundesland:</label>'."\n";
+echo '			<select id="bundesland" name="bundesland">'."\n";
+
+$i=0;
+while ($i < $anz_bundesland) {
+	$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($bundeslandselect,$i,'id') == htmlspecialchars(mysql_result($firmen,0,'bundesland'))) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,'id').'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="grossraum">Gro&szlig;raum:</label>'."\n";
+echo '			<select id="grossraum" name="grossraum">'."\n";
+
+$i=0;
+while ($i < $anz_grossraum) {
+	$html = htmlspecialchars(mysql_result($grossraumselect,$i));
+	echo '				<option '.((mysql_result($grossraumselect,$i,'id') == htmlspecialchars(mysql_result($firmen,0,'grossraum'))) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,'id').'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel">Telefonnummer:</label>'."\n";
+echo '			<input type="text" id="tel" name="tel" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen,0,'tel')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="fax">Faxnummer:</label>'."\n";
+echo '			<input type="text" id="fax" name="fax" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen,0,'fax')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email">eMail-Adresse:</label>'."\n";
+echo '			<input type="text" id="email" name="email" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen,0,'email')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="homepage">Homepage-Adresse:</label>'."\n";
+echo '			<input type="text" id="homepage" name="homepage" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen,0,'homepage')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="steuernummer">Deutsche Steuernummer:</label>'."\n";
+echo '			<input type="text" id="steuernummer" name="steuernummer" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen_prop,0,'steuernummer')).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="vatid">Internationale VAT-ID:</label>'."\n";
+echo '			<input type="text" id="vatid" name="vatid" maxlength="50" value="'.htmlspecialchars(mysql_result($firmen_prop,0,'vatid')).'" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+
+$mitarbeiter = htmlspecialchars(mysql_result($firmen_prop,0,'mitarbeiter'));
+$umsatz = htmlspecialchars(mysql_result($firmen_prop,0,'umsatz'));
+
+// Diese Zeile kann nach dem 30.11.2004 gel&ouml;scht werden, da der Timestamp dann abgelaufen ist
+if ((time() < 1149984000) && empty($umsatz) && empty($mitarbeiter)) {
+	echo '<p class="error">Achtung - zwei neue Eingabefelder!</p>'."\n";
+}
+
+// Falls das Unternehmen noch keine Auswahl getroffen hatte bisher.
+if (empty($umsatz)) {
+	$umsatz = 'keine Angabe';
+}
+
+if ($umsatz == 'keine Angabe') {
+	$umsatz = -1;
+} elseif ($umsatz == '0-5000000') {
+	$umsatz = 0;
+} elseif ($umsatz == '5000000-25000000') {
+	$umsatz = 5;
+} elseif ($umsatz == '25000000-50000000') {
+	$umsatz = 25;
+} elseif ($umsatz == '50000000-100000000') {
+	$umsatz = 50;
+} elseif ($umsatz == '100000000') {
+	$umsatz = 100;
+} else {
+	$umsatz == -1;
+}
+
+// Falls das Unternehmen noch keine Auswahl getroffen hatte bisher.
+if (empty($mitarbeiter)) {
+	$mitarbeiter = 1;
+}
+
+echo '	<fieldset>'."\n";
+echo '		<p>Diese Angaben dienen ausschlie&szlig;lich statistischen Zwecken und werden vertraulich behandelt.</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="mitarbeiter">Mitarbeiter:</label>'."\n";
+echo '			<select id="mitarbeiter" name="mitarbeiter">'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '1') ? 'selected="selected" ' : '').'value="1">1-20</option>'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '21') ? 'selected="selected" ' : '').'value="21">21-50</option>'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '51') ? 'selected="selected" ' : '').'value="51">51-250</option>'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '251') ? 'selected="selected" ' : '').'value="251">251-500</option>'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '500') ? 'selected="selected" ' : '').'value="500">500-1000</option>'."\n";
+echo '				<option '.((isset($_POST['mitarbeiter']) && $_POST['mitarbeiter'] == '1000') ? 'selected="selected" ' : '').'value="1000">&gt;&gt; 1000</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="umsatz">Jahresumsatz:<br /><span class="hint">in Millionen Euro</span></label>'."\n";
+echo '			<select id="umsatz" name="umsatz">'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '-1') ? 'selected="selected" ' : '').'value="-1">keine Angabe</option>'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '0') ? 'selected="selected" ' : '').'value="0">0-5</option>'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '5') ? 'selected="selected" ' : '').'value="5">5-25</option>'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '25') ? 'selected="selected" ' : '').'value="25">25-50</option>'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '50') ? 'selected="selected" ' : '').'value="50">50-100</option>'."\n";
+echo '				<option '.((isset($_POST['umsatz']) && $_POST['umsatz'] == '100') ? 'selected="selected" ' : '').'value="100">&gt;&gt; 100</option>'."\n";
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="speichern"><span><span><span>SPEICHERN</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<button type="button" name="back" value="zur&uuml;ck zur Account&uuml;bersicht" onclick="location.href=\'/firmen/account/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+
+bodyoff();
+?>

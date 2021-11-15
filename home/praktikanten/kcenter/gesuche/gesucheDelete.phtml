@@ -1,0 +1,32 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	exit();
+}
+
+switch($_POST["spalte"]) {
+	case '1':
+		$tbl = "prakt2.praktikanten";
+		break;
+	case '2':
+		$tbl = "prakt2.diplomgesuch";
+		break;
+	case '3':
+		$tbl = "prakt2.nebenjobgesuch";
+		break;				
+	case '4':
+		$tbl = "prakt2.ausbildungsgesuch";
+		break;
+	case '5':
+		$tbl = "prakt2.berufseinstieggesuch";
+		break;
+	default:
+		$tbl = "prakt2.praktikanten";
+		break;	
+}
+
+$sql = "DELETE FROM ".$tbl." WHERE id = ".(int)$_POST["gID"]." AND nutzerid = ".$_SESSION["s_nutzerid"];
+mysql_query($sql, $praktdbmaster);
+# echo $sql;
+echo (int)$_POST["gID"];

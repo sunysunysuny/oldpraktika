@@ -1,0 +1,536 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+if ( isset($_POST['save']) || isset($_POST['preview']) ) {
+	if (!isset($_POST['bewerbungpertel']) || (isset($_POST['tel_bewerbung']) && empty($_POST['tel_bewerbung']))) {
+		$_POST['bewerbungpertel'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperpost'])) {
+		$_POST['bewerbungperpost'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperemail']) || (isset($_POST['email_bewerbung']) && empty($_POST['email_bewerbung']))) {
+		$_POST['bewerbungperemail'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperonline'])) {
+		$_POST['bewerbungperonline'] = 'false';
+	}
+	if (!isset($_POST['bewerbungpereigen']) || (isset($_POST['link_bewerbung']) && empty($_POST['link_bewerbung']))) {
+		$_POST['bewerbungpereigen'] = 'false';
+	}
+
+	if ($_POST['bewerbungpertel'] == 'false' && $_POST['bewerbungperpost'] == 'false' && $_POST['bewerbungperemail'] == 'false' && $_POST['bewerbungperonline'] == 'false' && $_POST['bewerbungpereigen'] == 'false') {
+		$_POST['bewerbungperpost'] = 'true';
+		$_POST['bewerbungperonline'] = 'true';
+	}
+	$taetigkeit = !empty($_POST["taetigkeit"])?"taetigkeit='".mysql_real_escape_string($_POST["taetigkeit"])."',":"";
+	
+	$updatestring = '	UPDATE stellen SET
+							'.$taetigkeit.'
+							bearbeiterid = '.$_SESSION['s_loginid'].',
+							bewerbungpertel = \''.$_POST['bewerbungpertel'].'\',
+							tel_bewerbung = \''.mysql_real_escape_string($_POST['tel_bewerbung']).'\',
+							bewerbungperpost = \''.$_POST['bewerbungperpost'].'\',
+							bewerbungperemail = \''.$_POST['bewerbungperemail'].'\',
+							email_bewerbung = \''.mysql_real_escape_string($_POST['email_bewerbung']).'\',
+							bewerbungperonline = \''.$_POST['bewerbungperonline'].'\',
+							bewerbungpereigen = \''.$_POST['bewerbungpereigen'].'\',
+							link_bewerbung = \''.mysql_real_escape_string($_POST['link_bewerbung']).'\',
+							link_anzeige = \''.(isset($_POST['link_anzeige']) ? mysql_real_escape_string($_POST['link_anzeige']).'\', taetigkeit = \''.mysql_real_escape_string($_POST['taetigkeit']) : '').'\',
+							ansprechpartnerid = '.mysql_real_escape_string($_POST['ansprechpartnerid']).'
+						WHERE
+							id = '.intval($_POST['stellenid']);
+
+	$dateiname = '/home/praktika/cache/stellen/stelle_'.intval($_POST['stellenid']).'.html';
+	unlink($dateiname);
+	
+	$updatestring = mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+	if (isset($_POST['save'])) {
+		if (isset($_SESSION['neueStelle']) && $_SESSION['neueStelle'] == true) {
+			$_SESSION['neueStelle']['content'] = true;
+		}	
+		
+		header('Location: /firmen/stelle/aktivieren/'.(int)$_POST['stellenid']);
+		exit();
+	}
+}
+
+pageheader(array('page_title' => 'Stellenanzeige ver&ouml;ffentlichen'));
+
+$stellenid = intval($_GET['id']);
+$firmenlevel = isset($_SESSION['chosen_firmenlevel']) ? $_SESSION['chosen_firmenlevel'] : intval($_SESSION['s_firmenlevel']);
+
+$_SESSION["aktuelle_stelle"] = $stellenid;
+
+$stelle = mysql_db_query($database_db,'SELECT stellentemplates.isEigenes,stellen.*,UNIX_TIMESTAMP(stellen.modify) AS modifyTS, DATE_FORMAT(von_monat, \'%m\') AS monat, DATE_FORMAT(von_jahr, \'%Y\') AS jahr, DATE_FORMAT(datum_verfall, \'%d\') AS tagv, DATE_FORMAT(datum_verfall, \'%m\') AS monatv,  DATE_FORMAT(datum_verfall, \'%Y\') AS jahrv 
+			FROM stellen 
+				LEFT JOIN stellentemplates ON(stellentemplates.id = stellen.templateid)
+			
+			WHERE stellen.id = '.$stellenid.' AND stellen.firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+
+if (($stelle != false) && (mysql_num_rows($stelle) > 0)) {
+	$row = mysql_fetch_array($stelle);
+	
+	foreach ($row as $key => $value) {
+		$$key = strip_tags(stripslashes(stripslashes(stripslashes($value))));
+	}
+
+	$stellenid = $id;
+	$bereich = $spalte;
+}
+
+// 4 Tage ( 4 * 86400)
+// Soll modify-Flag gesetzt werden?
+if($modifyTS > time() - (4 * 86400)) {
+	$_SESSION["stelle_dont_modify"]	= true;
+} else {
+	$_SESSION["stelle_dont_modify"]	= false;
+}
+
+// externe Seite?
+if ($templateid != 0) {
+	$template = mysql_db_query($database_db,'SELECT id,template FROM stellentemplates WHERE id = '.$templateid,$praktdbslave);
+	
+	/* Template holen */
+	if (($template != false) && (mysql_num_rows($template) > 0)) {
+		$row = mysql_fetch_assoc($template);
+		
+		$htmlBody = $row['template'];
+	} else {
+		die('<p class="error">Bitte w&auml;hlen Sie zuerst ein Template aus.<br /><a href="/firmen/stelle/layout/'.$stellenid.'/">Zur Templatewahl</a></p>');
+	}
+}
+
+// Normale Bearbeitung, wenn kein Eigenes Template oder Firma = Bauerfeind (Eigenes editierbares Template)
+if ($templateid != 0 && $isEigenes == "false" || $_SESSION["s_firmenid"] == 7978) {
+
+?>
+<script type="text/javascript">
+  	function resizeIframe() {
+  		if(document.getElementById('layout') != undefined) 	document.getElementById('layout').style.height=(document.getElementById('layout').contentWindow.document.body.offsetHeight+50) + "px";
+  	}
+  	
+  	function blur(id) {
+		element = document.getElementById('layout').contentWindow.document.getElementById(id);
+		
+		value = trim(element.innerHTML).toLowerCase();
+		defaults = element.getAttribute("default");
+
+  		if(value == '<div><br></div>' || value == '<div>&nbsp;</div>' || value == '<br>' || value == '' || value == '<div></div>') element.innerHTML = defaults;
+  	}
+</script>
+<script type="text/javascript" src="/scripts/fckeditor_stelle/fckeditor.js"></script>
+<script type="text/javascript" src="/scripts/ajax/stellen_editor.js"></script>
+Hier k&ouml;nnen Sie ihre Stelle direkt in der Vorschau bearbeiten<br />und sehen, wie diese dann angezeigt wird.<br />
+<div id="stelleneditor" style="margin:0;width:750px; padding:0;">
+
+<div style="text-align:right; font-weight:bold; margin-bottom:10px;cursor:pointer;text-decoration:underline;" onclick="displayChange('faq_box'); helpOpen=document.getElementById('faq_box').style.display!='none'?1:0;rePosCommandFrame();">Wie geht das?</div>
+
+<div class="faq_box" id='faq_box' style="display:none;">
+Der neue Bearbeitungsmodus ist <b>einzig</b> mit Firefox &gt; 3.0, Opera &gt; 9.0 und Safari &gt; 3.0 kompatibel.<br />
+In &auml;lteren Webbrowsern oder dem Internet Explorer können Sie leider nicht alle Funktionen nutzen und werden automatisch in den Kompatibilit&auml;tsmodus geschaltet, um ihre Stelle bearbeiten zu k&ouml;nnen.<br />
+<br />
+Zum Bearbeiten klicken Sie in das Textfeld, welches Sie bearbeiten möchten. <br />
+Daraufhin wechselt das Feld in den Bearbeitungsmodus und Sie k&ouml;nnen den Text bearbeiten.<br />
+Ab einer Komfort-Lizenz stehen Ihnen daf&uuml;r erweiterte Formatierungsmöglichkeiten zur Verfügung.<br />
+Sie müssen den Text mittels des <b>"Speichern"</b> Button best&auml;tigen, um den Text zu aktualisieren.
+<br />
+<div class="aktion" onClick="setExtraColor();">Alle Eingabefelder farblich extrastark hervorheben</div>
+</div>
+<div id="editorField" class="editorField">
+<h4 style="margin-bottom:0px; border-right:0px; border-left:0px;">F&uuml;llen sie ihre Stellenanzeige mit Inhalt:</h4>
+<script type="text/javascript">
+	
+function init() {
+	resizeIframe();
+	
+	if(document.getElementById('layout').contentWindow.alternative == 1) {
+		document.getElementById('layout').contentWindow.designMode = "Off";	
+		
+		document.getElementById('deactivateButton').disabled = false;
+		removeClass(document.getElementById('deactivateButton'),'deactivateButton');	
+		addClass(document.getElementById('deactivateButton'),'resetButton');	
+	} else {
+		document.getElementById('layout').contentWindow.document.execCommand( 'enableObjectResizing', false, false) ;
+  		document.getElementById('layout').contentWindow.document.execCommand( 'enableInlineTableEditing', false, false ) ;
+  		document.getElementById('layout').contentWindow.document.execCommand( 'styleWithCSS', false, false ) ;
+	}
+	window.onscroll = rePosCommandFrame;
+	
+}
+function CleanWord( html )
+{
+
+	html = html.replace(/<o:p>\s*<\/o:p>/g, '') ;
+	html = html.replace(/<o:p>.*?<\/o:p>/g, '&nbsp;') ;
+
+	// Remove mso-xxx styles.
+	html = html.replace( /\s*mso-[^:]+:[^;"]+;?/gi, '' ) ;
+
+	// Remove margin styles.
+	html = html.replace( /\s*MARGIN: 0cm 0cm 0pt\s*;/gi, '' ) ;
+	html = html.replace( /\s*MARGIN: 0cm 0cm 0pt\s*"/gi, "\"" ) ;
+
+	html = html.replace( /\s*TEXT-INDENT: 0cm\s*;/gi, '' ) ;
+	html = html.replace( /\s*TEXT-INDENT: 0cm\s*"/gi, "\"" ) ;
+
+	html = html.replace( /\s*TEXT-ALIGN: [^\s;]+;?"/gi, "\"" ) ;
+
+	html = html.replace( /\s*PAGE-BREAK-BEFORE: [^\s;]+;?"/gi, "\"" ) ;
+
+	html = html.replace( /\s*FONT-VARIANT: [^\s;]+;?"/gi, "\"" ) ;
+
+	html = html.replace( /\s*tab-stops:[^;"]*;?/gi, '' ) ;
+	html = html.replace( /\s*tab-stops:[^"]*/gi, '' ) ;
+
+	// Remove FONT face attributes.
+
+		html = html.replace( /\s*face="[^"]*"/gi, '' ) ;
+		html = html.replace( /\s*face=[^ >]*/gi, '' ) ;
+
+		html = html.replace( /\s*FONT-FAMILY:[^;"]*;?/gi, '' ) ;
+
+	// Remove Class attributes
+	html = html.replace(/<(\w[^>]*) class=([^ |>]*)([^>]*)/gi, "<$1$3") ;
+
+	// Remove styles.
+	html = html.replace( /<(\w[^>]*) style="([^\"]*)"([^>]*)/gi, "<$1$3" ) ;
+
+	// Remove empty styles.
+	html =  html.replace( /\s*style="\s*"/gi, '' ) ;
+
+	html = html.replace( /<SPAN\s*[^>]*>\s*&nbsp;\s*<\/SPAN>/gi, '&nbsp;' ) ;
+
+	html = html.replace( /<SPAN\s*[^>]*><\/SPAN>/gi, '' ) ;
+
+	// Remove Lang attributes
+	html = html.replace(/<(\w[^>]*) lang=([^ |>]*)([^>]*)/gi, "<$1$3") ;
+
+	html = html.replace( /<SPAN\s*>(.*?)<\/SPAN>/gi, '$1' ) ;
+
+	html = html.replace( /<FONT\s*>(.*?)<\/FONT>/gi, '$1' ) ;
+
+	// Remove XML elements and declarations
+	html = html.replace(/<\\?\?xml[^>]*>/gi, '' ) ;
+
+	// Remove Tags with XML namespace declarations: <o:p><\/o:p>
+	html = html.replace(/<\/?\w+:[^>]*>/gi, '' ) ;
+
+	// Remove comments [SF BUG-1481861].
+	html = html.replace(/<\!--.*-->/g, '' ) ;
+
+	html = html.replace( /<(U|I|STRIKE)>&nbsp;<\/\1>/g, '&nbsp;' ) ;
+
+	html = html.replace( /<H\d>\s*<\/H\d>/gi, '' ) ;
+
+	// Remove "display:none" tags.
+	html = html.replace( /<(\w+)[^>]*\sstyle="[^"]*DISPLAY\s?:\s?none(.*?)<\/\1>/ig, '' ) ;
+
+		html = html.replace( /<H1([^>]*)>/gi, '<div$1><b><font size="6">' ) ;
+		html = html.replace( /<H2([^>]*)>/gi, '<div$1><b><font size="5">' ) ;
+		html = html.replace( /<H3([^>]*)>/gi, '<div$1><b><font size="4">' ) ;
+		html = html.replace( /<H4([^>]*)>/gi, '<div$1><b><font size="3">' ) ;
+		html = html.replace( /<H5([^>]*)>/gi, '<div$1><b><font size="2">' ) ;
+		html = html.replace( /<H6([^>]*)>/gi, '<div$1><b><font size="1">' ) ;
+
+		html = html.replace( /<\/H\d>/gi, '<\/font><\/b><\/div>' ) ;
+
+		// Transform <P> to <DIV>
+		var re = new RegExp( '(<P)([^>]*>.*?)(<\/P>)', 'gi' ) ;	// Different because of a IE 5.0 error
+		html = html.replace( re, '<div$2<\/div>' ) ;
+
+		// Remove empty tags (three times, just to be sure).
+		// This also removes any empty anchor
+		html = html.replace( /<([^\s>]+)(\s[^>]*)?>\s*<\/\1>/g, '' ) ;
+		html = html.replace( /<([^\s>]+)(\s[^>]*)?>\s*<\/\1>/g, '' ) ;
+		html = html.replace( /<([^\s>]+)(\s[^>]*)?>\s*<\/\1>/g, '' ) ;
+	
+
+	return html ;
+}
+
+<? if($firmenlevel > 1) { ?>
+function insert(value){
+	if(editLock == -1) return;
+	alternative = document.getElementById('layout').contentWindow.alternative;
+	
+	if(alternative == 1) {
+		var oEditor = document.getElementById('layout').contentWindow.FCKeditorAPI.GetInstance('FCKEditor_' + editLock) ;
+		oEditor.Commands.GetCommand( value ).Execute() ;
+		return;
+	}
+	
+	parent.document.getElementById("layout").focus();
+	
+	parent.document.getElementById("layout").contentWindow.document.execCommand(value, false, true);
+
+	if(value == "Removeformat") {
+		doc.getElementById(editLock).innerHTML = CleanWord(doc.getElementById(editLock).innerHTML);
+	}
+}
+
+<? } else { ?>
+function insert(value){
+	GB_showCenter('Hinweis', '/home/firmen/stelle/notice.phtml?id=<?=(int)$_GET["id"] ?>', 180, 350);
+}
+<? } ?>
+
+</script>
+
+<iframe style="height:700px; width:750px; padding:0px; background-color:white;" id="layout" designMode="On" frameborder="0" src="/home/firmen/stelle/content_iframe.phtml?id=<?=$stellenid ?>"></iframe>
+</div>
+<!-- HTML-Editor-Feld -->
+<div id="commandFrame" class="commandFrame" style="display:none; ">
+	<div class="buttonBackground">
+	<input type="button" name="Save" class="editButton saveButton" value="Speichern" onclick="parent.save()" />
+	<img id="saveIcon" src="/gifs/wysiwyg/ajax.gif" alt="Speichere" style="visibility:hidden;" />
+	<input id="deactivateButton" class="editButton deactivateButton" type="button" onclick="resetField();" disabled="disabled" name="Save" value="Zurücksetzen" style="background-color:#A00202;background-image:url(/gifs/wysiwyg/bgButton.gif);border:0px; color:white;width:40%;margin:0;position:absolute; right:3px; padding:0px; height:22px;"  />
+	</div>
+	
+	<? if($firmenlevel <= 1) $na = true; ?>
+  	<div style="margin-top:0px;" id="htmlEditorControls">
+		<img src="/gifs/wysiwyg/text_bold.png" onclick="insert('bold')" alt="Fett"title="Fett" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_italic.png" onclick="insert('Italic')" alt="Kursiv"title="Kursiv" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_underline.png" onclick="insert('Underline')" alt="Unterstrichen"title="Unterstrichen" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<div class="editor_separator">&nbsp;</div>
+		<img src="/gifs/wysiwyg/text_align_left.png" onclick="insert('JustifyLeft')" alt="Linksbündig"title="Linksbündig" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_align_center.png" onclick="insert('JustifyCenter')" alt="Zentriert"title="Zentriert" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_align_right.png" onclick="insert('JustifyRight')" alt="Rechtsbündig"title="Rechtsbündig" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_align_justify.png" onclick="insert('justifyfull')" alt="Blocksatz"title="Blocksatz" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<div class="editor_separator">&nbsp;</div>
+		<img src="/gifs/wysiwyg/text_list_bullets.png" onclick="insert('InsertUnorderedList')" alt="Unsortierte Liste"title="Unsortierte Liste" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<img src="/gifs/wysiwyg/text_list_numbers.png" onclick="insert('InsertOrderedList')" title="Sortierte Liste" alt="Sortierte Liste" class="editIcon <?php echo $na?'deactive':'' ?>" />
+		<div class="editor_separator">&nbsp;</div>
+		<img src="/gifs/wysiwyg/remove.gif" onclick="insert('Removeformat')" title="Alle Formatierungen entfernen" alt="Alle Formatierungen entfernen" class="editIcon <?php echo $na?'deactive':'' ?>" />
+	</div>
+</div>
+	
+
+  <div id="editor_commandShaddow" style="position:absolute; top:1px; display:none; left:1px; background-color:#333; height:45px; width:240px;z-index:4; "></div>
+</div>
+<?php
+
+echo '<script type="text/javascript">'."\n";
+echo '	function showDiv1(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungperemail\').checked == true) {'."\n";
+echo '			document.getElementById(\'email_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'email_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '	function showDiv2(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungpertel\').checked == true) {'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '	function showDiv3(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungpereigen\').checked == true) {'."\n";
+echo '			document.getElementById(\'link_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'link_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '</script>'."\n<br />";
+echo '<form method="post" id="jobAdvertisementForm" action="http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/content/'.$stellenid.'/" style="width:750px;">'."\n";
+
+	//echo '	<script type="text/javascript" src="/scripts/ajax/edit_content.js"></script>'."\n";
+
+	
+
+	
+	$markerArray = array(
+							'###LOGO###',
+							'###FLASH###',
+							'###FIRMENINFOS_HEAD###',
+							'###FIRMENTAETIGKEIT_HEAD###',
+							'###FIRMENQUALI_HEAD###',
+							'###FIRMENPERSP_HEAD###',
+							'###FIRMENKONTAKT_HEAD###',
+							'###FIRMENINFOS###',
+							'###FIRMENTAETIGKEIT###',
+							'###FIRMENQUALI###',
+							'###FIRMENPERSP###',
+							'###FIRMENKONTAKT###',
+							'###JOBCODE###',
+							'###TAETIGKEIT###',
+							'###SUBTITLE###',
+							'###ENTGELT###',
+							'###BESCHREIBUNG###',
+							'###DATUM###'
+						);
+	$replaceArray = array(
+							$firmenlogoHTML,
+							$flashHTML,
+							$firmeninfosHeadHTML,
+							$firmentaetigkeitHeadHTML,
+							$firmenqualiHeadHTML,
+							$firmenperspHeadHTML,
+							$firmenkontaktHeadHTML,
+							$firmeninfosHTML,
+							$firmentaetigkeitHTML,
+							$firmenqualiHTML,
+							$firmenperspHTML,
+							$firmenkontaktHTML,
+							$jobcodeHTML,
+							$taetigkeitHTML,
+							$subtitleHTML,
+							$entgeltHTML,
+							$beschreibungHTML,
+							'Aktuell seit: '.date('d.m.Y', strtotime($modify))
+						);
+	
+	// echo str_replace($markerArray,$replaceArray,$htmlBody);
+	
+
+} else if($isEigenes == "false") {
+    echo '<form method="post" id="jobAdvertisementForm" action="http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/content/'.$stellenid.'/" style="width:750px;">'."\n";	
+	echo '	<h4>Link zur Stellenanzeige</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '	  <p>'."\n";
+	echo '	    <label for="taetigkeit">Taetigkeit:</label>'."\n";
+	echo '	    <input value="'.((isset($taetigkeit) && !empty($taetigkeit) ) ? $taetigkeit : 'PLATZHALTER Text zur Stellenbezeichnung').'" id="taetigkeit" name="taetigkeit" maxlength="255" type="text" />'."\n";
+	echo '	  </p>'."\n";
+	echo '	  <p>'."\n";
+	echo '	    <label for="link_anzeige"'.( ($firmenlevel < 2) ? ' title="Auswahl erst ab Komfort m&ouml;glich"' : ( (isset($link_anzeige_abfr) && $link_anzeige_abfr == 'false' ) ? ' title="Dazu m&uuml;ssen Sie externe Seite unter Layout w&auml;hlen"' : '') ).'>Link zu Ihrer Stellenanzeige:</label>'."\n";
+	echo '	    <input'.( (isset($link_anzeige_abfr) && $link_anzeige_abfr == 'false' ) ? ' disabled="disabled" value="Dazu m&uuml;ssen Sie externe Seite w&auml;hlen"' : ((isset($link_anzeige) && !empty($link_anzeige) ) ? ' value="'.$link_anzeige.'"' : ' value="http://"') ).' id="link_anzeige" name="link_anzeige" maxlength="255" type="text" />'."\n";
+	echo '	  </p>'."\n";
+	echo '	</fieldset>'."\n";
+} else {
+	echo '<form method="post" id="jobAdvertisementForm" action="http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/content/'.$stellenid.'/" style="width:750px;">'."\n";	
+	echo '	<h4>Taetigkeit</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '	  <p>'."\n";
+	echo '	    <label for="taetigkeit">Taetigkeit:</label>'."\n";
+	echo '	    <input value="'.((isset($taetigkeit) && !empty($taetigkeit) ) ? $taetigkeit : 'PLATZHALTER Text zur Stellenbezeichnung').'" id="taetigkeit" name="taetigkeit" maxlength="255" type="text" />'."\n";
+	echo '	  </p>'."\n";
+	echo '	</fieldset>'."\n";	
+}
+
+$bearbeiter = mysql_db_query($database_db,'SELECT id,anrede,vname,name,email,abttelefon FROM bearbeiter WHERE firmenid='.$_SESSION['s_firmenid'],$praktdbslave);
+if ($bearbeiter != false) {
+	$anz_bearbeiter = mysql_num_rows($bearbeiter);
+} else {
+	$anz_bearbeiter = 0;
+}
+
+echo '	<h4>Wie m&ouml;chten Sie Ihre Bewerbungen erhalten?</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p class="checkboxes">'."\n";
+echo '			<input type="checkbox" style="" id="bewerbungperonline" name="bewerbungperonline" value="true"'.((isset($bewerbungperonline) && $bewerbungperonline == 'true') ? ' checked="checked"' : '').' />'."\n";
+echo '			<label for="bewerbungperonline" title="Ausw&auml;hlen">praktika.de Online-Bewerbungsmappe</label>'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes">'."\n";
+echo '			<input type="checkbox" id="bewerbungperpost" name="bewerbungperpost" value="true"'.((isset($bewerbungperpost) && $bewerbungperpost == 'true') ? ' checked="checked"' : '').' />'."\n";
+echo '			<label for="bewerbungperpost" title="Ausw&auml;hlen">per Post</label>'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungperemail" name="bewerbungperemail" value="true"'.((isset($bewerbungperemail) && $bewerbungperemail == 'true') ? ' checked="checked"' : '').' onclick="showDiv1(this.value);" />'."\n";
+echo '			<label for="bewerbungperemail" class="bewerbung_firma" title="Ausw&auml;hlen">per E-Mail</label> <input type="text" id="email_bewerbung" name="email_bewerbung" value="'.((isset($email_bewerbung) && !empty($email_bewerbung)) ? $email_bewerbung : htmlspecialchars(mysql_result($bearbeiter,0,'email'))).'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungperemail) && $bewerbungperemail == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungpertel" name="bewerbungpertel" value="true"'.((isset($bewerbungpertel) && $bewerbungpertel == 'true') ? ' checked="checked"' : '').' onclick="showDiv2(this.value);" />'."\n";
+echo '			<label for="bewerbungpertel" class="bewerbung_firma" title="Ausw&auml;hlen">per Telefon</label> <input type="text" id="tel_bewerbung" name="tel_bewerbung" value="'.((isset($tel_bewerbung) && !empty($tel_bewerbung)) ? $tel_bewerbung : htmlspecialchars(mysql_result($bearbeiter,0,'abttelefon'))).'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungpertel) && $bewerbungpertel == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungpereigen" name="bewerbungpereigen" value="true"'.( ($firmenlevel < 2) ? ' disabled="disabled"' : ( (isset($bewerbungpereigen) && $bewerbungpereigen == 'true') ? ' checked="checked"' : '') ).' onclick="showDiv3(this.value);" />'."\n";
+echo '			<label for="bewerbungpereigen" class="bewerbung_firma" title="'.( ($firmenlevel < 2) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'">&uuml;ber Unternehmenswebseite</label> <input type="text" id="link_bewerbung" name="link_bewerbung" value="'.((isset($link_bewerbung) && !empty($link_bewerbung)) ? $link_bewerbung : '').'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungpereigen) && $bewerbungpereigen == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+
+echo '	</fieldset>'."\n";
+
+echo '	<h4>Ansprechpartner für diese Stelle</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="ansprechpartnerid">Bewerbung an:</label>'."\n";
+echo '			<select id="ansprechpartnerid" name="ansprechpartnerid">'."\n";
+
+$i = 0;
+while ($i < $anz_bearbeiter) {
+	$html = htmlspecialchars(mysql_result($bearbeiter,$i,'name')).', '.htmlspecialchars(mysql_result($bearbeiter,$i,'vname'));
+	echo '				<option ';
+	if (isset($ansprechpartnerid)) {
+		if  (mysql_result($bearbeiter,$i,'id') == $ansprechpartnerid) {
+			echo 'selected="selected" ';
+		}
+	}
+	echo 'value="'.mysql_result($bearbeiter,$i,'id').'">'.$html.'</option>'."\n";
+	
+	$i++;
+};
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";		
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<input type="hidden" id="stellenid" name="stellenid" value="'.$stellenid.'" />'."\n";
+echo '			<button type="button" name="preview" value="Vorschau" onclick="showPreview(); return false;"><span><span><span>VORSCHAU</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="weiter" onclick="return true;"><span><span><span>WEITER</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+?>
+<script type="text/javascript">
+		<!--
+function showPreview() {
+<?
+	if (!isset($_POST['link_bewerbung']) || empty($_POST['link_bewerbung'])) {
+?>
+	if(document.getElementById('flash_rg') != null) document.getElementById('flash_rg').style.display = 'none';
+	if((document.getElementById('flash_rg_display_section') != null) && (document.getElementById('flash_rg_display_section').innerHTML.match(/^<script/))) document.getElementById('flash_rg_display_section').innerHTML = '';
+	PB_showFullScreen('', '/greybox.phtml?url=/firmen/stelle/vorschau/' + <?= $_GET['id'] ?> + '/');
+	if(document.getElementById('flash_rg') != null) document.getElementById('flash_rg').style.display = '';
+<?php
+	} else {
+?>
+
+		PB_showFullScreen('', '/greybox.phtml?url='+<?=$_POST['link_bewerbung'] ?>);
+<?php
+	}
+?>
+}
+		-->
+</script><?
+
+
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

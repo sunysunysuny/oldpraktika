@@ -1,0 +1,633 @@
+
+RewriteEngine On
+
+
+RewriteRule ^praktikum/praktikanten/unternehmen.(\d*).html						/home/clickin/index.phtml?id=$1 [QSA]
+
+RewriteRule ^login/openid/?$ 			/home/quicklogin/openid.phtml
+RewriteRule ^login/openid/(.*)/?$ 		/home/quicklogin/openid.phtml?insertID=$1
+
+RewriteRule ^login/?$ /home/quicklogin/index.phtml
+RewriteRule ^login/(\d*)/?$ /home/quicklogin/index.phtml?id=$1 [QSA]
+RewriteRule ^minilogin/(.*)/?$ /home/quicklogin/minilogin.phtml?loginwer=$1 [QSA]
+RewriteRule ^minilogin_include/(.*)/?$ /home/quicklogin/minilogin.phtml?loginwer=$1&include=1 [QSA]
+RewriteRule ^al/(.*)/(.*)/(.*)/(.*)/(.*)/$ /m/al/index.phtml?group=$1&action=$2&aid=$3&id=$4&summe=$5 [QSA]
+RewriteRule ^logout/?$ /home/quicklogin/logout.phtml
+
+RewriteRule ^anmelden/?$ /home/anmelden.phtml
+RewriteRule ^praktikum.html$ /shared/praktliste.phtml [L]
+
+RewriteRule ^neuanmeldung/?$ /home/quicklogin/neuhierwindow.phtml
+RewriteRule ^neuanmeldung/check_company/?$ /home/firmen/firmencheck.phtml
+RewriteRule ^neuanmeldung/check_candidate/?$ /home/praktikanten/praktikantencheck.phtml
+RewriteRule ^neuanmeldung/company/(.*)?$ /home/firmen/anmeldung.phtml?email=$1 [QSA]
+RewriteRule ^neuanmeldung/candidate/?$ /home/praktikanten/anmeldung.phtml [QSA]
+RewriteRule ^neuanmeldung/candidate/check_mail/?$ /home/praktikanten/anmeldung_mailcheck.phtml [QSA]
+
+RewriteRule ^passwort/?$ /home/quicklogin/passwdwindow.phtml
+RewriteRule ^company/passwort/?$ /home/firmen/passwdwindow.phtml
+RewriteRule ^candidate/passwort/?$ /home/praktikanten/passwdwindow.phtml
+RewriteRule ^company/passwort_vergessen/(\d*)/(\d*)/?$ /home/firmen/passwdvergessen.phtml?id=$1&zeit=$2 [QSA]
+RewriteRule ^candidate/passwort_vergessen/(\d*)/(\d*)/?$						/home/praktikanten/passwdvergessen.phtml?id=$1&zeit=$2 [QSA]
+
+
+RewriteRule ^feedback/?$														/home/feedback/index.phtml
+
+
+# Suche
+RewriteRule ^suche/?$															/home/stellen/suche.phtml
+RewriteRule ^suche/detail?$														/home/stellen/suche_detail.phtml
+RewriteRule ^suche/erweitert?$													/home/stellen/suche_erweitert.phtml
+RewriteRule ^suche/katalog?$													/home/stellen/suche_katalog.phtml
+RewriteRule ^suche/katalog/(.*?).html$											/home/stellen/suche_katalog_update.phtml?rubrik=$1
+RewriteRule ^suche/alle_unternehmen/(.*)/(.*)/?$								/home/praktikanten/abcsuche.phtml?buchstabe=$1&ds_count=$2 [L]
+
+	# Suche nach einem Suchwort $2 in einer Region $1
+RewriteRule ^suche/(.*?)/(.*?)/?$													/home/stellen/suche.phtml?q=$2&w=$1 [QSA]
+	# Suche nach einem Suchwort
+RewriteRule ^suche/(.*)/?$														/home/stellen/suche.phtml?q=$1 [QSA]
+
+# Weitere Einträgr zur Suche weiter unten
+
+RewriteRule ^was-wird-gesucht.html$												/home/stellen/was_wird_gesucht.phtml
+RewriteRule ^stelle/(\d*)/$														/praktikum/stelle/stelle-$1.html  [R=301,L]
+RewriteRule ^anzeige/(\d*)/$													/greybox.phtml?id=$1&url=/preview/$1/ [QSA]
+RewriteRule ^preview/(\d*)/$													/home/firmen/preview2.phtml?id=$1&log=l [QSA]
+
+RewriteRule ^bewerbungstraining/(\d*)/(\d*)/$									/home/praktikanten/bewerbungstraining/index.php?video_id=$1&page=$2 [QSA]
+RewriteRule ^bewerbungstraining/get-data/(\d*)/$								/home/praktikanten/bewerbungstraining/get_data.php?video_id=$1 [QSA]
+RewriteRule ^bewerbungstraining/get-next-video/(\d*)/$							/home/praktikanten/bewerbungstraining/get_next_video.php?video_id=$1 [QSA]
+RewriteRule ^bewerbungstraining/get-playlist/(\d*)/$							/home/praktikanten/bewerbungstraining/get_playlist.php?video_id=$1 [QSA]
+RewriteRule ^bewerbungstraining/get-comments/(\d*)/$							/home/praktikanten/bewerbungstraining/get_comments.php?video_id=$1 [QSA]
+RewriteRule ^bewerbungstraining/get-headline/(\d*)/$							/home/praktikanten/bewerbungstraining/get_headline.php?video_id=$1 [QSA]
+RewriteRule ^bewerbungstraining/save-data/(\d*)/$								/home/praktikanten/bewerbungstraining/save_data.php?video_id=$1 [QSA]
+
+RewriteRule ^lebenslauf/ok/?$													/home/praktikanten/profil/?ok=1
+RewriteRule ^lebenslauf/?([a-z]{2})?$											/home/praktikanten/profil/?lang=$1
+RewriteRule ^lebenslauf/ausbildung/beruf/?										/home/praktikanten/profil/profil_berufsausbildung.phtml
+RewriteRule ^lebenslauf/ausbildung/schule/?										/home/praktikanten/profil/profil_schulausbildung.phtml
+RewriteRule ^lebenslauf/ausbildung/studium/?									/home/praktikanten/profil/profil_studium.phtml
+
+RewriteRule ^lebenslauf/berufserfahrung/?										/home/praktikanten/profil/profil_berufserfahrung.phtml
+
+RewriteRule ^lebenslauf/dateien/upload/?										/home/praktikanten/profil/profil_dateien_updown.phtml
+RewriteRule ^lebenslauf/dateien/delete/(\d*)/?									/home/praktikanten/profil/profil_dateien_updown.phtml?id=$1 [QSA]
+RewriteRule ^lebenslauf/dateien/deletefile/(\d*)/?								/home/praktikanten/profil/profil_dateien_updown.phtml?down=yes&id=$1 [QSA]
+RewriteRule ^lebenslauf/dateien/?$												/home/praktikanten/profil/profil_dateien.phtml
+RewriteRule ^lebenslauf/dateien/show/(\d*)/?									/download/index.phtml?id=$1 [QSA]
+RewriteRule ^lebenslauf/dateien/save/(\d*)/(\d*)/?								/download/index.phtml?id=$1&save=$2 [QSA]
+
+RewriteRule ^lebenslauf/foto/?													/home/praktikanten/kcenter/index.phtml?mode=passbild
+
+RewriteRule ^lebenslauf/hobbies/?												/home/praktikanten/profil/profil_hobby.phtml
+
+RewriteRule ^lebenslauf/layout/?$												/home/praktikanten/profil/lebenslauflayout.phtml
+
+RewriteRule ^lebenslauf/layout/preview/(\d*)/(\d*)/?							/greyboxV2.phtml?menu=previewlf&lebenslauftemplate=$1&url=/profil_lebenslauf/$1/$2/
+RewriteRule ^lebenslauf/layout/previewwindow/(\d*)/?							/greybox.phtml?menu=previewlf&url=/profil_lebenslauf/$1/$2/
+RewriteRule ^lebenslauf/leistung/?												/home/praktikanten/profil/profil_leistung.phtml
+RewriteRule ^profil_leistung/([0-9]{2})/(\d*)/?$								/home/praktikanten/profilausgabe/profilleistung.phtml?b=$2&l=$1 [QSA]
+
+RewriteRule ^lebenslauf/pdf/view/(.*?)/(\d*)/?$									/home/praktikanten/profil/lebenslauf_pdf_new.phtml?aplic_id=$1&sprachid=$2 [QSA]
+RewriteRule ^lebenslauf/pdf/download/(.*?)/(\d*)/?$								/home/praktikanten/profil/lebenslauf_pdf_new.phtml?download=true&aplic_id=$1&sprachid=$2 [QSA]
+RewriteRule ^lebenslauf/pdf/mail/(.*?)/(\d*)/?$									/home/praktikanten/profil/lebenslauf_pdf_new.phtml?mail=true&aplic_id=$1&sprachid=$2 [QSA]
+RewriteRule ^lebenslauf/praktika/?												/home/praktikanten/profil/profil_praktika.phtml
+
+RewriteRule ^lebenslauf/referenzen/?											/home/praktikanten/profil/profil_referenzen.phtml
+
+RewriteRule ^lebenslauf/sprachen/?												/home/praktikanten/profil/profil_sprachen.phtml
+
+RewriteRule ^lebenslauf/video/preview/(\d*)/?$									/home/praktikanten/profil/profil_video_preview.phtml?id=$1 [QSA]
+RewriteRule ^lebenslauf/video/?													/home/praktikanten/profil/profil_video.phtml
+
+RewriteRule ^lebenslauf/zukunft/?												/home/praktikanten/profil/profil_zukunft.phtml
+RewriteRule ^profil_zukunft/([0-9]{2})/(\d*)/?$									/home/praktikanten/profilausgabe/profilzukunft2.phtml?b=$2&l=$1 [QSA]
+
+RewriteRule ^profil_lebenslauf/([0-9]{2})/(\d*)/?$								/home/praktikanten/profil/previewlebenslauf$1.phtml?b=$2 [QSA]
+RewriteRule ^kandidatenprofil/([0-9]{2})/(\d*)/?$								/greybox.phtml?menu=mappe&mappe=1&nutzerid=$2&url=/home/praktikanten/profil/previewlebenslauf$1.phtml?b=$2 [QSA]
+
+#RewriteRule ^lebenslauf//?														/home/praktikanten/.phtml
+
+# KarriereCenter (gesuche/vorschau umzug)
+RewriteRule ^Karriere_Center/gesuche/vorschau/(\d*)/(\d*)/?						/home/praktikanten/kcenter/index.phtml?mode=gesuche/preview&id=$1&spalte=$2 [QSA]
+RewriteRule ^Karriere_Center/Messaging/Posteingang/(\d*)/?						/home/praktikanten/kcenter/index.phtml?mode=messaging/index&fach=posteingang&directory=$1 [QSA]
+RewriteRule ^Karriere_Center/Messaging/Merkzettel/(\d*)/?						/home/praktikanten/kcenter/index.phtml?mode=messaging/index&fach=merkzettel&directory=$1 [QSA]
+RewriteRule ^Karriere_Center/Messaging/Postausgang/(\d*)/?						/home/praktikanten/kcenter/index.phtml?mode=messaging/index&fach=bewerbungen&directory=$1 [QSA]
+
+RewriteRule ^Karriere_Center/dynamic.html?$									    /home/praktikanten/kcenter/dynamic.phtml [QSA]
+
+# Antwort an Firma senden
+RewriteRule ^Karriere/Messaging/Versand/(\d*)/(\d*)?							/home/praktikanten/kcenter/messaging/posteingang_antwort.phtml?firmenid=$1&messageid=$2 [QSA]
+RewriteRule ^Karriere/Messaging/Versand/(\d*)/?									/home/praktikanten/kcenter/messaging/posteingang_antwort.phtml?firmenid=$1 [QSA]
+
+# Nachricht Verschieben
+
+RewriteRule ^Karriere/Posteingang/Verschieben/(\d*)/?							/home/praktikanten/kcenter/messaging/verschieben.phtml?id=$1&bereich=1 [QSA]
+RewriteRule ^Karriere/Merkzettel/Verschieben/(\d*)/?							/home/praktikanten/kcenter/messaging/verschieben.phtml?id=$1&bereich=2 [QSA]
+RewriteRule ^Karriere/Messaging/Nachladen/?										/home/praktikanten/kcenter/messaging/nachladen.phtml [QSA]
+
+RewriteRule ^Karriere/Merkzettel/Entfernen/?									/home/praktikanten/kcenter/messaging/merkzettel_delete.phtml [QSA]
+RewriteRule ^Karriere/Bewerbung/Entfernen/?										/home/praktikanten/kcenter/messaging/bewerbungen_delete.phtml [QSA]
+
+RewriteRule ^Karriere_Center/ordnerverwalten/?$									/home/praktikanten/kcenter/index.phtml?mode=messaging/ordnerverwalten [QSA]
+
+# Merkzetteleintrag anlegen
+RewriteRule ^Karriere/Merkzettel/Eintragen/?									/home/praktikanten/kcenter/messaging/merkzettel_anlegen.phtml [QSA]
+
+RewriteRule ^Karriere_Center/Layoutauswahl/?									/home/praktikanten/kcenter/bewerbung/layoutauswahl.phtml
+
+# Anschreiben
+# RewriteRule ^Karriere/Anschreiben/(\d*)/(\d*)/(\d*)/?$						/home/praktikanten/kcenter/bewerbung/anschreiben.phtml?id=$1&spalte=$2&bewerbsprache=$3 [QSA]
+RewriteRule ^Karriere/Anschreiben/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/?$				/home/praktikanten/kcenter/bewerbung/anschreiben.phtml?id=$1&spalte=$2&stellenid=$3&bewerbsprache=$4&bearbeiterid=$5 [QSA]
+RewriteRule ^Karriere/Anschreiben/(\d*)/(\d*)/?$								/home/praktikanten/kcenter/bewerbung/anschreiben.phtml?sID=$1&sprache=$2 [QSA]
+RewriteRule ^Karriere/Bewerbung_Speichern/(\d*)/?$								/home/praktikanten/kcenter/bewerbung/anschreiben_speichern.phtml?sprachid=$1 [QSA]
+# Externes Anschreiben
+RewriteRule ^Karriere/Anschreiben/(\d*)/(\d*)/(\d*)/?$							/home/praktikanten/kcenter/bewerbung/anschreiben.phtml?sID=extern&id=$1&spalte=$2&extern=1&bewerbsprache=$3 [QSA]
+
+# Filtereinstellung
+RewriteRule ^Karriere/Merkzettel/Filter/?$										/home/praktikanten/kcenter/messaging/filter.phtml [QSA]
+
+# externe Bewerbung
+RewriteRule ^externe_Bewerbung/firmenreg/?											/home/praktikanten/extbewerbung/firmenreg.phtml
+
+
+#Bewerbungen
+RewriteRule ^Bewerbungsmappe/Vorschau/(\d*)/(\d*)/(\d*)/?$						/home/praktikanten/bewerbungsmappe.phtml?menu=mappe&mappe=1&anschreiben=1&nutzerid=$1&b=$2&lebenslauftemplate=$3&preview=1&url=/home/praktikanten/preview.phtml?id=$2 [QSA]
+RewriteRule ^Bewerbungsmappe/(\d*)/(\d*)/(\d*)/?$								/home/praktikanten/bewerbungsmappe.phtml?menu=mappe&mappe=1&anschreiben=1&nutzerid=$1&b=$2&lebenslauftemplate=$3&url=/home/praktikanten/preview.phtml?id=$2 [QSA]
+# Bewerbungen abschickens
+RewriteRule ^Bewerbungsmappe/Abschicken/?$										/home/praktikanten/kcenter/bewerbung/senden.phtml [QSA]
+RewriteRule ^bewerbungsmappe_ansehen/(\d*)/?$									/home/praktikanten/preview.phtml?id=$1 [QSA]
+
+
+
+
+#RewriteRule ^bewerbungsmappe/([a-z]{5})/(\d*)/?$								/home/praktikanten/profil/previewlebenslauf01.phtml&menu=$1&mappe=$2 [QSA]
+#RewriteRule ^bewerbungsmappe/(\d*)/(\d*)/?$									/home/praktikanten/profil/previewlebenslauf$1.phtml?b=$2 [QSA]
+#RewriteRule ^bewerbungsmappe_ansehen/(\d*)/?$									/home/praktikanten/preview.phtml?id=$1 [QSA]
+
+#RewriteRule ^Generator/(\d*)/(\d*)/(\d*)/(\d*)/?$								/home/praktikanten/kcenter/generator.phtml?firmenid=$1&stellenid=$2&spalte=$3&bewerbsprache=$4 [QSA]
+#RewriteRule ^bewerbungsmappe_ansehen/(\d*)/(\d*)/(\d*)/?$						/greybox.phtml?menu=mappe&mappe=1&anschreiben=1&nutzerid=$1&b=$2&lebenslauftemplate=$3&url=/home/praktikanten/preview.phtml?id=$2 [QSA]
+#RewriteRule ^bewerbungsmappe_ansehen/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/?$					/greybox.phtml?menu=mappe&mappe=1&anschreiben=1&nutzerid=$1&b=$2&lebenslauftemplate=$3&url=/generator/$4/$5/$6/$7/ [QSA]
+
+
+#RewriteRule ^karriere/sort_status/absteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=status-desc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_status/aufsteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=status-asc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_bewerber/absteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=bewerber-desc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_bewerber/aufsteigend/(\d*)/?$						/home/praktikanten/kcenter/index.phtml?sort=bewerber-asc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_datum/absteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=datum-desc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_datum/aufsteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=datum-asc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_bereich/absteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=bereich-desc&bereich=$1 [QSA]
+#RewriteRule ^karriere/sort_bereich/aufsteigend/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?sort=bereich-asc&bereich=$1 [QSA]
+#RewriteRule ^karriere/hauptordner/(\d*)/?$										/home/praktikanten/kcenter/index.phtml?bereich=$1&subbereich=0&ordnerid=0&ds_count=0 [QSA]
+#RewriteRule ^karriere/subordner/(\d*)/(\d*)/(\d*)/?$							/home/praktikanten/kcenter/index.phtml?bereich=$1&subbereich=$2&ordnerid=$3&ds_count=0 [QSA]
+#RewriteRule ^karriere/loeschen/(\d*)/(\d*)/(\d*)/(\d*)/?$						/home/praktikanten/kcenter/index.phtml?id=$1&delete=1&bereich=$2&ds_count=$3&ds_pro_seite=$4 [QSA]
+
+#RewriteRule ^karriere/umtragen_merkzettel/(\d*)/(\d*)/(\d*)/([a-z]*)/?$			/home/praktikanten/kcenter/index.phtml?firmenid=$1&stellenid=$2&spalte=$3&gelesen=$4&mzuebertragen=1 [QSA]
+RewriteRule ^karriere/previewbewerbung/(\d*)/(\d*)/(\d*)/(\d*)/?$				/home/praktikanten/previewbewerbung_ext.phtml?id=$1&aid=$2&bewerbsprache=$3&spalte=$4 [QSA]
+
+
+RewriteRule ^karriere/bewerbung_senden/?$										/home/praktikanten/kcenter/bsenden.phtml
+RewriteRule ^karriere/bewerbung_ext_senden/?$									/home/praktikanten/kcenter/b_ex_senden.phtml
+# RewriteRule ^karriere/anschreiben/(\d*)/(\d*)/(\d*)/?$						/home/praktikanten/kcenter/anschreiben.phtml?id=$1&spalte=$2&extern=1&bewerbsprache=$3 [QSA]
+# RewriteRule ^karriere/anschreiben/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/praktikanten/kcenter/anschreiben.phtml?id=$1&spalte=$2&stellenid=$3&bewerbsprache=$4&bearbeiterid=$5 [QSA]
+RewriteRule ^karriere/account/?$												/home/praktikanten/kcenter/index.phtml
+
+RewriteRule ^karriere/verschieben/?$											/home/praktikanten/kcenter/verschieben.phtml 
+RewriteRule ^karriere/verschieben/(\d*)/(\d*)/?$								/home/praktikanten/kcenter/verschieben.phtml?gesucheid=$2 [QSA]
+
+# Community
+RewriteRule ^community/userview.(.*)\.html?$ 									/community/index.phtml?nutzerkey=$1
+RewriteRule ^community/foto_small.(.*)\.jpg?$ 									/community/passbild.php?size=small&id=$1
+
+RewriteRule ^community/buddylist/?$ 											/community/buddylist.phtml 
+RewriteRule ^community/einladen/?$ 												/community/einladen.phtml
+RewriteRule ^community/map/?$ 													/community/mapsenden.phtml
+RewriteRule ^community/profil/?$ 												/home/praktikanten/community/mycommunityprofil.phtml
+RewriteRule ^community/stationen/?$ 											/home/praktikanten/community/mystationlist.phtml
+
+RewriteRule ^karriere/daten/?$													/home/praktikanten/kcenter/index.phtml?mode=daten
+
+RewriteRule ^karriere/gesuche/?$												/home/praktikanten/kcenter/index.phtml?mode=gesuche/index [QSA]
+RewriteRule ^karriere/gesuche/(.*)/?$											/home/praktikanten/kcenter/index.phtml?mode=gesuche/anlegen [QSA]
+RewriteRule ^karriere/gesuche/(.*?)/(\d*)/?										/home/praktikanten/myeintrag_praktikum.phtml?id=$1 [QSA]
+
+RewriteRule ^karriere/gesuche/praktikum_detail/(\d*)/(\d*)/?					/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+RewriteRule ^karriere/gesuche/diplom_detail/(\d*)/(\d*)/?						/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+RewriteRule ^karriere/gesuche/berufseinstieg_detail/(\d*)/(\d*)/?				/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+RewriteRule ^karriere/gesuche/nebenjob_detail/(\d*)/(\d*)/?						/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+RewriteRule ^karriere/gesuche/ausbildung_detail/(\d*)/(\d*)/?					/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+RewriteRule ^karriere/gesuche/stellen_detail/(\d*)/(\d*)/?						/home/praktikanten/mystellendetail.phtml?bereich=$1&id=$2 [QSA]
+
+
+
+RewriteRule ^karriere/gesuche/firmen_detail/(\d*)/(\d*)/(\d*)/?					/home/praktikanten/myfirmendetail.phtml?id=$1&stellenid=$2&bereich=$3 [QSA]
+
+RewriteRule ^karriere/gesuche/firma/email/(\d*)/(\d*)/(\d*)/(\d*)/?				/home/email/index.phtml?prakt=$1&id=$2&bereich=$3&stellenid=$4 [QSA]
+RewriteRule ^karriere/firmenemail/(\d*)/?$										/home/email/index_gb.phtml?firma=1&id=$1 [QSA]
+
+RewriteRule ^karriere/gesuche/firma/kurznachricht/(\d*)/(\d*)/(\d*)/(\d*)/?		/home/praktikanten/firstkontakt_firma.phtml?firmenid=$1&spaltenid=$2&bereich=$3&stellenid=$4 [QSA]
+# RewriteRule ^karriere/firma/kurznachricht/(\d*)/(\d*)/?							/home/praktikanten/firstkontakt_firma.phtml?firmenid=$1&spaltenid=$2&gb=1 [QSA]
+RewriteRule ^karriere/firma/posteingang/(\d*)/(\d*)/(\d*)/?						/home/praktikanten/kcenter/kontakte.phtml?id=$1&firmenid=$2&spalte=$3&gb=1 [QSA]
+RewriteRule ^karriere/firma/antworten/(\d*)/?$									/home/praktikanten/kcenter/messaging/antwort.phtml?id=$1 [QSA]
+
+RewriteRule ^karriere/jobmail/?$												/home/praktikanten/jobmail/
+
+RewriteRule ^karriere/kurzbewerbung/?$											/home/praktikanten/profil/profil_kurzbewerbung.phtml
+
+RewriteRule ^karriere/profil/?$													/home/praktikanten/profil/
+
+RewriteRule ^karriere/katalogausgabe/praktikum/(\d*)/?$							/praktikum/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/diplom/(\d*)/?$							/diplom/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/nebenjobs/(\d*)/?$							/nebenjobs/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/ausbildung/(\d*)/?$						/ausbildung/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/absolventen/(\d*)/?$						/absolventen/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/projekte/(\d*)/?$							/projekte/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+RewriteRule ^karriere/katalogausgabe/trainee/(\d*)/?$							/trainee/praktikanten/katalog.phtml?katalogausgabe=yes&firmenid=$1
+
+# Std-Weiterleitung Karriere-Center
+RewriteRule ^karriere/(.*)?$													/home/praktikanten/kcenter/index.phtml?mode=$1
+RewriteRule ^Karriere_Center/(.*)?$													/home/praktikanten/kcenter/index.phtml?mode=$1
+
+# Auslandspraktikum
+RewriteRule ^auslandspraktikum/?$ /home/ausland/index.php [L]
+
+# Auslandsstudium
+RewriteRule ^auslandsstudium/?$ /home/auslandsstudium/index.php [L]
+RewriteRule ^auslandsstudium/nachricht/?$ /home/auslandsstudium/mailform.php [L]
+
+# Sprachreisen
+RewriteRule ^sprachreisen/?$ /home/sprachreisen/index.php [L]
+RewriteRule ^sprachreise/?$ /home/sprachreisen/index.php [L]
+RewriteRule ^sprachreisen/buchung/?$ /home/sprachreisen/buchung.php [L]
+RewriteRule ^sprachreisen/buchung2/?$ /home/sprachreisen/buchung2.php [L]
+RewriteRule ^sprachreisen/buchung3/?$ /home/sprachreisen/buchung3.php [L]
+RewriteRule ^sprachreisen/buchung4/?$ /home/sprachreisen/buchung4.php [L]
+RewriteRule ^sprachreisen/buchung5/?$ /home/sprachreisen/buchung5.php [L]
+RewriteRule ^sprachreisen/buchung6/?$ /home/sprachreisen/buchung6.php [L]
+RewriteRule ^sprachreisen/buchung_erfolgreich/?$ /home/sprachreisen/buchung_erfolgreich.php [L]
+
+RewriteRule ^rechnungen/?$														/home/praktikanten/commerce/zahlungen/index.phtml
+RewriteRule ^rechnung_anzeigen/(\d*)/?$											/home/praktikanten/commerce/zahlungen/rechnung.phtml?id=$1 [QSA]
+RewriteRule ^rechnung_speichern/(\d*)/?$										/home/praktikanten/commerce/zahlungen/rechnung.phtml?id=$1&download=true [QSA]
+RewriteRule ^rechnung_versenden/(\d*)/?$										/home/praktikanten/commerce/zahlungen/rechnung.phtml?id=$1&mail=true [QSA]
+RewriteRule ^produktdownloads/?													/home/praktikanten/commerce/produktdownloads.phtml
+
+RewriteRule ^auslandsprogramm_freischalten/?									/home/praktikanten/commerce/afreischaltung.phtml
+
+RewriteRule ^partnerseite/lisa/?$												/home/partnerseite/lisa/
+
+
+
+RewriteRule ^extbewerbung/firmenreg/?											/home/praktikanten/extbewerbung/firmenreg.phtml
+RewriteRule ^bewerbung_ext/firmenreg/(\d*)/?$									/home/praktikanten/extbewerbung/firmenreg.phtml?id=$1 [QSA]
+
+
+RewriteRule ^recruiting/?$														/home/firmen/bcenter/index.phtml
+RewriteRule ^recruiting/bewerber/(\d*)/?$										/home/firmen/detail_only.phtml?id=$1 [QSA]
+RewriteRule ^recruiting/sort_status/absteigend/(\d*)/?$							/home/firmen/bcenter/index.phtml?sort=status-desc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_status/aufsteigend/(\d*)/?$						/home/firmen/bcenter/index.phtml?sort=status-asc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_bewerber/absteigend/(\d*)/?$						/home/firmen/bcenter/index.phtml?sort=bewerber-desc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_bewerber/aufsteigend/(\d*)/?$						/home/firmen/bcenter/index.phtml?sort=bewerber-asc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_datum/absteigend/(\d*)/?$							/home/firmen/bcenter/index.phtml?sort=datum-desc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_datum/aufsteigend/(\d*)/?$							/home/firmen/bcenter/index.phtml?sort=datum-asc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_bereich/absteigend/(\d*)/?$						/home/firmen/bcenter/index.phtml?sort=bereich-desc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_bereich/aufsteigend/(\d*)/?$						/home/firmen/bcenter/index.phtml?sort=bereich-asc&bereich=$1 [QSA]
+RewriteRule ^recruiting/sort_alter/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=alter-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_alter/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=alter-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_karrierestatus/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=karrierestatus-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_karrierestatus/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=karrierestatus-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_ort/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/firmen/bcenter/index.phtml?sort=ort-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_ort/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/firmen/bcenter/index.phtml?sort=ort-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_plz/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/firmen/bcenter/index.phtml?sort=plz-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_plz/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/firmen/bcenter/index.phtml?sort=plz-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_bezeichnung/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=bezeichnung-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_bezeichnung/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=bezeichnung-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_bewerbersort/absteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=bewerbersort-desc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/sort_bewerbersort/aufsteigend/(\d*)/(\d*)/(\d*)/(\d*)/?$		/home/firmen/bcenter/index.phtml?sort=bewerbersort-asc&bereich=$1&subbereich=$2&ordnerid=$3&ds_count=$4 [QSA]
+RewriteRule ^recruiting/hauptordner/(\d*)/?$									/home/firmen/bcenter/index.phtml?bereich=$1&subbereich=0&ordnerid=0&ds_count=0 [QSA]
+RewriteRule ^recruiting/subordner/(\d*)/(\d*)/(\d*)/?$							/home/firmen/bcenter/index.phtml?bereich=$1&subbereich=$2&ordnerid=$3&ds_count=0 [QSA]
+RewriteRule ^recruiting/loeschen/(\d*)/(\d*)/(\d*)/(\d*)/?$						/home/firmen/bcenter/index.phtml?id=$1&delete=1&bereich=$2&ds_count=$3&ds_pro_seite=$4 [QSA]
+RewriteRule ^recruiting/ordnerverwalten/?$										/home/firmen/bcenter/ordnerverwalten.phtml
+# 2010-11-04 RewriteRule ^recruiting/antwort/(\d*)/(\d*)/(\d*)/?$				/home/firmen/bcenter/bewerbung/bewerbungsantwort.phtml?nutzerid=$1&id=$2&spaltenid=$3 [QSA]
+RewriteRule ^recruiting/antwort/(\d*)/?$										/home/firmen/bcenter/bewerbung/bewerbungsantwort.phtml?id=$1 [QSA]
+RewriteRule ^recruiting/weiterleitung/(\d*)/?$									/home/firmen/bcenter/bewerbung/weiterleiten.php?id=$1 [QSA]
+RewriteRule ^recruiting/weiterleitung_kurzmitteilung/(\d*)/(\d*)/?$				/home/firmen/mykmitt_weiterl.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^recruiting/verschieben/(\d*)/(\d*)/?$								/home/firmen/bcenter/verschieben.phtml?id=$1&bereich=$2 [QSA]
+RewriteRule ^recruiting/adressbuch/(\d*)/(\d*)/?$								/home/firmen/adressbuch.phtml?id=$1&spalte=$2&datei=weiterleitung [QSA]
+RewriteRule ^recruiting/adressbuch_kurz/(\d*)/(\d*)/?$							/home/firmen/adressbuch.phtml?id=$1&spalte=$2&datei=weiterleitung_kurzmitteilung [QSA]
+RewriteRule ^recruiting/adressbuch/loeschen/(\d*)/?$							/home/firmen/adressbuch.phtml?aid=$1&down=1 [QSA]
+RewriteRule ^recruiting/adressbuch/loeschen_confirm/(\d*)/?$					/home/firmen/adressbuch.phtml?aid=$1&downfinal=1 [QSA]
+RewriteRule ^recruiting/adressbuch/aendern/(\d*)/?$								/home/firmen/adressbuch.phtml?aid=$1&aendern=1 [QSA]
+RewriteRule ^recruiting/adressbuch/aenderung/?$									/home/firmen/adressbuch.phtml?aendern=1
+RewriteRule ^recruiting/email_antwort/(\d*)/(\d*)/?$							/home/email/index_gb.phtml?kandidat=1&id=$1&spalte=$2 [QSA]
+RewriteRule ^recruiting/kontaktdetails/(\d*)/(\d*)/(\d*)/?$						/home/firmen/mykontakt_detail.phtml?nutzerid=$1&id=$2&spalte=$3 [QSA]
+RewriteRule ^recruiting/nachrichtendetails/(\d*)/(\d*)/?$						/home/firmen/bcenter/kurzmitteilung/details.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^recruiting/kontakt_nutzer/(\d*)/(\d*)/(\d*)/?$						/home/firmen/firstkontakt_nutzer.phtml?nutzerid=$1&gesuchid=$2&spaltenid=$3 [QSA]
+RewriteRule ^recruiting/email_nutzer/(\d*)/(\d*)/?$								/home/email/index_gb.phtml?kandidat=1&id=$1&spalte=$2 [QSA]
+RewriteRule ^recruiting/nutzeremail/(\d*)/?$									/home/email/index_gb.phtml?prakt=1&id=$1 [QSA]
+RewriteRule ^recruiting/kandidatendetail/(\d*)/?$								/home/firmen/kandidatendetail.phtml?id=$1 [QSA]
+RewriteRule ^recruiting/gesuch_details/(\d*)/(\d*)/(\d*)/?$						/home/firmen/detail.phtml?id=$1&nutzerid=$2&spalte=$3 [QSA]
+RewriteRule ^recruiting/gesuchdetails/(\d*)/(\d*)/(\d*)/(\d*)/(\d*)/?$			/home/firmen/detail.phtml?id=$1&idn=$2&firmenid=$3&nutzerid=$4&spalte=$5 [QSA]
+RewriteRule ^recruiting/statusmail/(\d*)/(\d*)/(\d*)/?$							/home/firmen/bcenter/statusemail/index.phtml?statusartid=$1&nutzerid=$2&id=$3 [QSA]
+RewriteRule ^recruiting/level/?$												/home/firmen/level.phtml?level=1 [QSA]
+RewriteRule ^recruiting/rechnung/pdf/(\d*)/?$									/home/firmen/pdf/pdf_rechnung.php?id=$1 [QSA]
+RewriteRule ^recruiting/kuendigung/pdf/(\d*)/?$									/home/firmen/pdf/pdf_kuendigung.php?id=$1 [QSA]
+
+RewriteRule ^kandidatensuche/?$													/home/firmen/einblick.phtml
+RewriteRule ^kandidatenergebnisse/?$											/home/firmen/suchen/globalsearch.phtml
+RewriteRule ^kandidatensuche/liste/?$											/home/firmen/suchen/ajax/resultlist.php
+RewriteRule ^kandidatensuche/liste/detail/?$									/home/firmen/suchen/ajax/resultdetail.php
+RewriteRule ^mitteilung_buchung/?$												/home/firmen/suchen/notice.php
+
+RewriteRule ^firmen/account/?$													/home/firmen/myaccount.phtml
+
+RewriteRule ^email/gb/?$														/home/email/index_gb.phtml
+RewriteRule ^email/(\d*)/(\d*)/?$												/home/email/index.phtml?id=$1&spalte=$2&extern=1 [QSA]
+RewriteRule ^email_ext/(\d*)/(\d*)/?$											/home/email/index_ext.phtml?id=$1&spalte=$2&extern=1 [QSA]
+
+RewriteRule ^firmen/profil/?$									  			 	/home/firmen/myprofil.phtml
+RewriteRule ^firmenprofil/(\d*)/?$								  			 	/home/firmen/profiltemplate.phtml?firmenid=$1&greybox=1 [QSA]
+RewriteRule ^firmenprofil/pwc/?$								  				/home/firmen/profiltemplate.phtml?firmenid=2843&pwc=1 [QSA]
+
+RewriteRule ^firmen/anzeigen/?$									  			 	/home/firmen/commerce/produktbuchung/stellenanzeigen/liste.phtml
+RewriteRule ^firmen/bearbeiter/?$												/home/firmen/mybearbeiter.phtml
+RewriteRule ^firmen/bearbeiter_update/(\d*)/?$									/home/firmen/mybearbeiterupdate.phtml?id=$1 [QSA]
+RewriteRule ^firmen/bearbeiter_delete/(\d*)/(\d*)/(.*)?$						/home/firmen/mybearbeiter.phtml?delete=$1&id=$2&email=$3 [QSA]
+RewriteRule ^firmen/bearbeiter_neu/?$											/home/firmen/mynewbearbeiter.phtml
+RewriteRule ^firmen/newpassword/?$												/home/firmen/mypassword.phtml
+RewriteRule ^firmen/newsletter/(\d*)/?$											/home/firmen/mynewsletter.phtml?id=$1 [QSA]
+#RewriteRule ^firmen/angeboteliste/?$											/home/firmen/myangeboteliste.phtml
+RewriteRule ^firmen/angeboteliste/?$											/home/firmen/myangeboteliste.php
+RewriteRule ^firmen/angeboteliste/info/?$										/home/firmen/myangeboteliste_info.php
+RewriteRule ^firmen/angeboteliste/(\d*)/?$										/home/firmen/myangeboteliste.php?B8=$1 [QSA]
+RewriteRule ^firmen/neuestelle/?$												/home/firmen/neuestelle/index.phtml
+RewriteRule ^firmen/bilduebersicht/?$											/home/firmen/bilduebersicht.phtml [QSA]
+RewriteRule ^firmen/bilduebersicht/(\d*)/?$										/home/firmen/bilduebersicht.phtml?thumb=$1 [QSA]
+RewriteRule ^firmen/bilduebersicht/(\d*)/(\d*)/?$								/home/firmen/bilduebersicht.phtml?id=$1&bilddetail=$2 [QSA]
+RewriteRule ^firmen/bild_up_download/?$											/home/firmen/bildupdown.phtml
+RewriteRule ^firmen/bild_up_download/(\d*)/(\d*)/?$								/home/firmen/bildupdown.phtml?id=$1&down=$2 [QSA]
+RewriteRule ^firmen/logo_upload/(\d*)/?$										/home/firmen/logoupload.phtml?greybox=$1 [QSA]
+RewriteRule ^firmen/flash/?$													/home/firmen/stelle/flash.php [QSA]
+
+RewriteRule ^firmen/profilausgabe/(\d*)/?$										/toppraktika/profiltemplate.phtml?id=$1 [QSA]
+RewriteRule ^firmen/beratung/?$													/home/firmen/myberatung.phtml
+
+RewriteRule ^firmen/stelle/praktikum_update/(\d*)/(\d*)/?$						/home/firmen/myeintrag_praktikum.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^firmen/stelle/diplom_update/(\d*)/(\d*)/?$							/home/firmen/myeintrag_diplom.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^firmen/stelle/berufseinstieg_update/(\d*)/(\d*)/?$					/home/firmen/myeintrag_berufseinstieg.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^firmen/stelle/nebenjob_update/(\d*)/(\d*)/?$						/home/firmen/myeintrag_nebenjob.phtml?id=$1&spalte=$2 [QSA]
+RewriteRule ^firmen/stelle/ausbildung_update/(\d*)/(\d*)/?$						/home/firmen/myeintrag_ausbildung.phtml?id=$1&spalte=$2 [QSA]
+
+RewriteRule ^firmen/stelle/praktikum/(\d*)/(\d*)/?$								/home/firmen/myeintrag_praktikum.phtml?image=$1&id=$2 [QSA]
+RewriteRule ^firmen/stelle/diplom/(\d*)/(\d*)/?$								/home/firmen/myeintrag_diplom.phtml?image=$1&id=$2 [QSA]
+RewriteRule ^firmen/stelle/berufseinstieg/(\d*)/(\d*)/?$						/home/firmen/myeintrag_berufseinstieg.phtml?image=$1&id=$2 [QSA]
+RewriteRule ^firmen/stelle/nebenjob/(\d*)/(\d*)/?$								/home/firmen/myeintrag_nebenjob.phtml?image=$1&id=$2 [QSA]
+RewriteRule ^firmen/stelle/ausbildung/(\d*)/(\d*)/?$							/home/firmen/myeintrag_ausbildung.phtml?image=$1&id=$2 [QSA]
+
+RewriteRule ^firmen/stelle/paket/(\d*)/?$										/home/firmen/stelle/paket.phtml?id=$1 [QSA]
+RewriteRule ^firmen/stelle/paket_notice/(\d*)/?$								/home/firmen/stelle/paket_notice.phtml?id=$1 [QSA]
+RewriteRule ^firmen/stelle/premium_anfrage/?$									/home/firmen/stelle/premium_anfrage.phtml
+RewriteRule ^firmen/stelle/layout/(\d*)/?$										/home/firmen/stelle/layout.php?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/layout_update/?$										/home/firmen/stelle/layout_update.phtml
+#RewriteRule ^firmen/stelle/category/(\d*)/?$									/home/firmen/stelle/category.phtml?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/category/(\d*)/?$									/home/firmen/stelle/category.php?stellenid=$1 [QSA]
+#RewriteRule ^firmen/stelle/content/(\d*)/?$										/home/firmen/stelle/content.phtml [QSA]
+RewriteRule ^firmen/stelle/content/(\d*)/?$										/home/firmen/stelle/content.php?id=$1 [QSA]
+RewriteRule ^firmen/stelle/content_new/?$										/home/firmen/stelle/content.php [QSA]
+RewriteRule ^firmen/stelle/content_update/?$									/home/firmen/stelle/content_update.phtml
+RewriteRule ^firmen/stelle/buchung/(\d*)/?$										/home/firmen/stelle/buchung.phtml?id=$1 [QSA]
+RewriteRule ^firmen/stelle/aktivieren/(\d*)/?$									/home/firmen/stelle/activate.phtml?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle_validate/(\d*)/(\d*)/?$								/home/firmen/stelle_validate.phtml?id=$1&template_show=$2 [QSA]
+RewriteRule ^firmen/stelle2/(\d*)/(\d*)/(\d*)/?$								/home/firmen/stelle2.phtml?id=$1&spalte=$2&template_show=$3 [QSA]
+RewriteRule ^firmen/stelle/vorschau/(\d*)/?$									/home/firmen/preview2.phtml?id=$1 [QSA]
+RewriteRule ^firmen/stelle/vorschau/(\d*)/(\d*)/?$								/home/firmen/preview2.phtml?id=$1&template=$2 [QSA]
+RewriteRule ^firmen/stelle/(\d*)/?$												/home/firmen/preview2.phtml?stellenid=$1&popup=true [QSA]
+RewriteRule ^firmen/allestellen/(\d*)/?$										/home/clickin/index.phtml?id=$1 [QSA]
+RewriteRule ^firmen/empfehlen/(\d*)/?$											/home/praktikanten/detailsend.phtml?id=$1 [QSA]
+RewriteRule ^box/firmen/suche/stelle/(\d*)/(\d*)/?$								/greybox.phtml?id=$1&firmenid=$2&url=/firmen/stelle/$1/ [QSA]
+RewriteRule ^box/firmen/suche/stelle/(\d*)/(\d*)/(\w*)/?$						/greybox.phtml?id=$1&firmenid=$2&url=/firmen/stelle/$1/ [QSA]
+RewriteRule ^firmen/stelle/statistik/(\d*)/?$									/home/firmen/myangebote.phtml?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/statistik/detail/(\d*)/?$							/home/firmen/mystellendetail.phtml?stellenid=$1 [QSA]
+
+RewriteRule ^firmen/stelle/buchung_anzeige/liste/(\d*)/(\d*)/?$					/home/firmen/commerce/produktbuchung/stellenanzeigen/liste.phtml?stellenid=$1&spalte=$2 [QSA]
+RewriteRule ^firmen/stelle/buchung_anzeige/freischaltung/?$						/home/firmen/commerce/produktbuchung/stellenanzeigen/freischaltung.phtml
+RewriteRule ^firmen/stelle/buchung_anzeige/demo/?$								/home/firmen/commerce/produktbuchung/stellenanzeigen/stellenbuchungdemo.html
+
+#RewriteRule ^firmen/stelle/imageanzeige/(\d*)/([A-Za-z0-9_]+)/(\d*)/?$			/home/firmen/imageanzeigen/?stellenid=$1&taetigkeit=$2&spalte=$3 [QSA]
+#RewriteRule ^firmen/imageanzeige/eintrag/?$										/home/firmen/imageanzeigen/myeintrag.phtml
+#RewriteRule ^firmen/imageanzeige/eintrag/(\d*)/([A-Za-z0-9_]+)/(\d*)/?$			/home/firmen/imageanzeigen/myeintrag.phtml?id=$1&title=$2&spalte=$3 [QSA]
+
+RewriteRule ^firmen/kandidaten/?$												/home/firmen/suchen/wk.phtml
+RewriteRule ^firmen/kagent/?$													/home/firmen/kagent/
+RewriteRule ^firmen/kagent/neu/?$												/home/firmen/kagent/aendern.phtml
+RewriteRule ^firmen/kagent/aendern/(\d*)/?$										/home/firmen/kagent/aendern.phtml?agentenid=$1
+
+RewriteRule ^firmen/level/?$													/home/firmen/level.phtml
+RewriteRule ^firmen/daten/?$													/home/firmen/mystammdaten.phtml
+
+RewriteRule ^accountverify.(.*)\.html$											/home/praktikanten/verify_finish.phtml?key=$1 [L]
+
+RewriteRule ^zahlung/kreditkarte/?$												/home/firmen/commerce/zahlung/zahlung_cc.phtml
+RewriteRule ^zahlung/lastschrift/?$												/home/firmen/commerce/zahlung/zahlung.phtml
+RewriteRule ^zahlung/rechnung/?$												/home/firmen/commerce/zahlung/zahlung_re.phtml
+RewriteRule ^zahlung/blzsuche/?$												/home/praktikanten/blzsuche.phtml
+
+RewriteRule ^fehler/?$															/home/fehler/index.phtml
+# RewriteRule ^jobs?$															/cms/Jobs.1479.0.html
+RewriteRule ^jobs/?																/cms/index.php?id=1479 [NC]
+
+# Kompatibilitaet Version 1.0
+RewriteRule ^angebote/praktikum/(.*)										/suche/$1 [QSA]
+
+RewriteRule ^(.*)/firmen/stellen\.(\d*).html$								/bewerber/index.phtml?stellenausgabe=$2 [QSA]
+RewriteRule ^(.*)/firmen/branche\.(.*?)_(.*).html$							/suche/$2 [QSA]
+RewriteRule ^(.*)/firmen/unternehmen\.(.*).html$							/bewerber/index.phtml?firmenausgabe=$2 [QSA]
+
+RewriteRule ^(.*)/praktikanten/stellen\.(\d*).html$								/bewerber/index.phtml?stellenausgabe=$2 [QSA]
+
+RewriteRule ^(.*)/praktikanten/branche\.(.*?)\.(\d*).html$						/suche/$2
+RewriteRule ^(.*)/praktikanten/branche\.(.*?)_(.*).html$						/suche/$2 [QSA]
+RewriteRule ^(.*)/praktikanten/unternehmen\.(.*).html$							/bewerber/index.phtml?firmenausgabe=$2 [QSA]
+
+RewriteRule ^box/firmenprofil/(\d*)/(\d*)/										/greybox.phtml?id=$1&firmenid=$2&url=/firmenprofil/$2/ [QSA] [QSA]
+RewriteRule ^firmenprofil.(\d*).html											/bewerber/index.phtml?firmenausgabe=$1 [QSA]
+RewriteRule ^home/bewerber.phtml												/bewerber/ [QSA]
+RewriteRule ^home/firmen/bewerber.(\d*).html/?$									/bewerber/index.phtml?nutzerausgabe=$1 [QSA]
+RewriteRule ^home/firmen/gesuch.(.*)\.(.*)\.(.*)\.html$ 						/home/firmen/detail.phtml?id=$1&spalte=$3&wknutzerid=$2
+
+RewriteRule ^home/firmen/index.phtml$											/home/firmen/bcenter/  [R=301,L] 
+RewriteRule ^home/firmen/?$														/home/firmen/bcenter/	[R=301,L] 
+
+# RewriteRule ^mobile/(.*)?$														/mobile/new/(.*)
+RewriteRule ^home/partnerseite/(.*)												/bewerber/
+RewriteRule ^home/praktikanten/geodata.phtml$									/bewerber/
+RewriteRule ^home/praktikanten/praktdetail.(\d*).phtml$							/bewerber/index.phtml?stellenausgabe=$1 [QSA]
+RewriteRule ^home/praktikanten/stellen.(\d*).phtml$								/bewerber/index.phtml?stellenausgabe=$1 [QSA]
+
+RewriteRule ^absolventen/firmen/stellen.(\d*).html								/bewerber/index.phtml?stellenausgabe=$1 [QSA]
+RewriteRule ^absolventen/firmen/unternehmen.(\d*).html							/bewerber/index.phtml?firmenausgabe=$1 [QSA]
+RewriteRule ^home/praktikanten/unternehmenaz.(.).(.*)							/suche/alle_unternehmen/$1/ [QSA]
+
+RewriteRule ^home/toppraktika/aepraktika/(.*)									/cms/Praktikum_Dubai.956.0.html [QSA]
+RewriteRule ^home/toppraktika/aupraktika/(.*)									/cms/Praktikum_Sydney.1413.0.html [QSA]
+RewriteRule ^home/toppraktika/chinapraktika/(.*)								/cms/Praktikum_China.319.0.html [QSA]
+RewriteRule ^home/toppraktika/clpraktika/(.*)									/ausland/ [QSA]
+RewriteRule ^home/toppraktika/depraktika/(.*)									/bewerber/ [QSA]
+RewriteRule ^home/toppraktika/frzpraktika/(.*)									/ausland/ [QSA]
+RewriteRule ^home/toppraktika/spanienpraktika/(.*)								/cms/Spanien_Hotelpraktikum.140.0.html [QSA]
+RewriteRule ^home/toppraktika/ukpraktika/(.*)									/cms/Praktikum_Grossbritannien.1041.0.html [QSA]
+RewriteRule ^home/toppraktika/us_work/(.*)										/cms/US_Hoteljob.962.0.html [QSA]
+RewriteRule ^home/toppraktika/usajobs/(.*)										/cms/Praktikum_USA.1042.0.html [QSA]
+RewriteRule ^home/toppraktika/uspraktika/(.*)									/cms/Praktikum_USA.1042.0.html [QSA]
+RewriteRule ^home/toppraktika/uspraktika/(.*)									/cms/Praktikum_Suedafrika.853.0.html [QSA]
+RewriteRule ^home/toppraktika/bpu/(.*)											/praktikumsberichte/ [QSA]
+RewriteRule ^home/toppraktika/(.*)												/bewerber/ [QSA]
+
+RewriteRule ^(.*)/praktikanten/katalog.phtml									/suche/erweitert/ [QSA]
+RewriteRule ^praktikum/$														/suche/praktikum [QSA]
+RewriteRule ^partnerview/														/bewerber/ [QSA]
+RewriteRule ^nebenjobs/$														/suche/nebenjob [QSA]
+
+# Suche V3
+RewriteRule ^stelle/(\d*)/(\d*)/(\w*)/?$										/greybox.phtml?id=$1&firmenid=$2&log=$3&url=/firmen/stelle/$1/ [QSA]
+RewriteRule ^merkzettel?$														/home/stellen/merkzettel.php
+RewriteRule ^katalogsuche/(.*?)/(.*)?$											/home/stellen/suche_katalog.phtml?rubrik=$1&mid=$2
+RewriteRule ^unternehmenssuche/(\d*)/(.*)										/home/stellen/suche.phtml?firmensuche=$1 [QSA]
+
+# Katalogsuche V3
+RewriteRule ^katalogsuche.html$														/home/stellen/katalogsuche.php
+
+# abc-Unternehmenssuche V2
+RewriteRule ^praktikum/unternehmenssuche.html?									/home/praktikanten/abcsuche.phtml [QSA]
+RewriteRule ^praktikum/unternehmenssuche-(.).html?								/home/praktikanten/abcsuche.phtml?buchstabe=$1&ds_count=1 [L] [QSA]
+RewriteRule ^praktikum/unternehmenssuche-(.)([0-9]*).html?						/home/praktikanten/abcsuche.phtml?buchstabe=$1&ds_count=$2 [L] [QSA]
+
+# Stellenanzeige V2
+RewriteRule ^PREVIEW/(.*)-(\d*)\.html											/home/firmen/preview2.phtml?stellenid=$2&log=0 [QSA]
+RewriteRule ^praktikum/(.*)-(\d*)\.html											/home/firmen/preview2.phtml?stellenid=$2 [QSA,L]
+RewriteRule ^auslandspraktikum-internship/(.*)-(\d*)\.html						/home/firmen/preview2.phtml?stellenid=$2 [QSA]
+RewriteRule ^nebenjob/(.*)-(\d*)\.html											/home/firmen/preview2.phtml?stellenid=$2
+RewriteRule ^ausbildung/(.*)-(\d*)\.html										/home/firmen/preview2.phtml?stellenid=$2
+RewriteRule ^berufseinstieg/(.*)-(\d*)\.html									/home/firmen/preview2.phtml?stellenid=$2
+RewriteRule ^bachelorarbeit/(.*)-(\d*)\.html									/home/firmen/preview2.phtml?stellenid=$2
+RewriteRule ^trainee/(.*)-(\d*)\.html											/home/firmen/preview2.phtml?stellenid=$2
+RewriteRule ^projekt/(.*)-(\d*)\.html											/home/firmen/preview2.phtml?stellenid=$2
+
+# Firmenprofil V2
+RewriteRule ^praktikum/(.*)/profil/(\d*)\.html									/home/firmen/profiltemplate.phtml?firmenid=$2 [QSA,L]
+RewriteRule ^praktikum/(.*)/stellen/(\d*)\.html									/home/stellen/suche.phtml?firmensuche=$2 [QSA,L]
+
+RewriteRule ^unternehmensprofil/(.*?)-(\d*).html?$				  			 	/home/firmen/profiltemplate.phtml?firmenid=$2 [QSA]
+
+RewriteRule ^praktika/praktikum_(.*)/(.*).php									/home/stellen/suche_kategorie.phtml?kategorie=$1&kategorie2=$2 
+RewriteRule ^praktika/praktikum_(.*).php										/home/stellen/suche_kategorie.phtml?kategorie=$1
+
+RewriteRule ^praktikum/eads.html?												/home/stellen/suche.phtml?firmensuche=20947,20897
+RewriteRule ^deutsche_bank?														/unternehmenssuche/1049/Deutsche+Bank
+RewriteRule ^eads/?																/unternehmenssuche/20947/EADS
+RewriteRule ^philips/?															/unternehmenssuche/19429/Philips
+RewriteRule ^daimler/?															/unternehmenssuche/13574/Daimler+AG
+RewriteRule ^eon/?																/unternehmenssuche/13155/EON
+RewriteRule ^ferrostaal/?														/unternehmenssuche/21418/Ferrostaal+AG
+RewriteRule ^rohde_schwarz/?													/unternehmenssuche/14483/ROHDE+%26+SCHWARZ+GmbH+%26+Co.+KG
+RewriteRule ^agilent/?															/unternehmenssuche/15994/Agilent+Technologies
+RewriteRule ^roland_berger/?													/unternehmenssuche/3292/Roland+Berger+Strategy+Consultants+Holding+GmbH
+
+
+# Channel
+
+RewriteRule ^ch/(.*)/?$															/home/channel/channel.php?key=$1
+
+# AjaxLogin in Smallbox
+RewriteRule ^smallbox/login/step2 			   									/home/quicklogin/ajaxlogin2.php
+RewriteRule ^smallbox/login/step3  												/home/quicklogin/ajaxlogin3.php
+RewriteRule ^smallbox/login		    											/home/quicklogin/ajaxlogin.php
+
+RewriteRule ^smallbox/quicklogin.html	    									/home/quicklogin/quicklogin.php
+
+# Mailmarketing
+RewriteRule ^news/newsletter.php												/cms/index.php?id=1549 [QSA]
+RewriteRule ^news/newsletter_abmeldung.php										/home/newsletter/abmeldung.php
+
+RewriteRule ^filemanager.html													/filemanager/filemanager.php
+RewriteRule ^fm/(.*?)/([0-9]*)/(.*?)-([0-9]+)/(.*)								/uploaded_files/$2/$4/$5
+
+# Stellenbearbeitung V2
+RewriteRule ^firmen/stelle/(\d*)/layout.html?$									/home/firmen/stelle/layout.php?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/layout-update.phtml?$								/home/firmen/stelle/layout_update.phtml
+RewriteRule ^firmen/stelle/(\d*)/category.html?$								/home/firmen/stelle/category.php?stellenid=$1 [QSA]
+
+RewriteRule ^firmen/stelle/(\d*)/content.html?$									/home/firmen/stelle/content.php?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/(\d*)/content_extern.html?$							/home/firmen/stelle/content.php?stellenid=$1&extern=1 [QSA]
+RewriteRule ^firmen/stelle/(\d*)/content_pdf.html?$								/home/firmen/stelle/content.php?stellenid=$1&pdf=1 [QSA]
+RewriteRule ^firmen/stelle/content-update.phtml?$								/home/firmen/stelle/content_update.phtml
+RewriteRule ^firmen/stelle/(\d*)/buchung.html?$									/home/firmen/stelle/buchung.phtml?id=$1 [QSA]
+
+RewriteRule ^firmen/stelle/paket.html?$											/home/firmen/stelle/paket.phtml [QSA]
+RewriteRule ^firmen/stelle/(\d*)/paket_notice.html?$							/home/firmen/stelle/paket_notice.phtml?id=$1 [QSA]
+RewriteRule ^firmen/stelle/(\d*)/premium-anfrage.html?$							/home/firmen/stelle/premium_anfrage.phtml
+
+RewriteRule ^firmen/stelle/(\d*)/activate.html?$								/home/firmen/stelle/activate.phtml?stellenid=$1 [QSA]
+
+RewriteRule ^firmen/stelle/(\d*)/statistik.html?$								/home/firmen/myangebote.phtml?stellenid=$1 [QSA]
+RewriteRule ^firmen/stelle/(\d*)/statistik-detail.html?$						/home/firmen/mystellendetail.phtml?stellenid=$1 [QSA]
+
+RewriteRule ^firmen/stelle/(\d*)/history.html?$									/home/firmen/statistik/stellenlog.php?stellenid=$1 [QSA]
+
+RewriteRule ^firmen/stelle/(\d*)/information.html?$								/home/firmen/myangeboteliste_info.php
+
+RewriteRule ^%20																/
+#RewriteRule ([\ ]+)																/
+#RewriteRule ([^\ ]+)\ (.+) 														/ [R=301,L] 
+
+# Redirects
+RewriteRule ^redirects/([0-9]*)/(.*)												/redirect.php?id=$1
+
+# Testversuch zu Praktikum Leipzig
+RewriteRule ^praktikum/leipzig.html?											/home/landing/leipzig.phtml [QSA,L]
+
+# Zugehörig zu Suche
+RewriteRule ^praktikum/(.*).html?												/home/stellen/suche.phtml?q=Praktikum_$1 [QSA]
+RewriteRule ^praktikum/(.*)?													/home/stellen/suche.phtml?q=Praktikum_$1 [QSA,L]
+
+RewriteRule ^jobmail/anlegen.html$												/jobmail/anlegen.phtml
+RewriteRule ^jobmail/(.*?)-([0-9]*)/abmelden.html$								/jobmail/remove.phtml?cid=$2&h=$1
+
+RewriteRule ^styles/(.*)/generateCSS.css 										/generateCSS.php?page_key=$1
+
+# Landing Pages
+RewriteRule ^berlin.html$ 														/landing3/index.php?page=berlin
+
+# Landing Pages - CSS
+RewriteRule ^(.*?)/design/css/individual.css$ 									/landing3/css.php?page=$1
+RewriteRule ^(.*?)/design/img/(.*) 												/landing3/image/$1/$2
+RewriteRule ^(.*?)/design/js/(.*) 												/landing3/js/$1/$2
+
+# Firmeninformationen (Adresse, Alle Stellen)
+RewriteRule ^firmendaten/(.*)-([0-9]*).html										/home/firmen/allestellen.php?firmenid=$2
+
+# OpenSearch für Suchfenster in Browsern
+RewriteRule ^opensearch/suggestion-json/(.*)/									/opensearch/suggestion.php?q=$1&t=json
+RewriteRule ^opensearch/firmen-suggestion-json/(.*)/							/opensearch/firmen_suggestion.php?q=$1&t=json
+
+RewriteRule ^auto.login															/home/autologin.php [QSA,L]
+
+RewriteRule ^cities/?$															/tagclouds/cities.phtml [QSA,L]
+
+RewriteRule ^m/[e|f|k|t]/(.*)															/bewerber/
+
+# externe Verlinkungen
+RewriteRule ^twitter http://www.twitter.com/praktika_de
+
+# Typo3-Verlinkungen
+RewriteRule ^schadensmeldung /cms/Schadensmeldung.1310.0.html [R=301,L]
+
+# Agentur-Verlinkungen
+RewriteRule ^firmen/angeboteliste_agentur/?$									/home/firmen/myangeboteliste_agentur.php
+RewriteRule ^firmen/agentur/unternehmensdaten/(.*)/								/home/firmen/agentur/firmendaten.php?id=$1
+RewriteRule ^firmen/agentur/unternehmen-loeschen/(.*)/							/home/firmen/myangeboteliste_agentur.php?loeschen=1&unternehmens_id=$1
+RewriteRule ^firmen/agentur/stelle/(\d*)/(\d*)/content.html?$					/home/firmen/stelle/content.php?stellenid=$1&unternehmens_id=$2 [QSA]
+RewriteRule ^firmen/agentur/stelle/(\d*)/(\d*)/content_extern.html?$			/home/firmen/stelle/content.php?stellenid=$1&unternehmens_id=$2&extern=1 [QSA]
+RewriteRule ^firmen/agentur/stelle/(\d*)/(\d*)/content_pdf.html?$				/home/firmen/stelle/content.php?stellenid=$1&unternehmens_id=$2&pdf=1 [QSA]
+RewriteRule ^firmen/agentur/stelle/content-update.phtml?$						/home/firmen/stelle/content_update.phtml
+

@@ -1,0 +1,141 @@
+<?php
+$max_file_size = 140000;
+$cWidth = 250;
+
+require_once("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+pageheader(array('page_title' => (($_SESSION['s_sprachid'] == 1) ? 'Manage the application photograph' : 'Bewerbungsfoto verwalten'))); 
+
+$error = array();
+
+// ist ein Foto schon vorhanden?
+$sql = sprintf("SELECT
+                    url,
+                    height, 
+                    width
+                FROM
+                    bewerbungsfoto
+                WHERE 
+                    nutzerid = %d;",
+				$_SESSION['s_nutzerid']);
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+$record = mysql_fetch_array($result, MYSQL_ASSOC);
+if ( !empty($record['url']) )
+{
+	$bilddatei = '/home/praktika/public_html'.$record['url'];
+}
+
+// Foto l&ouml;schen
+if (isset($_POST['loeschen']) && !empty($bilddatei))
+{
+	$sql = sprintf("DELETE FROM
+                        bewerbungsfoto
+                    WHERE
+                        nutzerid = %d;",
+					$_SESSION['s_nutzerid']);
+	mysql_db_query($database_db, $sql, $praktdbslave);
+
+	unlink($bilddatei);
+}
+
+// Foto hochladen
+if (isset($_POST['upload']))
+{
+	if ($_FILES['userfile']['error'] == 0)
+	{
+		list($width, $height) = getimagesize($_FILES['userfile']['tmp_name']);
+		
+		if (($_FILES['userfile']['size'] > $max_file_size) OR ($width < 1) OR ($height < 1)) 
+		{
+
+			array_push($error, $language["strFehler"]);
+		}
+		else 
+		{
+			$ext  = substr($_FILES['userfile']['name'], strrpos($_FILES['userfile']['name'], ".")+1);
+			$dest = "/home/praktika/public_html/home/passfoto/".date("YmdHis").".".$ext;
+			$url  = "/home/passfoto/".date("YmdHis").".".$ext;
+			
+			//move_uploaded_file($_FILES['userfile']['tmp_name'], $dest);
+			
+			if($cWidth < $width || empty($width)) 
+			{
+				exec("/usr/local/bin/convert -geometry $cWidth ".$_FILES['userfile']['tmp_name']." $dest");
+			} 
+			else 
+			{
+				exec("/usr/local/bin/convert ".$_FILES['userfile']['tmp_name']." $dest");
+			}
+			
+			list($width, $height) = getimagesize($dest);
+				
+			$sql = sprintf("INSERT INTO 
+                                bewerbungsfoto (nutzerid, url, width, height) 
+                            VALUES
+                                (%d, '%s', %d, %d);",
+							$_SESSION['s_nutzerid'], 
+							$url, 
+							$width, 
+							 $height);
+			mysql_db_query($database_db, $sql, $praktdbmaster);
+		}
+	}
+	
+	$bilddatei = $dest;
+	$record['url'] = $url;
+	$record['width'] = $width;
+	$record['height'] = $height;
+	
+	recalc_profilquali();
+}
+?>
+<p><? echo $language["strTextfeld"]; ?></p>
+<p><? echo $language["strBegrenzung"]; ?></p>
+
+<form action="http://<?php echo $_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']; ?>" method="post" enctype="multipart/form-data">
+  <h4><?php echo $language["strBewerbungsfoto"]; ?></h4>
+
+<?php if (isset($_POST['loeschen']) && !file_exists($bilddatei)) 
+{ ?>
+  <p class="error"><?php echo $language["strGeloescht"]; ?></p>
+<?php } ?>
+  
+  <fieldset>
+<?php if ( isset($bilddatei) && file_exists($bilddatei) ) 
+{ ?>
+    <p style="text-align: center;"><img src="<?php echo $record['url']; ?>" width="<?php echo $record['width']; ?>" height="<?php echo $record['height']; ?>" alt="<?php echo $language["strBewerbungsfoto"]; ?>: <?php echo $_SESSION['s_vname']." ".$_SESSION['s_name']; ?>" /></p>
+<?php } else { ?>
+    <p style="text-align: center;"><input type="file" id="userfile" name="userfile" size="30" /></p>
+<?php } ?>
+  </fieldset>
+
+  <fieldset class="control_panel">
+    <p><?php if (isset($bilddatei) && file_exists($bilddatei)) {
+     ?><button type="submit" id="loeschen" name="loeschen" value="Bild l&ouml;schen"><span><span><span>Bild l&ouml;schen</span></span></span></button>
+       <?php } else {
+     ?><button type="submit" id="upload" name="upload" value="Bild hochladen"><span><span><span>Bild hochladen</span></span></span></button>
+       <?php }; 
+     ?></p>
+
+    <p><a href="/karriere/account/" class="button"><span><span><span>Mein Account</span></span></span></a> | <a href="/lebenslauf/" class="button"><span><span><span>Mein Profil</span></span></span></a></p>
+  </fieldset>
+</form>
+ 
+<div id="photo_service">
+	<p><strong>Kostenloser Bildservice</strong></p>
+	<p>Sollten Sie keinen Scanner zur Verfügung haben, können Sie uns Ihr Bewerbungsfoto per Post senden. Wir scannen Ihr Bild und stellen es in Ihren Account online. Wenn Sie diesen Service nutzen möchten senden Sie Ihr Bild an:</p>
+	<p>PRAKTIKA GmbH<br />Praktika.de - Bildservice<br />Petersstraße 28<br />04109 Leipzig</p>
+	<p>Und so geht's: Bitte legen Sie einen ausreichend frankierten Rückumschlag bei. Wir übernehmen keine Haftung bei Verlust oder Beschädigung Ihrer Zusendung.<br />Dieser Service ist kostenfrei.</p>
+	<p>Schreiben Sie auf die Rückseite Ihres Passfotos:<br /><strong>Ihren Namen und Ihre Account-ID: <?php echo $_SESSION['s_nutzerid']; ?></strong></p>
+</div>
+
+<?php
+	bodyoff();
+?>

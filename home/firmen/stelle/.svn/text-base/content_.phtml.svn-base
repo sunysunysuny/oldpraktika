@@ -1,0 +1,615 @@
+<?php
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = 'stelle';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+if ( isset($_POST['save']) || isset($_POST['preview']) ) {
+	if (!isset($_POST['bewerbungpertel']) || (isset($_POST['tel_bewerbung']) && empty($_POST['tel_bewerbung']))) {
+		$_POST['bewerbungpertel'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperpost'])) {
+		$_POST['bewerbungperpost'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperemail']) || (isset($_POST['email_bewerbung']) && empty($_POST['email_bewerbung']))) {
+		$_POST['bewerbungperemail'] = 'false';
+	}
+	if (!isset($_POST['bewerbungperonline'])) {
+		$_POST['bewerbungperonline'] = 'false';
+	}
+	if (!isset($_POST['bewerbungpereigen']) || (isset($_POST['link_bewerbung']) && empty($_POST['link_bewerbung']))) {
+		$_POST['bewerbungpereigen'] = 'false';
+	}
+
+	if ($_POST['bewerbungpertel'] == 'false' && $_POST['bewerbungperpost'] == 'false' && $_POST['bewerbungperemail'] == 'false' && $_POST['bewerbungperonline'] == 'false' && $_POST['bewerbungpereigen'] == 'false') {
+		$_POST['bewerbungperpost'] = 'true';
+		$_POST['bewerbungperonline'] = 'true';
+	}
+	
+	$updatestring = '	UPDATE stellen SET
+							bearbeiterid = '.$_SESSION['s_loginid'].',
+							bewerbungpertel = \''.$_POST['bewerbungpertel'].'\',
+							tel_bewerbung = \''.mysql_real_escape_string($_POST['tel_bewerbung']).'\',
+							bewerbungperpost = \''.$_POST['bewerbungperpost'].'\',
+							bewerbungperemail = \''.$_POST['bewerbungperemail'].'\',
+							email_bewerbung = \''.mysql_real_escape_string($_POST['email_bewerbung']).'\',
+							bewerbungperonline = \''.$_POST['bewerbungperonline'].'\',
+							bewerbungpereigen = \''.$_POST['bewerbungpereigen'].'\',
+							link_bewerbung = \''.mysql_real_escape_string($_POST['link_bewerbung']).'\',
+							link_anzeige = \''.(isset($_POST['link_anzeige']) ? mysql_real_escape_string($_POST['link_anzeige']).'\', taetigkeit = \''.mysql_real_escape_string($_POST['taetigkeit']) : '').'\',
+							ansprechpartnerid = '.mysql_real_escape_string($_POST['ansprechpartnerid']).'
+						WHERE
+							id = '.intval($_POST['stellenid']);
+	
+	$updatestring = mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+	if (isset($_POST['save'])) {
+		if (isset($_SESSION['neueStelle']) && $_SESSION['neueStelle'] == true) {
+			$_SESSION['neueStelle']['content'] = true;
+		}	
+		
+		header('Location: /firmen/stelle/aktivieren/');
+		exit();
+	}
+}
+
+pageheader(array('page_title' => 'Stellenanzeige ver&ouml;ffentlichen'));
+
+$stellenid = intval($_GET['id']);
+$firmenlevel = isset($_SESSION['chosen_firmenlevel']) ? $_SESSION['chosen_firmenlevel'] : intval($_SESSION['s_firmenlevel']);
+
+$stelle = mysql_db_query($database_db,'SELECT *, DATE_FORMAT(von_monat, \'%m\') AS monat, DATE_FORMAT(von_jahr, \'%Y\') AS jahr, DATE_FORMAT(datum_verfall, \'%d\') AS tagv, DATE_FORMAT(datum_verfall, \'%m\') AS monatv,  DATE_FORMAT(datum_verfall, \'%Y\') AS jahrv FROM stellen WHERE id = '.$stellenid.' AND firmenid = '.$_SESSION['s_firmenid'],$praktdbslave);
+
+if (($stelle != false) && (mysql_num_rows($stelle) > 0)) {
+	$row = mysql_fetch_array($stelle);
+	
+	foreach ($row as $key => $value) {
+		$$key = strip_tags(stripslashes(stripslashes(stripslashes($value))));
+	}
+
+	$stellenid = $id;
+	$bereich = $spalte;
+}
+
+// externe Seite?
+if ($templateid != 0) {
+	$template = mysql_db_query($database_db,'SELECT id,template FROM stellentemplates WHERE id = '.$templateid,$praktdbslave);
+	
+	/* Template holen */
+	if (($template != false) && (mysql_num_rows($template) > 0)) {
+		$row = mysql_fetch_assoc($template);
+		
+		$htmlBody = $row['template'];
+	} else {
+		die('<p class="error">Bitte w&auml;hlen Sie zuerst ein Template aus.<br /><a href="/firmen/stelle/layout/'.$stellenid.'/">Zur Templatewahl</a></p>');
+	}
+}
+
+echo '<script type="text/javascript">'."\n";
+echo '	function showDiv1(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungperemail\').checked == true) {'."\n";
+echo '			document.getElementById(\'email_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'email_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'email_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '	function showDiv2(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungpertel\').checked == true) {'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'tel_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '	function showDiv3(value) {'."\n";
+echo '		if (document.getElementById(\'bewerbungpereigen\').checked == true) {'."\n";
+echo '			document.getElementById(\'link_bewerbung\').readOnly = false;'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.background = \'#ffffff\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.color = \'#000000\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.borderColor = \'#000000\';'."\n";
+echo '		} else {'."\n";
+echo '			document.getElementById(\'link_bewerbung\').readOnly = true;'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.background = \'#eeeeee\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.color = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').style.borderColor = \'#dddddd\';'."\n";
+echo '			document.getElementById(\'link_bewerbung\').value = \'\';'."\n";
+echo '		}'."\n";
+echo '	}'."\n";
+echo '</script>'."\n";
+echo '<form method="post" id="jobAdvertisementForm" action="http'.((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/firmen/stelle/content/'.$stellenid.'/">'."\n";
+
+if ($templateid != 0) {
+	if ($bereich == SECTION_PRAKTIKUM) {
+		echo '	<h3>Praktikumsstelle</h3>'."\n";
+	} elseif ($bereich == SECTION_DIPLOM) {
+		echo '	<h3>Beschreibung des Diplomthemas</h3>'."\n";
+	} elseif ($bereich == SECTION_BERUFSEINSTIEG) {
+		echo '	<h3>Stellenbeschreibung</h3>'."\n";
+	} elseif ($bereich == SECTION_AUSBILDUNG) {
+		echo '	<h3>Ausbildungsbeschreibung</h3>'."\n";
+	} elseif ($bereich == SECTION_NEBENJOB) {
+		echo '	<h3>Nebenjobbeschreibung</h3>'."\n";
+	}
+
+	echo '	<script type="text/javascript" src="/scripts/ajax/edit_content.js"></script>'."\n";
+	echo '	<fieldset class="stellenlayout">'."\n";
+	
+	$logo = mysql_db_query($database_db,'SELECT uri FROM bilddateien WHERE firmenid = '.$_SESSION['s_firmenid'].' AND dateiname = \'resultlogo.gif\'',$praktdbmaster);
+	
+	if ($logo != false && mysql_num_rows($logo) > 0) {
+		$row = mysql_fetch_assoc($logo);
+		
+		$logoPath = $row['uri'];
+	} else {
+		$logoPath = '/gifs/zentralelemente/logo.png';
+	}
+	
+	$firmenlogoHTML = '<img src="'.$logoPath.'" alt="Firmenlogo" /><br /><a href="/firmen/logo_upload/'.$stellenid.'/" title="Logo" onclick="return GB_showCenter(\'\',this.href,600,450)" style="clear: both;"><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></a>'."\n";
+	
+	$firmeninfosHeadHTML = '
+			<div>
+				<div id="firmeninfosHead_rg">
+					<div onclick="regulars(\'firmeninfosHead\')" class="text">
+						<div id="firmeninfosHead_rg_display_section">'.((isset($firmeninfosHead) && !empty($firmeninfosHead)) ? $firmeninfosHead : 'PLATZHALTER Unser Unternehmen').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmeninfosHead_hv" style="display: none;">
+					<div>
+						<div id="firmeninfosHead_hv_editing_section">
+							<input type="text" id="firmeninfosHead" name="firmeninfosHead" value="'.(isset($firmeninfosHead) ? $firmeninfosHead : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmeninfosHead\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmeninfosHead\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmeninfosHead_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmentaetigkeitHeadHTML = '
+			<div>
+				<div id="firmentaetigkeitHead_rg">
+					<div onclick="regulars(\'firmentaetigkeitHead\')" class="text">
+						<div id="firmentaetigkeitHead_rg_display_section">'.((isset($firmentaetigkeitHead) && !empty($firmentaetigkeitHead)) ? $firmentaetigkeitHead : 'PLATZHALTER T&auml;tigkeit').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmentaetigkeitHead_hv" style="display: none;">
+					<div>
+						<div id="firmentaetigkeitHead_hv_editing_section">
+							<input type="text" id="firmentaetigkeitHead" name="firmentaetigkeitHead" value="'.(isset($firmentaetigkeitHead) ? $firmentaetigkeitHead : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmentaetigkeitHead\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmentaetigkeitHead\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmentaetigkeitHead_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenqualiHeadHTML = '
+			<div>
+				<div id="firmenqualiHead_rg">
+					<div onclick="regulars(\'firmenqualiHead\')" class="text">
+						<div id="firmenqualiHead_rg_display_section">'.((isset($firmenqualiHead) && !empty($firmenqualiHead)) ? $firmenqualiHead : 'PLATZHALTER Qualifikation').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenqualiHead_hv" style="display: none;">
+					<div>
+						<div id="firmenqualiHead_hv_editing_section">
+							<input type="text" id="firmenqualiHead" name="firmenqualiHead" value="'.(isset($firmenqualiHead) ? $firmenqualiHead : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenqualiHead\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenqualiHead\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenqualiHead_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenperspHeadHTML = '
+			<div>
+				<div id="firmenperspHead_rg">
+					<div onclick="regulars(\'firmenperspHead\')" class="text">
+						<div id="firmenperspHead_rg_display_section">'.((isset($firmenperspHead) && !empty($firmenperspHead)) ? $firmenperspHead : 'PLATZHALTER Perspektiven').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenperspHead_hv" style="display: none;">
+					<div>
+						<div id="firmenperspHead_hv_editing_section">
+							<input type="text" id="firmenperspHead" name="firmenperspHead" value="'.(isset($firmenperspHead) ? $firmenperspHead : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenperspHead\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenperspHead\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenperspHead_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenkontaktHeadHTML = '
+			<div>
+				<div id="firmenkontaktHead_rg">
+					<div onclick="regulars(\'firmenkontaktHead\')" class="text">
+						<div id="firmenkontaktHead_rg_display_section">'.((isset($firmenkontaktHead) && !empty($firmenkontaktHead)) ? $firmenkontaktHead : 'PLATZHALTER Kontaktaufnahme').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenkontaktHead_hv" style="display: none;">
+					<div>
+						<div id="firmenkontaktHead_hv_editing_section">
+							<input type="text" id="firmenkontaktHead" name="firmenkontaktHead" value="'.(isset($firmenkontaktHead) ? $firmenkontaktHead : '').'" maxlength="100" size="100" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenkontaktHead\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenkontaktHead\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenkontaktHead_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmeninfosHTML = '
+			<div>
+				<div id="firmeninfos_rg">
+					<div onclick="regulars(\'firmeninfos\')" class="text">
+						<div id="firmeninfos_rg_display_section">'.((isset($firmeninfos) && !empty($firmeninfos)) ? nl2br($firmeninfos) : 'PLATZHALTER Text zum Unternehmen').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmeninfos_hv" style="display: none;">
+					<div>
+						<div id="firmeninfos_hv_editing_section">
+							<textarea rows="10" cols="20" id="firmeninfos" name="firmeninfos">'.(isset($firmeninfos) ? str_replace('<br />', '\n', $firmeninfos) : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmeninfos\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmeninfos\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmeninfos_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmentaetigkeitHTML = '
+			<div>
+				<div id="firmentaetigkeit_rg">
+					<div onclick="regulars(\'firmentaetigkeit\')" class="text">
+						<div id="firmentaetigkeit_rg_display_section">'.((isset($firmentaetigkeit) && !empty($firmentaetigkeit)) ? nl2br($firmentaetigkeit) : 'PLATZHALTER Text zur T&auml;tigkeit').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmentaetigkeit_hv" style="display: none;">
+					<div>
+						<div id="firmentaetigkeit_hv_editing_section">
+							<textarea rows="10" cols="10" id="firmentaetigkeit" name="firmentaetigkeit">'.(isset($firmentaetigkeit) ? str_replace('<br />', '\n', $firmentaetigkeit) : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmentaetigkeit\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmentaetigkeit\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmentaetigkeit_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenqualiHTML = '
+			<div>
+				<div id="firmenquali_rg">
+					<div onclick="regulars(\'firmenquali\')" class="text">
+						<div id="firmenquali_rg_display_section">'.((isset($firmenquali) && !empty($firmenquali)) ? nl2br($firmenquali) : 'PLATZHALTER Text zu den Qualifiaktionen').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenquali_hv" style="display: none;">
+					<div>
+						<div id="firmenquali_hv_editing_section">
+							<textarea rows="10" cols="10" id="firmenquali" name="firmenquali">'.(isset($firmenquali) ? str_replace('<br />', '\n', $firmenquali) : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenquali\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenquali\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenquali_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenperspHTML = '
+			<div>
+				<div id="firmenpersp_rg">
+					<div onclick="regulars(\'firmenpersp\')" class="text">
+						<div id="firmenpersp_rg_display_section">'.((isset($firmenpersp) && !empty($firmenpersp)) ? nl2br($firmenpersp) : 'PLATZHALTER Text zu den Perspektiven').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenpersp_hv" style="display: none;">
+					<div>
+						<div id="firmenpersp_hv_editing_section">
+							<textarea rows="10" cols="10" id="firmenpersp" name="firmenpersp">'.(isset($firmenpersp) ? $firmenpersp : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenpersp\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenpersp\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenpersp_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$firmenkontaktHTML = '
+			<div style="color: inherit;">
+				<div id="firmenkontakt_rg">
+					<div onclick="regulars(\'firmenkontakt\')" class="text">
+						<div id="firmenkontakt_rg_display_section">'.((isset($firmenkontakt) && !empty($firmenkontakt)) ? nl2br($firmenkontakt) : 'PLATZHALTER Text zum Kontakt des Unternehmens').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="firmenkontakt_hv" style="display: none;">
+					<div>
+						<div id="firmenkontakt_hv_editing_section">
+							<textarea rows="10" cols="10" id="firmenkontakt" name="firmenkontakt">'.(isset($firmenkontakt) ? str_replace('<br />', '\n', $firmenkontakt) : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'firmenkontakt\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'firmenkontakt\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="firmenkontakt_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$jobcodeHTML = '
+			<div>
+				<div id="jobcode_rg">
+					<div onclick="regulars(\'jobcode\')" class="text">
+						<div id="jobcode_rg_display_section">'.((isset($jobcode) && !empty($jobcode)) ? $jobcode : 'PLATZHALTER Stellencode').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="jobcode_hv" style="display: none;">
+					<div>
+						<div id="jobcode_hv_editing_section">
+							<input type="text" id="jobcode" name="jobcode" value="'.((isset($jobcode) && !empty($jobcode)) ? $jobcode : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'jobcode\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'jobcode\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="jobcode_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$taetigkeitHTML = '
+			<div>
+				<div id="taetigkeit_rg">
+					<div onclick="regulars(\'taetigkeit\')" class="text">
+						<div id="taetigkeit_rg_display_section">'.((isset($taetigkeit) && !empty($taetigkeit)) ? $taetigkeit : 'PLATZHALTER Text zur Stellenbezeichnung').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="taetigkeit_hv" style="display: none;">
+					<div>
+						<div id="taetigkeit_hv_editing_section">
+							<input type="text" id="taetigkeit" name="taetigkeit" value="'.(isset($taetigkeit) ? $taetigkeit : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'taetigkeit\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button> <div class="or">oder</div> <button type="button" onclick="cancel(\'taetigkeit\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="taetigkeit_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$subtitleHTML = '
+			<div>
+				<div id="subtitle_rg">
+					<div onclick="regulars(\'subtitle\')" class="text">
+						<div id="subtitle_rg_display_section">'.((isset($subtitle) && !empty($subtitle)) ? $subtitle : 'PLATZHALTER Text zur erweiterten Stellenbezeichnung').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="subtitle_hv" style="display: none;">
+					<div>
+						<div id="subtitle_hv_editing_section">
+							<input type="text" id="subtitle" name="subtitle" value="'.(isset($subtitle) ? $subtitle : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'subtitle\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'subtitle\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="subtitle_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$entgeltHTML = '
+			<div>
+				<div id="entgelt_rg">
+					<div onclick="regulars(\'entgelt\')" class="text">
+						<div id="entgelt_rg_display_section">'.((isset($entgelt) && !empty($entgelt)) ? $entgelt : 'PLATZHALTER Text zur Verg&uuml;tung').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="entgelt_hv" style="display: none;">
+					<div>
+						<div id="entgelt_hv_editing_section">
+							<input type="text" id="entgelt" name="entgelt" value="'.(isset($entgelt) ? $entgelt : '').'" maxlength="255" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'entgelt\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'entgelt\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="entgelt_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$beschreibungHTML = '
+			<div>
+				<div id="beschreibung_rg">
+					<div onclick="regulars(\'beschreibung\')" class="text">
+						<div id="beschreibung_rg_display_section">'.((isset($beschreibung) && !empty($beschreibung)) ? nl2br($beschreibung) : 'PLATZHALTER Text zum Unternehmen').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="beschreibung_hv" style="display: none;">
+					<div>
+						<div id="beschreibung_hv_editing_section">
+							<textarea rows="10" cols="20" id="beschreibung" name="beschreibung">'.(isset($beschreibung) ? str_replace('<br />', '\n', $beschreibung) : '').'</textarea> <br />
+							<button type="button" onclick="get(this.parentNode,\'beschreibung\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'beschreibung\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="beschreibung_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$flashHTML = '
+			<div>
+				<div id="flash_rg">
+					<div onclick="regulars(\'flash\')" class="text">
+						<div id="flash_rg_display_section">'.((isset($flash) && !empty($flash)) ? htmlspecialchars_decode(str_replace('\\','',$flash)) : 'Flash-Video (URL oder embedded Object von Youtube z.B.)').'<br /><img src="/gifs/bcenter/bearbeiten.gif" alt="bearbeiten" /></div>
+					</div>
+				</div>
+				<div id="flash_hv" style="display: none; width: 425px">
+					<div>
+						<div id="flash_hv_editing_section">
+							<input type="text" id="flash" name="flash" value="'.(isset($flash) ? str_replace('\\','',$flash) : '').'" class="text" /> <br />
+							<button type="button" onclick="get(this.parentNode,\'flash\','.$stellenid.')"><span><span><span>SPEICHERN</span></span></span></button><button type="button" onclick="cancel(\'flash\')"><span><span><span>ABBRECHEN</span></span></span></button>
+						</div>
+						<div id="flash_hv_saving_section" class="savingAjaxWithBackground">Saving...</div>
+					</div>
+				</div>
+			</div>'."\n";
+	
+	$markerArray = array(
+							'###LOGO###',
+							'###FLASH###',
+							'###FIRMENINFOS_HEAD###',
+							'###FIRMENTAETIGKEIT_HEAD###',
+							'###FIRMENQUALI_HEAD###',
+							'###FIRMENPERSP_HEAD###',
+							'###FIRMENKONTAKT_HEAD###',
+							'###FIRMENINFOS###',
+							'###FIRMENTAETIGKEIT###',
+							'###FIRMENQUALI###',
+							'###FIRMENPERSP###',
+							'###FIRMENKONTAKT###',
+							'###JOBCODE###',
+							'###TAETIGKEIT###',
+							'###SUBTITLE###',
+							'###ENTGELT###',
+							'###BESCHREIBUNG###',
+							'###DATUM###'
+						);
+	$replaceArray = array(
+							$firmenlogoHTML,
+							$flashHTML,
+							$firmeninfosHeadHTML,
+							$firmentaetigkeitHeadHTML,
+							$firmenqualiHeadHTML,
+							$firmenperspHeadHTML,
+							$firmenkontaktHeadHTML,
+							$firmeninfosHTML,
+							$firmentaetigkeitHTML,
+							$firmenqualiHTML,
+							$firmenperspHTML,
+							$firmenkontaktHTML,
+							$jobcodeHTML,
+							$taetigkeitHTML,
+							$subtitleHTML,
+							$entgeltHTML,
+							$beschreibungHTML,
+							'Aktuell seit: '.date('d.m.Y', strtotime($modify))
+						);
+
+	$javascript = 'if(document.getElementById(id).innerHTML == \'\' || document.getElementById(id).innerHTML == \'undefined\') document.getElementById(id).style.display=\'none\';';
+	
+	$htmlBody = substr($htmlBody,strpos($htmlBody,'<body'));
+	$htmlBody = substr($htmlBody,strpos($htmlBody,'>') + 1,strpos($htmlBody,'</body>') - 6);
+	$htmlBody = str_replace($javascript,'',$htmlBody);
+	$htmlBody = str_replace('</body>','',$htmlBody);
+	$htmlBody = str_replace('</html>','',$htmlBody);
+	
+	echo str_replace($markerArray,$replaceArray,$htmlBody);
+	
+	echo '	</fieldset>'."\n";
+
+} else {
+	echo '	<h4>Link zur Stellenanzeige</h4>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '	  <p>'."\n";
+	echo '	    <label for="taetigkeit">Taetigkeit:</label>'."\n";
+	echo '	    <input value="'.((isset($taetigkeit) && !empty($taetigkeit) ) ? $taetigkeit : 'PLATZHALTER Text zur Stellenbezeichnung').'" id="taetigkeit" name="taetigkeit" maxlength="255" type="text" />'."\n";
+	echo '	  </p>'."\n";
+	echo '	  <p>'."\n";
+	echo '	    <label for="link_anzeige"'.( ($firmenlevel < 2) ? ' title="Auswahl erst ab Komfort m&ouml;glich"' : ( (isset($link_anzeige_abfr) && $link_anzeige_abfr == 'false' ) ? ' title="Dazu m&uuml;ssen Sie externe Seite unter Layout w&auml;hlen"' : '') ).'>Link zur Ihrer Stellenanzeige:</label>'."\n";
+	echo '	    <input'.( (isset($link_anzeige_abfr) && $link_anzeige_abfr == 'false' ) ? ' disabled="disabled" value="Dazu m&uuml;ssen Sie externe Seite w&auml;hlen"' : ((isset($link_anzeige) && !empty($link_anzeige) ) ? ' value="'.$link_anzeige.'"' : ' value="http://"') ).' id="link_anzeige" name="link_anzeige" maxlength="255" type="text" />'."\n";
+	echo '	  </p>'."\n";
+	echo '	</fieldset>'."\n";
+}
+
+$bearbeiter = mysql_db_query($database_db,'SELECT id,anrede,vname,name,email,abttelefon FROM bearbeiter WHERE firmenid='.$_SESSION['s_firmenid'],$praktdbslave);
+if ($bearbeiter != false) {
+	$anz_bearbeiter = mysql_num_rows($bearbeiter);
+} else {
+	$anz_bearbeiter = 0;
+}
+
+echo '	<h4>Wie m&ouml;chten Sie Ihre Bewerbungen erhalten?</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p class="checkboxes">'."\n";
+echo '			<input type="checkbox" id="bewerbungperonline" name="bewerbungperonline" value="true"'.((isset($bewerbungperonline) && $bewerbungperonline == 'true') ? ' checked="checked"' : '').' />'."\n";
+echo '			<label for="bewerbungperonline" title="Ausw&auml;hlen">praktika.de Online-Bewerbungsmappe</label>'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes">'."\n";
+echo '			<input type="checkbox" id="bewerbungperpost" name="bewerbungperpost" value="true"'.((isset($bewerbungperpost) && $bewerbungperpost == 'true') ? ' checked="checked"' : '').' />'."\n";
+echo '			<label for="bewerbungperpost" title="Ausw&auml;hlen">per Post</label>'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungperemail" name="bewerbungperemail" value="true"'.((isset($bewerbungperemail) && $bewerbungperemail == 'true') ? ' checked="checked"' : '').' onclick="showDiv1(this.value);" />'."\n";
+echo '			<label for="bewerbungperemail" class="bewerbung_firma" title="Ausw&auml;hlen">per E-Mail</label> <input type="text" id="email_bewerbung" name="email_bewerbung" value="'.((isset($email_bewerbung) && !empty($email_bewerbung)) ? $email_bewerbung : htmlspecialchars(mysql_result($bearbeiter,0,'email'))).'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungperemail) && $bewerbungperemail == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungpertel" name="bewerbungpertel" value="true"'.((isset($bewerbungpertel) && $bewerbungpertel == 'true') ? ' checked="checked"' : '').' onclick="showDiv2(this.value);" />'."\n";
+echo '			<label for="bewerbungpertel" class="bewerbung_firma" title="Ausw&auml;hlen">per Telefon</label> <input type="text" id="tel_bewerbung" name="tel_bewerbung" value="'.((isset($tel_bewerbung) && !empty($tel_bewerbung)) ? $tel_bewerbung : htmlspecialchars(mysql_result($bearbeiter,0,'abttelefon'))).'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungpertel) && $bewerbungpertel == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+echo '		<p class="checkboxes clearfix">'."\n";
+echo '			<input type="checkbox" id="bewerbungpereigen" name="bewerbungpereigen" value="true"'.( ($firmenlevel < 2) ? ' disabled="disabled"' : ( (isset($bewerbungpereigen) && $bewerbungpereigen == 'true') ? ' checked="checked"' : '') ).' onclick="showDiv3(this.value);" />'."\n";
+echo '			<label for="bewerbungpereigen" class="bewerbung_firma" title="'.( ($firmenlevel < 2) ? 'Auswahl erst ab Komfort m&ouml;glich': 'Ausw&auml;hlen' ).'">&uuml;ber Unternehmenswebseite</label> <input type="text" id="link_bewerbung" name="link_bewerbung" value="'.((isset($link_bewerbung) && !empty($link_bewerbung)) ? $link_bewerbung : '').'" maxlength="255" class="bewerbung_firma'.((isset($bewerbungpereigen) && $bewerbungpereigen == 'true') ? ' enabled"' : ' disabled" readonly="readonly"').' />'."\n";
+echo '		</p>'."\n";
+
+echo '	</fieldset>'."\n";
+
+echo '	<h4>Ansprechpartner für diese Stelle</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="ansprechpartnerid">Bewerbung an:</label>'."\n";
+echo '			<select id="ansprechpartnerid" name="ansprechpartnerid">'."\n";
+
+$i = 0;
+while ($i < $anz_bearbeiter) {
+	$html = htmlspecialchars(mysql_result($bearbeiter,$i,'name')).', '.htmlspecialchars(mysql_result($bearbeiter,$i,'vname'));
+	echo '				<option ';
+	if (isset($ansprechpartnerid)) {
+		if  (mysql_result($bearbeiter,$i,'id') == $ansprechpartnerid) {
+			echo 'selected="selected" ';
+		}
+	}
+	echo 'value="'.mysql_result($bearbeiter,$i,'id').'">'.$html.'</option>'."\n";
+	
+	$i++;
+};
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";		
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<input type="hidden" id="stellenid" name="stellenid" value="'.$stellenid.'" />'."\n";
+echo '			<button type="submit" name="preview" value="Vorschau"><span><span><span>VORSCHAU</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="weiter"><span><span><span>WEITER</span></span></span></button>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+
+if ( isset($_POST['preview']) ) {
+	if (!isset($_POST['link_bewerbung']) || empty($_POST['link_bewerbung'])) {
+?>
+		<script type="text/javascript">
+		<!--
+		if(document.getElementById('flash_rg') != null) document.getElementById('flash_rg').style.display = 'none';
+		if((document.getElementById('flash_rg_display_section') != null) && (document.getElementById('flash_rg_display_section').innerHTML.match(/^<script/))) document.getElementById('flash_rg_display_section').innerHTML = '';
+		PB_showFullScreen('', '/greybox.phtml?url=/firmen/stelle/vorschau/' + <?= $_GET['id'] ?> + '/');
+		if(document.getElementById('flash_rg') != null) document.getElementById('flash_rg').style.display = '';
+		-->
+		</script>
+<?php
+	} else {
+?>
+		<script type="text/javascript">
+		<!--
+			PB_showFullScreen('', '/greybox.phtml?url='+<?=$_POST['link_bewerbung'] ?>);
+		-->
+		</script>
+<?php
+	}
+}
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

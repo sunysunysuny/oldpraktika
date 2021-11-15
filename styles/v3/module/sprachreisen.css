@@ -1,0 +1,255 @@
+/* header styles - begin */
+
+div#main div#content div#header_image {
+	background: url('/styles/images/sprachreisen.jpg') no-repeat;
+	height: 273px;
+	margin-bottom: 20px;
+}
+div#main div#content div#header_image h1 {
+	color: #fff;
+	font-weight: bold;
+	font-size: 25px;
+	padding: 40px 0 0 45px;
+}
+div#main div#content div#header_image p {
+	padding-left: 45px;
+	line-height: 13px;
+}
+div#main div#content div#header_image p.white {
+	color: #fff;
+	font-size: 13px;
+	font-weight: bold;
+}
+div#main div#content div#header_image p.blue {
+	font-size: 13px;
+	font-weight: bold;
+	color: #047;
+	line-height: 16px;
+	
+}
+div#main div#content div#header_image p.blue span.bold {
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+}
+div#main div#content div#header_image p.blue span.normal {
+	font-weight: normal;
+}
+div#main div#content div#header_image div p {
+	margin: 34px 0 0 0;
+	padding-left: 0;
+}
+div#main div#content div#header_image div p img {
+	float: left;
+	margin: -3px 10px 0 10px;
+}
+div#main div#content div#header_image p a {
+	font: inherit;
+}
+
+/* header styles - end */
+
+
+/* programmvorschau styles - begin */
+
+div#main div#sprachreise_vorschau li {
+	height: 190px;
+	width: 232px;
+	margin: 0 20px 20px 0;
+	float: left;
+	text-align: left;
+	background: url('/styles/images/sprachreisen/li_bg.png') no-repeat bottom;
+	color: #777;
+}
+div#main div#sprachreise_vorschau li p {
+	font-size: 11px;
+	padding: 5px 10px 0 10px ;
+	line-height: 13px;
+}
+div#main div#sprachreise_vorschau li p a {
+	margin-top: -6px;
+}
+div#main div#sprachreise_vorschau li a {
+	font-size: 13px;
+	float: left;
+	width: 220px;
+	padding: 0 0 5px 0;
+	text-decoration: none;
+
+}
+div#main div#sprachreise_vorschau li span {
+	font-size: 15px;
+	font-weight: bold;
+	line-height: 14px;
+}
+div#main div#sprachreise_vorschau li.last {
+	margin: 0 0 20px 0;
+}
+div#main div#sprachreise_vorschau li.empty {
+	background: none;
+	border: 1px solid #eee;
+	width: 230px;
+	height: 188px;
+}
+
+/* programmvorschau styles - end */
+
+
+/* other styles - begin */
+
+div#main form label.email {
+	width: auto;
+}
+div#main div#content form#information fieldset {
+	float: left;
+}
+div#main div#content form#information fieldset input.email {
+	margin-left: 0;
+}
+div#main div#content form#information fieldset.control_panel input {
+	margin-left: 10px;
+	margin-top: 34px;
+}
+div.csc-textpic-single-image img {
+	margin-top: 25px;
+}
+div.csc-textpic-text h1 {
+	margin-top: 10px;
+}
+
+/* other styles - end */
+
+
+/* Buchung - begin */
+
+div#main form fieldset p span#sonstiges,
+div#main form fieldset p span#unterkunft,
+div#main form fieldset p span#verbesserungen {
+	float: right;
+	width: 450px;
+}
+div#main form fieldset p span#verbesserungen input,
+div#main form fieldset p span#unterkunft input,
+div#main form fieldset p span.aufmerksam label.komplette_breite input.radio {
+	border: none;
+}
+div#main form fieldset p label.bemerkungen {
+	width: auto;
+}
+div#main form fieldset p span#unterkunft label,
+div#main form fieldset p span#verbesserungen label {
+	width: 300px;
+}
+div#main form fieldset p span#other_stay {
+	display: block;
+	margin-left: 203px;
+	margin-bottom: 15px;
+}
+div#main form fieldset p span#other_stay {
+	margin-left: 205px;
+	padding-top: 10px;
+	clear: both;
+}
+div#main form fieldset p span#andere,
+div#main form fieldset p span#sonstiges {
+	display: block;
+	margin-left: 190px;
+	margin-top: 10px;
+}
+div#main form fieldset p span#andere label,
+div#main form fieldset p span#other_stay label,
+div#main form fieldset p span#sonstiges label {
+	margin: 3px 5px 0 0;
+	width: auto;
+}
+div#main form fieldset p span#andere input {
+	width: auto;
+}
+div#main form fieldset div#flugdaten1,
+div#main form fieldset div#flugdaten2 {
+	overflow: hidden;
+	padding: 10px;
+}
+div#main form fieldset span.aufmerksam {
+	display: block;
+	padding-left: 10px;
+}
+
+/* Buchung - end */
+
+
+/* sidebar subpages - begin */
+
+ul.col_1 {
+	margin-left: -7px;	
+}
+ul.col_1,
+ul.col_2 {
+	width: 49%;
+	margin-top: 5px;
+}
+ul.col_1 li,
+ul.col_2 li {
+	border: 1px solid #ddd;
+	border-bottom: 0;
+	margin: 0;
+	text-align: center;
+}
+ul.col_1 li.last,
+ul.col_2 li.last {
+	border-bottom: 1px solid #ddd;
+}
+ul.col_1 li a,
+ul.col_2 li a {
+	background: #eee;
+
+	/* IE10 */ 
+	background-image: -ms-linear-gradient(top, #fff 0%, #eee 100%);
+
+	/* Mozilla Firefox */ 
+	background-image: -moz-linear-gradient(top, #fff 0%, #eee 100%);
+
+	/* Opera */ 
+	background-image: -o-linear-gradient(top, #fff 0%, #eee 100%);
+
+	/* Webkit (Safari/Chrome 10) */ 
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #fff), color-stop(1, #eee));
+
+	/* Webkit (Chrome 11+) */ 
+	background-image: -webkit-linear-gradient(top, #fff 0%, #eee 100%);
+
+	/* Proposed W3C Markup */ 
+	background-image: linear-gradient(top, #fff 0%, #eee 100%);
+
+	/* For Internet Explorer 5.5 - 7 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#ffffffff, endColorstr=#ffeeeeee);
+
+	/* For Internet Explorer 8 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#ffffffff, endColorstr=#ffeeeeee)";
+
+	padding: 5px;
+	display: block;
+	text-decoration: none;
+}
+div#sidebar div.service_center h3 {
+	color: #000;
+	font-weight: normal;
+	margin: 0;
+	font-size: 22px;
+}
+div#sidebar div.service_center p#telefonnummer span {
+	font-weight:bold;
+	font-size:14px;
+}
+div#sidebar div.service_center p {
+	margin-top: 9px;
+	line-height: 16px;
+	font-size: 12px;	
+}
+ul.col_1 li a, ul.col_2 li a {
+    padding: 4px 5px 5px;
+}
+div#sidebar .service_center_alternative {
+    height: 215px;
+}
+/* sidebar subpages - end */

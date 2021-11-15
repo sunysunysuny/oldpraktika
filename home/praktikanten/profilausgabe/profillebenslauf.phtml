@@ -1,0 +1,496 @@
+<?
+ $miniwindow = "yes";
+ $noadvertise = "yes";
+ $sprachbasisdatei="/home/praktikanten/previewlebenslauf.phtml";
+ require("/home/praktika/etc/config.inc.php");
+?>
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+<LINK REL="SHORTCUT ICON" HREF="/favicon.ico">
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+</HEAD>
+ 
+ 
+<? bodyon(session_id(), $s_sprache); 
+
+/* Check, ob berechtigt */
+if (($s_firmenlevel <2 && $s_loggedin<>"yes") && ($s_loggedinnutzer<>"yes" && $id <>$s_nutzerid)) {
+
+?>
+<script language="JavaScript">
+<!--
+window.close();
+//-->
+</script>
+<?
+	
+}	
+/* Check, ob berechtigt ENDE */
+
+?>
+<CENTER>
+  <BR>
+<H2><i><? echo strtoupper($language ["strLebenslauf"]); ?></i></H2>
+<? 
+if ($id != "") {
+$result = mysql($database_db,"select *,date_format(geburtsdatum, '%d') as tag, date_format(geburtsdatum, '%m') as monat, date_format(geburtsdatum, '%Y') as jahr, date_format(modify, '%d.%m.%Y') as datum from nutzer where id=$id",$praktdbslave);
+$fetch = mysql_fetch_array($result);
+$sprachid=$bewerbsprache;
+if ($sprachid==0 || $sprachid=="") $sprachid=$s_sprachid;
+echo '<script language="JavaScript">
+<!--
+	window.focus();
+//-->
+</script>
+';
+} 
+
+if (($s_firmenlevel <2 && $s_loggedin<>"yes") && ($s_loggedinnutzer<>"yes" && $id <>$s_nutzerid)) {
+
+    echo "<CENTER><b>Ihre Abfrage ist ung�ltig !</b></CENTER>";
+
+}else{
+
+
+$landid=$fetch["land"];
+$land=mysql($database_db,"select german from land where id=$landid",$praktdbslave);
+
+?>
+  <TABLE WIDTH="660" BORDER="0">
+    <TR> 
+      <TD COLSPAN="3" ALIGN="LEFT" HEIGHT="35"><B><? echo $language ["strDaten"]; ?></B></TD>
+    </TR>
+<?
+if ($einstellungen=="false") {
+    echo "<TR><TD class=\"hauptseite\" colspan=\"3\">(Der Bewerber m�chte bis zu der ersten Kontaktaufnahme anonym bleiben. Bitte haben Sie hierf�r Verst�ndnis.)<br><bR></TD></TR>";
+} ?>
+
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strName"]; ?></TD>
+<? if ($einstellungen=="false") { ?>
+      <TD width="60">&nbsp;</TD>
+      <TD VALIGN="LEFT" ALIGN="LEFT">Chiffre Nummer: #<? echo $id; ?></TD>
+<? } else { ?>
+      <TD width="60">&nbsp;</TD>
+      <TD VALIGN="LEFT" ALIGN="LEFT"><? if (!$fetch["titel"] == "") echo $fetch["titel"] . " "; echo $fetch["vname"] . " " . $fetch["name"] ?></TD>
+<? } ?>
+    </TR>
+<? if ($einstellungen=="true") { ?>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strAnschrift"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetch["strasse"] ?>, <? echo $fetch["plz"] . " " . $fetch["ort"] ?></TD>
+    </TR>
+<? } ?>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strGDatum"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetch["tag"] ?>.<? echo $fetch["monat"] ?>.<? echo $fetch["jahr"] ?></TD>
+    </TR>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strGOrt"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetch["gebort"] ?></TD>
+    </TR>
+<? if ($einstellungen=="true") { ?>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strTelefon"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetch["tel"] ?></TD>
+    </TR>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strEmail"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><A href="mailto:<? echo $fetch["email"] ?>"><? echo $fetch["email"] ?></TD>
+    </TR>
+    <TR><TD colspan="3"><br></TD></TR>
+<? } 
+if ($fetch["famstand"] != "" && $fetch["famstand"] != "anderer") { ?>
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strFamilienstand"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetch["famstand"] ?></TD>
+    </TR>
+<? } ?>    
+    <TR> 
+      <TD WIDTH="153"><? echo $language ["strStaat"]; ?></TD>
+      <TD width="10">&nbsp;</TD>
+      <TD><? echo mysql_result($land,0,"german"); ?></TD>
+    </TR>
+    <TR> 
+      <TD WIDTH="133">&nbsp;</TD>
+      <TD>&nbsp;</TD>
+      <TD>&nbsp;</TD>
+    </TR>
+    <TR> 
+      <TD WIDTH="133">&nbsp;</TD>
+      <TD>&nbsp;</TD>
+      <TD>&nbsp;</TD>
+    </TR>
+
+<? 
+// Ab hier werden die Proffile ausgelesen
+
+$result2 = mysql($database_bprofil,"select * from profil_schule where nutzerid=$id AND sprachid=$sprachid",$praktdbslave);
+$fetchschule = mysql_fetch_array($result2);
+if (mysql_num_rows($result2)>0) { 
+
+/* TEST OB SCHULAUSBILDUNG AUSGEF�LLT WURDE */
+if ($fetchschule["jahr"] != "" && $fetchschule["jahrb"] != "" && $fetchschule["schule"] != "") {
+?>
+    <TR> 
+      <TD colspan="3"><b>Schulausbildung:</b></TD>
+    </TR>
+    <TR> 
+      <TD valign="top"><? echo $fetchschule["jahr"] ." - ".$fetchschule["jahrb"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetchschule["schule"]; ?>
+      <? if ($fetchschule["abschluss"] !=0 && $fetchschule["s_ergebnis"] != "nicht abgeschlossen" && $fetchschule["s_ergebnis"] != "") {
+      	$abschluss=$fetchschule["abschluss"];
+      	$abschlusser = mysql($database_db,"select qualifikation from qualifikation where id=$abschluss",$praktdbslave);
+         echo "<br> ".mysql_result($abschlusser,0,"qualifikation")." mit Note: ".$fetchschule["s_ergebnis"]; }?>
+      </TD>
+    </TR>
+
+<? if ($fetchschule["jahr2"] != "" && $fetchschule["jahrb2"] != "" && $fetchschule["schule2"] != "") { ?>
+    <TR> 
+      <TD valign="top"><? echo $fetchschule["jahr2"] ." - ".$fetchschule["jahrb2"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetchschule["schule2"]; ?>
+      <? if ($fetchschule["abschluss2"] !=0 && $fetchschule["s_ergebnis2"] != "nicht abgeschlossen" && $fetchschule["s_ergebnis2"] != "") {
+      	$abschluss=$fetchschule["abschluss2"];
+      	$abschlusser = mysql($database_db,"select qualifikation from qualifikation where id=$abschluss",$praktdbslave);
+         echo "<br> ".mysql_result($abschlusser,0,"qualifikation")." mit Note: ".$fetchschule["s_ergebnis2"]; }?>
+      </TD>
+    </TR>
+<? }
+
+if ($fetchschule["jahr3"] != "" && $fetchschule["jahrb3"] != "" && $fetchschule["schule3"] != "") { ?>
+    <TR> 
+      <TD valign="top"><? echo $fetchschule["jahr3"] ." - ".$fetchschule["jahrb3"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetchschule["schule3"]; ?>
+      <? if ($fetchschule["abschluss3"] !=0 && $fetchschule["s_ergebnis3"] != "nicht abgeschlossen" && $fetchschule["s_ergebnis3"] != "") {
+      	$abschluss=$fetchschule["abschluss3"];
+      	$abschlusser = mysql($database_db,"select qualifikation from qualifikation where id=$abschluss",$praktdbslave);
+         echo "<br> ".mysql_result($abschlusser,0,"qualifikation")." mit Note: ".$fetchschule["s_ergebnis3"]; }?>
+      </TD>
+    </TR>
+<? } 
+
+if ($fetchschule["jahr4"] != "" && $fetchschule["jahrb4"] != "" && $fetchschule["schule4"] != "") { ?>
+    <TR> 
+      <TD valign="top"><? echo $fetchschule["jahr4"] ." - ".$fetchschule["jahrb4"]; ?></TD>
+      <TD>&nbsp;</TD>
+      <TD><? echo $fetchschule["schule4"]; ?>
+      <? if ($fetchschule["abschluss4"] !=0 && $fetchschule["s_ergebnis4"] != "nicht abgeschlossen" && $fetchschule["s_ergebnis4"] != "") {
+      	$abschluss=$fetchschule["abschluss4"];
+      	$abschlusser = mysql($database_db,"select qualifikation from qualifikation where id=$abschluss",$praktdbslave);
+         echo "<br> ".mysql_result($abschlusser,0,"qualifikation")." mit Note: ".$fetchschule["s_ergebnis4"]; }?>
+      </TD>
+    </TR>
+
+<? }}}
+
+$result3 = mysql($database_bprofil,"select * from profil_berufsausbildung where nutzerid=$id and sprachid=$sprachid",$praktdbslave);
+$fetchberuf = mysql_fetch_array($result3);
+$geschlecht=mysql($database_db,"select anrede from nutzer where id=$id",$praktdbslave);
+if (mysql_num_rows($result3)>0) { 
+
+/* TEST OB BERUFSAUSBILDUNG AUSGEF�LLT WURDE */
+if ($fetchberuf["b_beruf"] != 0 && $fetchberuf["b_arichtung"] != 0 && $fetchberuf["ausbort"] != "" && $fetchberuf["b_jahrv"] != "") {
+?>
+    <TR><TD colspan="3"><br></TD></TR>
+    <TR> 
+      <TD colspan="3"><b>Berufsausbildung:</b></TD>
+    </TR>
+    <TR> 
+      <TD valign="top"><? echo $fetchberuf["b_jahrv"] ." - ".$fetchberuf["b_jahrb"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$beruf=$fetchberuf["b_beruf"];
+if (mysql_result($geschlecht,0,"anrede") == "Herr") {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_mann where id=$beruf",$praktdbslave);
+} else {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_frau where id=$beruf",$praktdbslave);
+} ?>
+
+      <TD>Ausbildungsort: <? echo $fetchberuf["ausbort"]; ?><br><? echo ucfirst($fetchberuf["bildungsmassnahme"]); ?> zu: <? echo mysql_result($berufswahl,0,"berufswahl");
+
+          if ($fetchberuf["b_abschluss"] != "nicht abgeschlossen" && $fetchberuf["b_abschluss"] != "") 
+          {
+           echo "<br>Abschluss mit Note: ".$fetchberuf["b_abschluss"]; }
+if ($fetchberuf["b_arichtung"]>0) {
+$berufsfeldid=$fetchberuf["b_arichtung"];
+$berufsfelder = mysql($database_db,"select * from berufsfelder where id=$berufsfeldid",$praktdbslave);
+ 	echo "<br>Berufsfeld: ".mysql_result($berufsfelder,0,"berufsfeld")."<br>";        
+}         
+         if ($fetchberuf["b_werdegang"] != "") {
+          echo "<br><br>beruflicher Werdegang:<bR> ".$fetchberuf["b_werdegang"]; 
+         }
+         ?>
+        	     
+      </TD>
+    </TR>
+
+<?
+if ($fetchberuf["b_beruf2"] != 0 && $fetchberuf["b_arichtung2"] != "" && $fetchberuf["ausbort2"] != "" && $fetchberuf["b_jahrv2"] != "") { ?>
+    <TR> 
+      <TD valign="top"><? echo $fetchberuf["b_jahrv2"] ." - ".$fetchberuf["b_jahrb2"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$beruf=$fetchberuf["b_beruf2"];
+
+if (mysql_result($geschlecht,0,"anrede") == "Herr") {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_mann where id=$beruf",$praktdbslave);
+} else {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_frau where id=$beruf",$praktdbslave);
+} ?>
+      <TD><? echo $fetchberuf["ausbort2"]; ?><br><? echo ucfirst($fetchberuf["bildungsmassnahme2"]); ?> zu: <? echo mysql_result($berufswahl,0,"berufswahl");
+
+        if ($fetchberuf["b_abschluss2"] != "nicht abgeschlossen" && $fetchberuf["b_abschluss2"] != "") {
+         echo "<br>Abschluss mit Note: ".$fetchberuf["b_abschluss2"]; } 
+if ($fetchberuf["b_arichtung2"]>0) {
+$berufsfeldid=$fetchberuf["b_arichtung2"];
+$berufsfelder = mysql($database_db,"select * from berufsfelder where id=$berufsfeldid",$praktdbslave);
+ 	echo "<br>Berufsfeld: ".mysql_result($berufsfelder,0,"berufsfeld")."<br>";        
+}         
+        if ($fetchberuf["b_werdegang2"] != "") {
+         echo "<br><br>beruflicher Werdegang:<bR> ".$fetchberuf["b_werdegang2"]; }?>
+      </TD>
+    </TR>
+<? } 
+
+if ($fetchberuf["b_beruf3"] != 0 && $fetchberuf["b_arichtung3"] != "" && $fetchberuf["ausbort3"] != "" && $fetchberuf["b_jahrv3"] != "") { ?>
+    <TR> 
+      <TD valign="top"><? echo $fetchberuf["b_jahrv3"] ." - ".$fetchberuf["b_jahrb3"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$beruf=$fetchberuf["b_beruf3"];
+
+if (mysql_result($geschlecht,0,"anrede") == "Herr") {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_mann where id=$beruf",$praktdbslave);
+} else {
+$berufswahl = mysql($database_db,"select berufswahl from berufswahl_frau where id=$beruf",$praktdbslave);
+} ?>
+      <TD><? echo $fetchberuf["ausbort3"]; ?><br><br><? echo ucfirst($fetchberuf["bildungsmassnahme"]); ?> zu: <? echo mysql_result($berufswahl,0,"berufswahl");
+
+        if ($fetchberuf["b_abschluss3"] != "nicht abgeschlossen" && $fetchberuf["b_abschluss3"] != "") {
+         echo "<br>Abschluss mit Note: ".$fetchberuf["b_abschluss3"]; } 
+if ($fetchberuf["b_arichtung3"]>0) {
+$berufsfeldid=$fetchberuf["b_arichtung3"];
+$berufsfelder = mysql($database_db,"select * from berufsfelder where id=$berufsfeldid",$praktdbslave);
+ 	echo "<br>Berufsfeld: ".mysql_result($berufsfelder,0,"berufsfeld")."<br>";        
+}         
+        if ($fetchberuf["b_werdegang3"] != "") {
+         echo "<br><br>beruflicher Werdegang:<bR> ".$fetchberuf["b_werdegang3"]; }?>
+
+      </TD>
+    </TR>
+<? }}}
+
+
+$result4 = mysql($database_bprofil,"select * from profil_studium where nutzerid=$id and sprachid=$sprachid",$praktdbslave);
+$fetchstudium = mysql_fetch_array($result4);
+if (mysql_num_rows($result4)>0) { 
+
+/* TEST OB AKADEMISCHE AUSBILDUNG AUSGEF�LLT WURDE */
+if ($fetchstudium["s_bildungseinrichtung"] != "" && $fetchstudium["studiengang"] != "" && $fetchstudium["hochschule"] != "" && $fetchstudium["a_jahr"] != "") {
+?>
+
+    <TR><TD colspan="3"><br></TD></TR>
+    <TR> 
+      <TD colspan="3"><b>akademische Ausbildung:</b></TD>
+    </TR>
+    <TR> 
+      <TD valign="top"><? echo $fetchstudium["a_jahr"] ." - ".$fetchstudium["a_jahrb"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$studium=$fetchstudium["studiengang"];
+$studienrichtungen = mysql($database_db,"select studiengang from studiengaenge where id=$studium",$praktdbslave);?>
+      <TD>
+        Studiengang: <? echo mysql_result($studienrichtungen,0,"studiengang"); ?><br>Hochschule: <? echo $fetchstudium["hochschule"]; ?><br>
+        <?
+        if ($fetchstudium["s_bildungseinrichtung"] != "") echo "Bildungseinrichtung: ".$fetchstudium["s_bildungseinrichtung"]."<br>";
+        if ($fetchstudium["vordiplom"] == "ja" && $fetchstudium["diplom"] == "nein") {
+         echo "Vordiplom abgeschlossen"; }?>
+        
+        <? if ($fetchstudium["diplom"] == "ja") {
+         echo "Abschluss als: ".$fetchstudium["diplomtitel"]."<br>Abschluss mit Note: ".$fetchstudium["b_abschluss"]; }
+
+        if ($fetchstudium["s_schwerpunkte"] != "") {
+         echo "<br><br>Studienschwerpunkte:<bR> ".$fetchstudium["s_schwerpunkte"]; }?>
+      </TD>
+    </TR>
+
+<?
+if ($fetchstudium["s_bildungseinrichtung2"] != "" && $fetchstudium["studiengang2"] != "" && $fetchstudium["hochschule2"] != "" && $fetchstudium["a_jahr2"] != "") {
+?>
+
+    <TR> 
+      <TD valign="top"><? echo $fetchstudium["a_jahr2"] ." - ".$fetchstudium["a_jahrb2"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$studium=$fetchstudium["studiengang2"];
+$studienrichtungen = mysql($database_db,"select studiengang from studiengaenge where id=$studium",$praktdbslave);?>
+      <TD>Studiengang: <? echo mysql_result($studienrichtungen,0,"studiengang"); ?><br>Hochschule: <? echo $fetchstudium["hochschule2"]; ?><br>
+        <?
+        if ($fetchstudium["s_bildungseinrichtung2"] != "") echo "Bildungseinrichtung: ".$fetchstudium["s_bildungseinrichtung2"]."<br>";
+        if ($fetchstudium["vordiplom2"] == "ja" && $fetchstudium["diplom2"] == "nein") {
+         echo "Vordiplom abgeschlossen"; }?>
+        
+        <? if ($fetchstudium["diplom2"] == "ja") {
+         echo "Abschluss als: ".$fetchstudium["diplomtitel2"]."<br>Abschluss mit Note: ".$fetchstudium["b_abschluss2"]; }
+
+        if ($fetchstudium["s_schwerpunkte2"] != "") {
+         echo "<br><br>Studienschwerpunkte:<bR> ".$fetchstudium["s_schwerpunkte2"]; }?>
+      </TD>
+    </TR>
+
+<? } ?>
+
+<?
+if ($fetchstudium["s_bildungseinrichtung3"] != "" && $fetchstudium["studiengang3"] != "" && $fetchstudium["hochschule3"] != "" && $fetchstudium["a_jahr3"] != "") {
+?>
+
+    <TR> 
+      <TD valign="top"><? echo $fetchstudium["a_jahr3"] ." - ".$fetchstudium["a_jahrb3"]; ?></TD>
+      <TD>&nbsp;</TD>
+<?
+$studium=$fetchstudium["studiengang3"];
+$studienrichtungen = mysql($database_db,"select studiengang from studiengaenge where id=$studium",$praktdbslave);?>
+      <TD>Studiengang: <? echo mysql_result($studienrichtungen,0,"studiengang"); ?><br>Hochschule: <? echo $fetchstudium["hochschule3"]; ?><br>
+        <?
+        if ($fetchstudium["s_bildungseinrichtung3"] != "") echo "Bildungseinrichtung: ".$fetchstudium["s_bildungseinrichtung3"]."<br>";
+        if ($fetchstudium["vordiplom3"] == "ja" && $fetchstudium["diplom3"] == "nein") {
+         echo "Vordiplom abgeschlossen"; }?>
+        
+        <? if ($fetchstudium["diplom3"] == "ja") {
+         echo "Abschluss als: ".$fetchstudium["diplomtitel3"]."<br>Abschluss mit Note: ".$fetchstudium["b_abschluss3"]; }
+
+        if ($fetchstudium["s_schwerpunkte3"] != "") {
+         echo "<br><br>Studienschwerpunkte:<bR> ".$fetchstudium["s_schwerpunkte3"]; }?>
+      </TD>
+    </TR>
+
+<? }}}
+
+$result5 = mysql($database_bprofil,"select * from profil_praktika where nutzerid=$id and sprachid=$sprachid",$praktdbslave);
+$fetchpraktikum = mysql_fetch_array($result5);
+if (mysql_num_rows($result5)>0) { 
+
+/* TEST OB PRAKTIKAS AUSGEF�LLT WURDE */
+if ($fetchpraktikum["unternehmen"] != "" && $fetchpraktikum["p_jahrv"] != "") {
+?>
+
+    <TR><TD colspan="3"><br></TD></TR>
+    <TR> 
+      <TD colspan="3"><b>Praktische T�tigkeiten:</b></TD>
+    </TR>
+    <TR> 
+      <TD valign="top"><? echo $fetchpraktikum["p_jahrv"] ." - ".$fetchpraktikum["p_jahrb"]; ?></TD>
+      <TD>&nbsp;</TD>
+
+      <TD><? echo ucfirst($fetchpraktikum["artdertaettigkeit"]); ?> bei: <? echo $fetchpraktikum["unternehmen"]; 
+      
+        if ($fetchpraktikum["p_taetigkeit"] != "") {
+         echo "<br><br>T�tigkeit im Unternehmen:<bR> ".$fetchpraktikum["p_taetigkeit"]; }
+        if ($fetchpraktikum["kurzbeschreibung"] != "") {
+         echo "<br><br>Beschreibung:<bR> ".$fetchpraktikum["kurzbeschreibung"]; }
+         ?>
+     
+      </TD>
+    </TR>
+
+<?
+if ($fetchpraktikum["unternehmen2"] != "" && $fetchpraktikum["p_jahrv2"] != "") {
+?>
+
+    <TR> 
+      <TD valign="top"><? echo $fetchpraktikum["p_jahrv2"] ." - ".$fetchpraktikum["p_jahrb2"]; ?></TD>
+      <TD>&nbsp;</TD>
+
+      <TD><? echo ucfirst($fetchpraktikum["artdertaettigkeit2"]); ?> bei: <? echo $fetchpraktikum["unternehmen2"]; 
+        if ($fetchpraktikum["p_taetigkeit2"] != "") {
+         echo "<br><br>T�tigkeit im Unternehmen:<bR> ".$fetchpraktikum["p_taetigkeit2"]; }
+        if ($fetchpraktikum["kurzbeschreibung2"] != "") {
+         echo "<br><br>Beschreibung:<bR> ".$fetchpraktikum["kurzbeschreibung2"]; }?>
+      
+      </TD>
+    </TR>
+<? } 
+
+if ($fetchpraktikum["unternehmen3"] != "" && $fetchpraktikum["p_jahrv3"] != "") {
+?>
+
+    <TR> 
+      <TD valign="top"><? echo $fetchpraktikum["p_jahrv3"] ." - ".$fetchpraktikum["p_jahrb3"]; ?></TD>
+      <TD>&nbsp;</TD>
+
+      <TD><? echo ucfirst($fetchpraktikum["artdertaettigkeit3"]); ?> bei: <? echo $fetchpraktikum["unternehmen3"]; 
+        if ($fetchpraktikum["p_taetigkeit3"] != "") {
+         echo "<br><br>T�tigkeit im Unternehmen:<bR> ".$fetchpraktikum["p_taetigkeit3"]; }
+        if ($fetchpraktikum["kurzbeschreibung3"] != "") {
+         echo "<br><br>Beschreibung:<bR> ".$fetchpraktikum["kurzbeschreibung3"]; }?>
+      
+      </TD>
+    </TR>
+<? } 
+
+if ($fetchpraktikum["unternehmen4"] != "" && $fetchpraktikum["p_jahrv4"] != "") {
+?>
+
+    <TR> 
+      <TD valign="top"><? echo $fetchpraktikum["p_jahrv4"] ." - ".$fetchpraktikum["p_jahrb4"]; ?></TD>
+      <TD>&nbsp;</TD>
+
+      <TD><? echo ucfirst($fetchpraktikum["artdertaettigkeit4"]); ?> bei: <? echo $fetchpraktikum["unternehmen4"]; 
+        if ($fetchpraktikum["p_taetigkeit4"] != "") {
+         echo "<br><br>T�tigkeit im Unternehmen:<bR> ".$fetchpraktikum["p_taetigkeit4"]; }
+        if ($fetchpraktikum["kurzbeschreibung4"] != "") {
+         echo "<br><br>Beschreibung:<bR> ".$fetchpraktikum["kurzbeschreibung4"]; }?>
+      
+      </TD>
+    </TR>
+<? }}
+
+$result7 = mysql($database_bprofil,"select * from profil_hobby where nutzerid=$id and sprachid=$sprachid",$praktdbslave);
+$fetchleistung = mysql_fetch_array($result7);
+
+/* TEST OB Kenntnisse / Erfahrungen AUSGEF�LLT WURDE */
+if ($fetchleistung["hobby"] != "") {
+?>
+
+    <TR><TD colspan="3"><br></TD></TR>
+    <TR><TD colspan="2" valign="top"><b>Hobbys / Interessen:</b></TD><TD><? echo nl2br($fetchleistung["hobby"]); ?></TD></TR>
+    <TR><TD colspan="3"><br></TD></TR>
+
+
+<? } 
+
+if ($s_loggedin=="yes") {
+	echo "<tr><td colspan=\"3\" align=\"right\" class=\"toppraktika\"><br><br>powered by <img src=\"/home/gifs/powered_by_praktika.gif\" border=\"0\"></td></tr>";
+}
+
+} else {
+  echo "<TR><TD colspan=\"3\">Der Bewerber hat kein Profil in diesem Bereich hinterlegt!</TD></TR>";
+	
+}
+
+}
+
+?>
+
+
+</table>
+
+</CENTER>
+</TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>
+ 

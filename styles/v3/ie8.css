@@ -1,0 +1,20 @@
+div#main div#content h1.kategorie {
+	top: 115px;
+}
+div#main div#content h1.long {
+	top: 124px;
+}
+
+div#skyscraper2 {
+	top:5px;
+}
+/*div#skyscraper2 a {
+	position: absolute;
+	width: 728px;
+	height: 90px;
+	margin-left: -728px;
+}
+div#skyscraper2 img#j-1-leaderboard {
+	position: relative;
+	margin-left: 0;
+}*/

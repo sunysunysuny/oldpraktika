@@ -1,0 +1,82 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login";
+	exit();
+}
+$gesucheID = $_POST["gID"];
+$bereich = $_POST["spalte"];
+
+$monat = array("","Januar", "Februar", "M&auml;rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober","November","Dezember");
+
+if ($bereich == 1) {
+	$spalte = "Praktikumsgesuch";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(datum_verfall, \'%d.%m.%Y\') AS verfallssdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum,date_format(zeitraum_von, \'%d.%m.%Y\') AS zeitraumvon,date_format(zeitraum_bis, \'%d.%m.%Y\') AS zeitraumbis FROM praktikanten WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+} elseif ($bereich == 2) {
+	$spalte = "Bachelor-/Masterarbeit";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM diplomgesuch WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+} elseif ($bereich == 3) {
+	$spalte = "Nebenjobgesuch";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM nebenjobgesuch WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+} elseif ($bereich == 4) {
+	$spalte = "Ausbildungsgesuch";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM ausbildungsgesuch WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+} elseif ($bereich == 5) {
+	$spalte = "Berufseinstiegsgesuch";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM berufseinstieggesuch WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+} elseif ($bereich == 6) {
+	$spalte = "Projektgesuch";
+	$result = mysql_db_query($database_db,'SELECT *,date_format(datum_eintrag, \'%d.%m.%Y\') AS eintragsdatum,date_format(modify, \'%d.%m.%Y - %H:%i:%s\') AS modifydatum FROM projektgesuch WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'],$praktdbslave);
+}
+// datensatz abfragen //
+
+// array erzeugen //
+$eintrag = mysql_fetch_assoc($result);
+
+// datensatzausgabe //
+echo '<p><h3 style="padding:0px;margin:0px;">Kurzinformationen - '.$spalte.'</h3></p>'."\n";
+echo '<div style="padding:5px;margin:0px;"><p><b>Zeitraum ab:</b> '.$monat[$eintrag['zeitraum_ab_m']-1].' '.$eintrag['zeitraum_ab_y'].'</p>'."\n";
+
+if (isset($eintrag['taetigkeit']) && !empty($eintrag['taetigkeit'])) {
+	echo '<p><b>T&auml;tigkeit:</b> '.htmlentities(stripslashes($eintrag['taetigkeit'])).'</p>'."\n";
+}
+
+if (isset($eintrag['verfallssdatum']) && !empty($eintrag['verfallssdatum'])) {
+	echo '<p><b>Verfallsdatum:</b> '.$eintrag['verfallssdatum'].'</p>'."\n";
+}
+
+echo '</div><p><h3 style="padding:0px;margin:0px;">Interne Informationen</h3></p><div style="padding:5px;margin:0px;">'."\n";
+
+if ($eintrag['inactive']  == 'false') {
+	echo '<p style="color:#2D812D;">Status: AKTIVIERT</p>'."\n";
+} else {
+	echo '<p style="color:#FF2626;">Status: DEAKTIVIERT</p>'."\n";
+}
+
+echo '<p>eingetragen am: '.$eintrag['eintragsdatum'].'</p>'."\n";
+echo '<p>zuletzt ge&auml;ndert: '.$eintrag['modifydatum'].'</p>'."\n";
+
+$suchres = mysql_db_query($database_db, 'SELECT count(id) AS anzahl FROM viewstatspraktikanten WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND stellenid = '.$gesucheID.' AND spalte = '.$bereich, $praktdbslave);
+echo '<p>Anzahl der Abrufe: '.mysql_result($suchres, 0, 'anzahl').'</p>'."\n";
+
+$suchres = mysql_db_query($database_db, 'SELECT DISTINCT firmen.id,firmen.firma FROM viewstatspraktikanten,firmen WHERE viewstatspraktikanten.stellenid = '.$gesucheID.' AND viewstatspraktikanten.spalte = 1 AND viewstatspraktikanten.userid = firmen.id', $praktdbslave);
+$num2 = mysql_num_rows($suchres);
+if ($num2 > 0) {
+	echo '<table>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td style="width: 150px;">Identifizierte Firmen:</td>'."\n";
+
+	echo '		<td>'."\n";
+	$j=0;
+	while ($j < $num2) {
+		echo '<a href="/karriere/gesuche/firmen_detail/'.mysql_result($suchres,$j,'id').'/'.$gesucheID.'/'.$bereich.'/">'.mysql_result($suchres,$j,'firma').'</a><br />'."\n";
+		$j++;
+	}
+	
+	echo '		</td>';
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+}
+?>
+</div>

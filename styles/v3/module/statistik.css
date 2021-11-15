@@ -1,0 +1,195 @@
+/* 
+    Document   : statistik
+    Created on : 12.02.2010, 16:06:54
+    Author     : swarnat
+    Description:
+        Stylesheet-Modul für Stellenstatistik
+*/
+div.timespan {
+    float:right;
+	margin-bottom:1em;
+	margin-top:-14px;
+}
+div.timespan #time_from, div.timespan #time_to {
+    width:100px;
+    text-align:center;
+	
+	border:1px solid #ccc;
+	background-color:#f4f4f4;
+	font-weight:bold;
+	font-size:15px;
+	padding:2px 4px;
+	line-height:20px;
+	letter-spacing:1px;
+}
+div.rightPanel {
+	margin-bottom:18px !important;
+}
+div.fullsize {
+    width:990px;
+}
+div.itemChooser {
+	margin-bottom:0px !important;
+	border:1px solid #ccc;
+}
+div.itemChooser div input {
+    padding-bottom:10px;
+}
+div.itemChooser .chooser {
+	height:auto !important;
+	max-height:600px;
+	margin-bottom:0px !important;
+	border:5px solid #fff !important;
+}
+div.chooser .stelle_active {
+	color:darkgreen;
+}
+div.chooser .stelle_inactive {
+	color:darkred;
+}
+div.tickLabel {
+	margin-bottom:5px;
+	font-family:Arial, Verdana;
+}
+div#placeholder {
+    float:right;
+    border:1px solid #ccc;
+	margin-top:-15px !important;
+	background-color:#eee;
+	padding-bottom:5px;
+}
+div#overview {
+	margin-top:28px !important;
+}
+
+div#statLegend div,div.legend div {
+    margin-bottom:0px !important;
+    padding:0px !important;
+}
+div#statLegend table {
+    width:auto;
+	border:none !important;
+}
+div#overview {
+	float:right;
+	width:581px;
+	height:50px;
+	margin-top:0px !important;
+}
+div#overview_container {
+	background-color:#eee;
+	border:1px solid #ccc;
+}
+div#statLegend {
+	float:left;
+	margin-left:14px !important;
+}
+div.mail_send {
+	background-color:#EEE;
+	border:1px solid #ddd;
+	border-top:none;
+	padding:10px;
+	float:left;
+	width:350px;
+	text-align:left;
+	font-size:11px;
+}
+div.mail_send #mailAdr {
+	width:200px;
+}
+div.statLegend {
+	border:1px solid #ccc;
+	float:right;
+	width:600px;
+}
+div.dataTable #dataTable_data {
+	border:1px solid #ccc;
+}
+div.dataTable {
+	width:990px;
+	overflow:auto;
+	font-size:10px;
+}
+div.dataTable .trY,div.dataTable .trM {
+	border:1px solid #aaa;
+	text-align:center !important;
+	
+}
+
+div.dataTable .trD {
+	font-size:11px;
+	font-weight:weight !important;
+	text-align:right !important;
+	width:30px;
+	padding:3px 0px !important;
+}
+div.dataTable td {
+	text-align:right !important;
+	padding:3px 0px !important;
+}
+div.statContainer, div.statContainer div {
+	margin:0px !important;
+}
+.tickLabel {
+	font-size:9px !important;
+}
+.tableSmallHead {
+	width:auto;
+	text-align:left !important;
+}
+.tt_taetigkeit {
+	font-size:8px;
+}
+.tt_desc {
+	font-size:11px;
+}
+.tt_n1 {
+	font-weight:bolder;
+	min-width:20px;
+	padding-right:5px;
+	display:block;
+	float:left;
+}
+.tt_n2, .tt_n3, .tt_n4 {
+	font-size:11px;
+	padding-right:5px;
+	min-width:20px;
+	display:block;
+	float:left;	
+}
+.tt_log {
+	float:right;
+	font-size:10px;
+}
+.legendLabel {
+	font-size:10px !important;
+	padding-left:5px;
+}
+.legendColorBox > div > div {
+	border-width:7px !important;
+}
+.legendColorBox > div {
+	border:none !important;
+}
+table#checkBoxes_List .entry_select td {
+	padding:5px 3px 5px 3px !important;
+	border-bottom:1px solid #ddd;
+}
+span#showTable_on,span#showTable_off {
+	float:right;
+}
+div.datepicker th {
+	margin:0px !important;
+}
+div.datepicker table {
+	margin:0px;
+}
+div#tooltip {
+	background-color:#fff;
+	border:1px solid #777;
+	
+	box-shadow:2px 2px 2px #777;
+	
+	padding:5px;
+	font-family:Arial, Verdana;
+}

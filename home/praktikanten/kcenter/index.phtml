@@ -1,0 +1,324 @@
+<?php
+include_once("/home/praktika/etc/config.inc.php");
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = '';
+
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] != true) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+
+$availDirectories = array("messaging","daten","gesuche","passbild");
+
+$pageHeaderArray = array(
+	'page_title' => 'Karriere Center <span id="kCenterTitle"></span>',
+	'grid_system' => '6-0',
+	'scripts' => array('ajax/bcenter.js'),
+	"jqueryui" => true
+);
+pageheader($pageHeaderArray);
+
+Praktika_Static::__("kcenter");
+
+if(!empty($_GET["mode"])) {
+	$parts = explode("/",$_GET["mode"], 2);
+
+	if(in_array($parts[0], $availDirectories) === false) {
+		$parts[0] = "messaging";
+		$parts[1] = "index";
+	}
+	if(count($parts) < 2) $parts[1] = "index";
+} else {
+		$parts[0] = "messaging";
+		$parts[1] = "index";
+}
+
+$unreadMessagesSQL = '	SELECT
+							COUNT(*) as anzahl
+						FROM
+							prakt2.bewerberkontakte
+						WHERE
+							nutzerid = '.$_SESSION['s_nutzerid'].'
+							AND bewerberkontakte.versendet = \'true\'
+							AND bewerberkontakte.inactive = \'false\'
+							AND bewerberkontakte.gelesen = \'false\'';
+
+$result = $hDB->query($unreadMessagesSQL, $praktdbslave);
+$unreadMessages = mysql_result($result, 0, "anzahl");
+
+$passbildURL = Praktika_Passbild::getLink($_SESSION['s_nutzerid'], 149);
+
+if (empty($passbildURL)) {
+	$user = new Praktika_User($_SESSION['s_nutzerid']);
+	$userData = $user->getData();
+	
+	$passbildURL = '/styles/images/kcenter/profilbild_'.($userData['geschlecht'] == 'weiblich' ? 'w' : 'm').'.png';
+}
+?>
+
+<div class="grid_1 alpha">
+	<div class="kc_leftbar">
+		<a href="/Karriere_Center/passbild" onclick="kcenter.openTab(false); return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=passbild/index');" ><img id="passbild" src="<?= $passbildURL; ?>" /></a>
+		<br />
+		<br />
+		<!--<a href='' class='link_my_profil'><b>Mein Profil</b></a><br />-->
+		<a href='/Karriere_Center/daten' onclick="kcenter.openTab(false);return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=daten/index');" class="link_profil">Mein Profil bearbeiten</a><br />
+		<!--<a href='/lebenslauf' onclick="kcenter.openTab(false); return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=passbild/index');" class='link_profil'>Profilbild &auml;ndern</a><br />-->
+		<a href='/lebenslauf' class="link_profil">Lebenslauf bearbeiten</a><br />
+		<br>
+		<!--<a href='/Karriere_Center/gesuche' class='link_profil'>Meine Stellengesuche</a><br />-->
+		<!--<hr />
+		<a href=''>Schreiben Sie etwas &uuml;ber sich</a>
+		<hr />-->
+	</div>
+</div>
+<div class="grid_5 omega">
+	<p id="kcenter_success" class="hide"></p>
+	<div class="tabMenu clearfix">
+		<ul>
+			<li id="startTab" class=""><a href="#" onclick="kcenter.openTab(this.parentNode); return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=messaging/merkzettel');">Merkzettel</a></li>
+			<li class=""><a href="#" onclick="kcenter.openTab(this.parentNode); return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=messaging/posteingang');" >Posteingang<?=$unreadMessages>0?" (".$unreadMessages.")":"" ?></a></li>
+			<li class=""><a href="#" onclick="kcenter.openTab(this.parentNode); return kcenter.openUrl('/Karriere_Center/dynamic.html', 'mode=messaging/bewerbungen');" >gesendete Bewerbungen</a></li>
+			<li class="disabled" onclick="return false;"><a href="">Gruppen</a></li>
+			<li class="floatright"><a href="/bewerber/">Startseite</a></li>
+		</ul>
+	</div>
+
+	<div class="kc_mz2_topLine">
+		<p class="kc_sortColumn">Sortieren nach:
+			<select name="sortColumn" id="sortColumn" onchange="kc_page(1)">
+				<option value="date" selected="selected">Datum Eintrag</option>
+				<option value="taetigkeit">Titel</option>
+				<option value="firma">Firmenname</option>
+				<option value="datum_stelle">Aktualität Stelle</option>
+			</select>
+		</p>
+		<p class="kc_pageNumber" id="pageNumber"></p>
+	</div>
+
+	<div id="kc_content">
+<?php
+if (!empty($_GET['mode'])) {
+	eval('include \'/home/praktika/public_html/home/praktikanten/kcenter/'.$parts[0].'/'.urlencode($parts[1]).'.phtml\';');
+} else {
+	eval('include \'/home/praktika/public_html/home/praktikanten/kcenter/messaging/index.phtml\';');
+}
+?>
+	</div>
+
+	<script type="text/javascript" src="/scripts/template.js"></script>
+	<script type="text/javascript">
+<?php
+if (empty($_GET['mode']) || $_GET['mode'] == 'messaging') {
+?>
+		kcenter.openTab(document.getElementById('startTab'));
+<?php
+}
+?>
+	</script>
+
+</div>
+<?php
+bodyoff();
+return;
+
+$pageScripts = array();
+$pageScripts[] = 'ajax/bcenter.js';
+$pageScripts[] = 'microajax.js';
+$pageScripts[] = 'smallbox.js';
+#$lauf = array();
+if($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") {
+	include_once("/home/praktika/etc/gb_config.inc.php");	
+} else {
+	include_once("/home/praktika/etc/config.inc.php");
+}
+
+#$start = microtime(true);
+#$start0 = microtime(true);
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] != true) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['sidebar'] = '';
+
+praktikaInclude(array("db.php","listen.php","layout.php"));
+$hDB = new Praktika_Db();
+
+$logoFilename = 'resultlogo.gif';
+$logoPath = '/home/praktika/public_html/user/'.$_SESSION['s_firmenid']."/";
+
+$availDirectories = array("messaging","daten","gesuche","passbild");
+
+
+
+if (isset($_GET['bereich'])) {
+	$bereich = intval($_GET['bereich']);
+}
+
+if (isset($_GET['subbereich'])) {
+	$subbereich = intval($_GET['subbereich']);
+}
+
+// Check ob einer aus nem Onlinebewerbungslink kommt
+if (isset($_SESSION['s_bewerbungsanzeige'][0]) && $_SESSION['s_bewerbungsanzeige'][0] == 1) {
+	$bereich = 1;
+	$_SESSION['s_bereich'] = 1;
+}
+
+if (!isset($_SESSION['s_nutzerproparray']['kcenter']['aktbearbeiter']['val'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['aktbearbeiter']['val'] = '%';
+} elseif (isset($_REQUEST["bearbeiterfilter"])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['aktbearbeiter']['val'] = $_REQUEST["bearbeiterfilter"];
+}
+
+if (isset($bereich) && isset($subbereich) && $bereich == 5 && $subbereich == 0) {
+	header('Location: /home/firmen/suchen/mailing.phtml');
+	exit;
+}
+
+if (isset($_GET['ds_count']) && !empty($_GET['ds_count'])) {
+	$ds_value = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_count'] = $_GET['ds_value'];
+	$ds_count = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_value'] = $_GET['ds_count'];
+} else {
+	$ds_value = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_count'] = 1;
+	$ds_count = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_value'] = 0;
+}
+
+if (isset($_GET['ds_pro_seite']) && !empty($_GET['ds_pro_seite'])) {
+	$ds_pro_seite = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_pro_seite'] = $_GET['ds_pro_seite'];
+} else {
+	$ds_pro_seite = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['ds_pro_seite'] = 10;
+}
+
+if (isset($_GET['ordnerid']) && (!empty($_GET['ordnerid']) || $_GET['ordnerid'] == 0)) {
+	$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = $_GET['ordnerid'];
+} else {
+	if (!isset($_SESSION['s_nutzerproparray']['kcenter']['ordnerid'])) {
+		$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = 0;
+	}
+}
+
+if (isset($subbereich) && !empty($subbereich)) {
+	$_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['subbereich'] = $subbereich;
+} else {
+	$subbereich = $_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['subbereich'] = 0;
+}
+
+if (isset($_GET['sort']) && !empty($_GET['sort'])) {
+	$_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['sort'] = $_GET['sort'];
+} else {
+	if (!isset($_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['sort'])) {
+		$_SESSION['s_nutzerproparray']['kcenter'][$_SESSION['s_bereich']]['sort'] = 'datum-desc';
+	}
+}
+#$lauf[] = "1. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+mysql_select_db($database_db, $praktdbmaster);
+
+if($_SERVER['HTTP_X_REQUESTED_WITH'] != "XMLHttpRequest") {
+	pageheader(array('page_title' => 'Karriere Center <span id="kCenterTitle"></span>'));
+}
+#$lauf[] = "2. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+$aktPage = $_SESSION["s_nutzerproparray"]["lastPage"];
+
+if(!empty($_GET["mode"])) {
+	$parts = explode("/",$_GET["mode"],2);
+	
+	if(in_array($parts[0], $availDirectories) === false) {
+		$parts[0] = "messaging";
+		$parts[1] = "index";
+	}
+	if(count($parts) < 2) $parts[1] = "index";
+} else {
+		$parts[0] = "messaging";
+		$parts[1] = "index";	
+}
+
+
+if($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") {
+	if(!empty($_GET["mode"])) {
+
+		eval("include '/home/praktika/public_html/home/praktikanten/kcenter/".$parts[0]."/".urlencode($parts[1]).".phtml';");
+	} else {
+		eval("include '/home/praktika/public_html/home/praktikanten/kcenter/messaging/index.phtml';");
+	}
+	exit();
+}	
+
+Praktika_Static::__("kcenter");
+?>
+
+  <!--[if lt IE 7]>
+  <div style='border: 1px solid #F7941D; background: #FEEFDA; text-align: center; clear: both; height: 75px; position: relative;'>
+    <div style='position: absolute; right: 3px; top: 3px; font-family: courier new; font-weight: bold;'><a href='#' onclick='javascript:this.parentNode.parentNode.style.display="none"; return false;'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-cornerx.jpg' style='border: none;' alt='Close this notice'/></a></div>
+    <div style='width: 640px; margin: 0 auto; text-align: left; padding: 0; overflow: hidden; color: black;'>
+      <div style='width: 75px; float: left;'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-warning.jpg' alt='Warning!'/></div>
+      <div style='width: 275px; float: left; font-family: Arial, sans-serif;'>
+        <div style='font-size: 14px; font-weight: bold; margin-top: 12px;'>Ihr Browser ist stark veraltet!</div>
+        <div style='font-size: 12px; margin-top: 6px; line-height: 12px;'>Die volle Funktionalit�t dieser Seite k�nnen Sie nur mit einem modernen Browser nutzen.</div>
+      </div>
+      <div style='width: 75px; float: left;'><a href='http://de.www.mozilla.com/de/' target='_blank'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-firefox.jpg' style='border: none;' alt='Lade Firefox 3.5'/></a></div>
+      <div style='width: 75px; float: left;'><a href='https://www.microsoft.com/downloads/details.aspx?displaylang=de&FamilyID=341c2ad5-8c3d-4347-8c03-08cdecd8852b' target='_blank'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-ie8.jpg' style='border: none;' alt='Lade Internet Explorer 8'/></a></div>
+      <div style='width: 73px; float: left;'><a href='https://www.apple.com/de/safari/download/' target='_blank'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-safari.jpg' style='border: none;' alt='Lade Safari 4'/></a></div>
+      <div style='float: left;'><a href='https://www.google.com/chrome?hl=de' target='_blank'><img src='https://www.ie6nomore.com/files/theme/ie6nomore-chrome.jpg' style='border: none;' alt='Lade Google Chrome'/></a></div>
+    </div>
+  </div>
+  <![endif]-->
+<div id="recruitingCenter">
+<? include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php"); 
+#$lauf[] = "3. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+?>
+	<div id="recr_container" style="margin-top:20px;">
+	<?
+	
+if(!empty($_GET["mode"])) {
+	eval("include '/home/praktika/public_html/home/praktikanten/kcenter/".$parts[0]."/".urlencode($parts[1]).".phtml';");
+} else {
+	eval("include '/home/praktika/public_html/home/praktikanten/kcenter/messaging/index.phtml';");
+}
+#$lauf[] = "4. ".(microtime(true) - $start)." ms"; $start = microtime(true);		
+	?>
+	</div>
+</div>	
+	
+
+<script type/"text/javascript">
+<?
+
+	switch($_GET["mode"])	 {
+		case "messaging/index":
+			$tab = 1;
+			break;
+		case "daten/index":
+			$tab = 2;
+			break;
+		case "jobmail/index":
+			$tab = 3;
+			break;
+		case "passbild/index":
+			$tab = 4;
+			break;
+		case "gesuche/index":
+			$tab = 5;
+			break;
+	}
+	
+	?>
+	oldActiveTab = "tab_<?=$tab ?>";
+	centerModus = "kcenter";
+</script>
+<?
+#$lauf[] = "5. ".(microtime(true) - $start)." ms"; $start = microtime(true);
+bodyoff();
+#echo "Laufzeit:".(microtime(true) - $start0)."<br />";
+
+#for($a=0;$a<count($lauf);$a++) {
+	#echo $lauf[$a]."<br />";
+#}

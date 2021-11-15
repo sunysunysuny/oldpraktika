@@ -1,0 +1,49 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Anzeige der gesendeten Kurznachricht'));
+
+//mysql_select_db($database_db);
+
+$results = mysql_query('SELECT 
+		bewerberkontakte.nutzerid, 
+		bewerberkontakte.bearbeiterid, 
+		bewerberkontakte.betreff, 
+		bewerberkontakte.nachricht, 
+		date_format(bewerberkontakte.datum, \'%d.%m.%Y\') AS datumeintrag,
+		nutzer.anrede AS n_anrede,
+		nutzer.vname AS n_vname,
+		nutzer.name AS n_name,
+		bearbeiter.anrede AS b_anrede,
+		bearbeiter.vname AS b_vname,
+		bearbeiter.name AS b_name
+	FROM prakt2.bewerberkontakte `bewerberkontakte`
+		LEFT JOIN prakt2.nutzer `nutzer` ON(nutzer.id = bewerberkontakte.nutzerid)
+		LEFT JOIN prakt2.bearbeiter `bearbeiter` ON(bearbeiter.id = bewerberkontakte.bearbeiterid)
+	WHERE bewerberkontakte.id = '.intval($_GET['id']),$praktdbslave);
+$nachricht = mysql_fetch_assoc($results);
+
+$nutzerid = $nachricht['nutzerid'];
+
+$nutzername = $nachricht['n_anrede'].' '.$nachricht['n_vname'].' '.$nachricht['n_name'];
+
+echo '<p style="float:right;">gesendet am: '.$nachricht['datumeintrag'].'</p>'."\n";
+echo '<p>Nachricht an: <strong>'.$nutzername.'</b></strong></p>'."\n";
+
+$bearbeiterid = $nachricht['bearbeiterid'];
+
+$bearbeitername = $nachricht['b_anrede'].' '.$nachricht['b_vname'].' '.$nachricht['b_name'];
+
+echo '<p>Nachricht von: '.$bearbeitername.'</p><br />'."\n";
+echo '<br /><p>Betreff: <strong>'.stripslashes(htmlentities($nachricht['betreff'])).'</strong></p>'."\n";
+echo '<p style="background-color:#f6f6f6; border:1px solid #ddd; padding:10px;">'.stripslashes(nl2br($nachricht['nachricht'])).'</p>'."\n";
+
+bodyoff();

@@ -1,0 +1,164 @@
+/*
+
+
+
+
+#berufseinstieg #neueintraege table {
+	border-color: #B5966B;
+}
+
+#diplom #neueintraege table {
+	border-color: #52616B;
+}
+
+#home #karriereveranstaltungen table,
+#home #suchergebnis table {
+	border-color: #3598AF;
+}
+
+#nebenjobs #neueintraege table {
+	border-color: #63795A;
+}
+
+#praktikum #neueintraege table,
+#praktikum #suchergebnis table {
+	border-color: #940400;
+}
+
+#neueintraege table,
+#suchergebnis table,*/
+#karriereveranstaltungen table {
+	border-collapse: collapse;
+	border-width: 1px;
+	border-style: solid;
+	font-size: .8em;
+}
+
+#karriereveranstaltungen table {
+	border-color: #3598AF;
+}
+
+/*
+#neueintraege table a,
+#suchergebnis table a,
+#karriereveranstaltungen table a {
+	color: #000;
+}
+
+
+table col.branche {
+	width: 30%;
+}
+
+table col.datum {
+	width: 10%;
+}
+
+table col.kategorie {
+	width: 20%;
+}
+
+table col.ort {
+	width: 15%;
+}
+
+table col.zeit {
+	width: 20%;
+}
+
+table col.zeitraum {
+	width: 17%;
+}
+
+#diplom #suchergebnis table thead,
+#diplom #suchergebnis table tfoot,
+#diplom #neueintraege table thead,
+#diplom #neueintraege table tfoot {
+	background: #EFEFE7;
+	color: #182410;
+}
+
+#home #suchergebnis table thead,
+#home #suchergebnis table tfoot,*/
+#home #karriereveranstaltungen table thead,
+#home #karriereveranstaltungen table tfoot {
+	background: #C2DADC;
+	font-size: 1.1em;
+}
+/*
+#nebenjobs #neueintraege table thead,
+#nebenjobs #neueintraege table tfoot {
+	background: #E7EBE7;
+	color: #7B2473;
+}
+
+
+#praktikum #suchergebnis table thead,
+#praktikum #suchergebnis table tfoot,
+#praktikum #neueintraege table thead,
+#praktikum #neueintraege table tfoot {
+	background: #F7E7DE;
+	color: #841473;
+}
+
+#suchergebnis table thead,
+#suchergebnis table tfoot,
+#neueintraege table tfoot,
+#neueintraege table thead,*/
+#karriereveranstaltungen table thead,
+#karriereveranstaltungen table tfoot {
+	padding: 5px;
+}
+/*
+#neueintraege table thead th,
+#suchergebnis table thead th,*/
+#karriereveranstaltungen table thead th {
+	padding: 5px;
+	font-weight: normal;
+}
+/*
+#neueintraege table tfoot td,
+#suchergebnis table tfoot td,*/
+#karriereveranstaltungen table tfoot td {
+	padding: 2px 5px;
+}
+/*
+#neueintraege table tbody th, 
+#suchergebnis table thead th.description,
+#suchergebnis table tbody th,*/ 
+#karriereveranstaltungen table tbody th {
+	padding: 0 5px;
+	text-align: left;
+}
+/*
+#suchergebnis table tfoot td,*/
+#karriereveranstaltungen table tfoot td {
+	text-align: center;
+}
+/*
+#suchergebnis table tbody th,
+#suchergebnis table tbody td,
+#neueintraege table tbody td,
+#neueintraege table tbody th, */
+#karriereveranstaltungen table tbody th, 
+#karriereveranstaltungen table tbody td {
+	line-height: 2em;
+	vertical-align: middle;
+}
+/*
+#neueintraege table tbody tr,
+#suchergebnis table tbody tr,
+#karriereveranstaltungen table tbody tr {
+	border-bottom: 1px solid #D6D3D6;
+}
+
+#neueintraege table tbody tr:last-child,
+#suchergebnis table tbody tr:last-child,
+#karriereveranstaltungen table tbody tr:last-child {
+	border-bottom-style: none;
+}
+*/
+
+tr.odd {
+	background: #f0f0e7;
+}

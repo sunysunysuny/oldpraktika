@@ -1,0 +1,39 @@
+<?
+ $sprachbasisdatei="/home/praktikanten/previewtop.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+?>
+<HTML>
+
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+</HEAD>
+
+<body BGCOLOR="#FFFFF0">
+
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+<table width="100%" border="0">
+<?
+if ($s_loggedin=="yes") {
+ if ($merken=="yes") {
+	$insertfirmenbookmark=mysql($database_db,"INSERT INTO firmenbookmark set nutzerid=$id, profil='true', firmenid=$s_firmenid");
+}
+
+$check=mysql($database_db,"select * from firmenbookmark where nutzerid=$id AND firmenid=$s_firmenid AND profil='true'",$praktdbslave);
+$gebuchtprofildb=mysql($database_db,"select profildb from firmen_prop_assign where firmenid=$s_firmenid",$praktdbslave);
+if (mysql_num_rows($check) <1 && mysql_result($gebuchtprofildb,0,"profildb") >0) {
+echo "    <td align=\"center\"><a href=\"profilbuttom_einzeluser.phtml?merken=yes&id=" . $id . "&bewerbsprache=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" target=\"previewbuttom\">Bewerber notieren <font size=\"-2\">(noch ".mysql_result($gebuchtprofildb,0,"profildb")." Kontakte)</font></a></td>\n";
+}
+if (mysql_num_rows($check) <1 && mysql_result($gebuchtprofildb,0,"profildb") ==0) {
+echo "<td align=\"center\">Bewerber notieren <font size=\"-2\">(".mysql_result($gebuchtprofildb,0,"profildb")." Kontakte)</font></td>\n";
+}
+if (mysql_num_rows($check) ==0 && mysql_num_rows($gebuchtprofildb) ==0) { ?>
+<td align="center"><a href="javascript:alert('Um diesen Service zu benutzen, benötigen Sie das Produkt BEWERBERPROFILE!\nAusführliche Beschreibungen oder Buchungsmöglichkeiten finden Sie\nin Ihrem RecruitingCenter unter \'Preise & Produkte\'.')">Bewerber notieren</a></td>
+<? }
+echo "    <td align=\"center\"><a href=\"javascript:printform();\">" . $language ["strEinzelseite"] . "</a></td>\n"; 
+}
+?>
+  </tr>
+</table>
+</body>
+</HTML>

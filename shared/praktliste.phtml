@@ -1,0 +1,109 @@
+<?php
+require('/home/praktika/etc/config.inc.php');
+
+$_SESSION['sidebar'] = 'none';
+
+pageheader(array('page_title' => 'PRAKTIKUMSSTELLEN - &Uuml;berblick', 'grid_system' => '6-0'));
+
+Praktika_Static::__('praktikumsstellen');
+?>
+
+<p>Nachfolgend finden Sie eine Auswahl an Praktikumsstellen, welche neu auf praktika.de eingetragen wurden.</p>
+<div class="praktikum_html">
+	<div class="box_blue">
+		<form method="get" action="/suche/">
+			<fieldset>
+				<p>
+					<input type="text" id="suchstring" name="q" class="inactive" onblur="if (!this.value) { this.value = 'Ort, T&auml;tigkeit oder Branche'; this.setAttribute('class', 'inactive'); }" onclick="if (this.value == 'Ort, T&auml;tigkeit oder Branche') { this.value = ''; this.setAttribute('class', 'active'); }" value="Ort, T&auml;tigkeit oder Branche" />
+				</p>
+			</fieldset>
+			<fieldset class="control_panel">
+				<p>
+					<input type="submit" class="button small" value="suchen" />
+				</p>
+			</fieldset>
+		</form>
+		<div class="branchenListe first">
+			<span class="header">Bereiche</span><br />
+			<a href="/praktika/praktikum_film-fernsehen.php">Praktikum Film- und Fernsehen</a><br />
+			<a href="/praktika/praktikum_foto-gestaltung-design.php">Praktikum Foto, Gestaltung, Design</a><br />
+			<a href="/praktika/praktikum_biologie.php">Praktikum Biologie</a><br />
+			<a href="/praktika/praktikum_geographie.php">Praktikum Geographie</a><br />
+			<a href="/praktika/praktikum_maschinenbau-zulieferer.php">Praktikum Maschinenbau, Zulieferer</a><br />
+			<a href="/praktika/praktikum_museen-theater-kultur.php">Praktikum Museen, Theater, Kultur</a><br />
+			<a href="/praktika/praktikum_marketing-werbung-pr.php">Praktikum Marketing, Werbung, PR</a><br />
+		</div>	
+		<div class="branchenListe middle">
+			<span class="header">Region</span><br />
+			<a href="/praktika/praktikum_schweiz.php">Praktikum Schweiz</a><br />
+			<a href="/praktika/praktikum_sachsen.php">Praktikum Sachsen</a><br />
+			<a href="/praktika/praktikum_bayern.php">Praktikum Bayern</a><br />
+			<a href="/praktika/praktikum_sachsen-anhalt.php">Praktikum Sachsen - Anhalt</a><br />
+			<a href="/praktika/praktikum_thueringen.php">Praktikum Th&uuml;ringen</a><br />	
+			<a href="/praktika/praktikum_niedersachsen.php">Praktikum Niedersachsen</a><br />
+			<a href="/praktika/praktikum_hessen.php">Praktikum Hessen</a><br />
+		</div>		
+		<div class="branchenListe last">
+			<span class="header">St&auml;dte</span><br />
+			<a href="/praktika/praktikum_koeln.php">Praktikum K&ouml;ln</a><br />
+			<a href="/praktika/praktikum_berlin.php">Praktikum Berlin</a><br />
+			<a href="/praktika/praktikum_nuernberg.php">Praktikum N&uuml;rnberg</a><br />
+			<a href="/praktika/praktikum_bremen.php">Praktikum Bremen</a><br />
+			<a href="/praktika/praktikum_leipzig.php">Praktikum Leipzig</a><br />
+			<a href="/praktika/praktikum_muenchen.php">Praktikum M&uuml;nchen</a><br />
+			<a href="/praktika/praktikum_hamburg.php">Praktikum Hamburg</a><br />
+		</div>
+	</div>
+	
+	<?= Praktika_Advert::banner(AD_CONTENT_AD); ?>
+	
+	<ul>
+<?php
+$branchensel = mysql_db_query($database_db, 'SELECT id, german FROM branchen', $praktdbslave);
+
+while ($row = mysql_fetch_array($branchensel)) {
+	$branchen[$row[0]] = $row[1];
+}
+
+$umlautarray = array();
+$umlautarray[] = '<';
+$umlautarray[] = '>';
+$umlautarray[] = '\"';
+$umlautarray[] = '!';
+$umlautarray[] = '$';
+$umlautarray[] = '%';
+$umlautarray[] = '&';
+$umlautarray[] = '/';
+$umlautarray[] = '(';
+$umlautarray[] = ')';
+$umlautarray[] = '=';
+$umlautarray[] = '?';
+$umlautarray[] = '#';
+$umlautarray[] = '.';
+$umlautarray[] = ':';
+$umlautarray[] = ';';
+$umlautarray[] = ',';
+$umlautarray[] = '{';
+$umlautarray[] = '}';
+$umlautarray[] = ' ';
+
+$praktliste = mysql_db_query($database_temp, 'SELECT tmp_stellensuche.* FROM tmp_stellensuche LIMIT 1000', $praktdbslave);
+
+while ($row = mysql_fetch_array($praktliste)) {
+?>
+		<li>
+			<a href="<?= Praktika_Stelle::getURL($row); ?>"><strong><?= htmlspecialchars(Praktika_String::cleanString($row['taetigkeit'])); ?></strong></a>
+			<br />
+			<span class="linklist"><a href="/praktikum/<?= Praktika_String::toUrl($row['firma']); ?>/stellen/<?= $row['firmenid']; ?>.html"><?= htmlspecialchars($row['firma']); ?></a>, <a href="/praktikum/<?= Praktika_String::toUrl($row['firma']); ?>/profil/<?= $row['firmenid']; ?>.html">Firmenprofil</a>, <a href="/suche/<?= urlencode($row['einsatzort']); ?>"><?= $row['einsatzort']; ?></a>, <a href="/suche/<?= urlencode(str_replace($umlautarray, ' ',$branchen[$row['branche']])); ?>"><?= htmlspecialchars($branchen[$row['branche']]); ?></a></span>
+			<br />
+			<?= substr(strip_tags($row['beschreibung'].' '.$row['volltext']), 0, (strpos(strip_tags($row['beschreibung'].' '.$row['volltext']), ' ', (strlen($row['volltext'])>500?500:strlen($row['volltext']))))); ?>&nbsp;...
+			<br />
+			<span class="time">zuletzt aktualisiert: <?= strftime('%x - %X', strtotime($row['modify'])); ?></span>
+		</li>
+<?php
+}
+?>
+	</ul>
+</div>
+
+<?php bodyoff(); ?>

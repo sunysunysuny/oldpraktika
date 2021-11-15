@@ -1,0 +1,326 @@
+<?
+// config
+$preis = "2.4";
+// config ende
+
+// ---------------------------------------------------
+
+
+$gruppe = "unternehmen";
+
+$sonstige_headertags = '<script type="text/javascript">
+
+var DHTML = (document.getElementById || document.all || document.layers);
+function WK_getObj(name)
+{
+ if (document.getElementById)
+ {
+  return document.getElementById(name).style;
+ }
+ else if (document.all)
+ {
+  return document.all[name].style;
+ }
+ else if (document.layers)
+ {
+  return document.layers[name];
+ }
+}
+
+function WK_showWaitMessage(div,flag)
+{
+ if (!DHTML) return;
+ var x = WK_getObj(div);
+ x.visibility = (flag) ? \'visible\':\'hidden\'
+ if(! document.getElementById)
+  if(document.layers)
+   x.left=280/2;
+ return true;
+}
+</script>
+';
+
+
+$sonstige_bodytags = '<div id=\'waitDiv\' style=\'position:absolute;left:260px;top:220px;visibility:hidden;text-align:center;\'>
+     <table cellpadding="6" border="0">
+            <tr>
+                <td align="center">
+                    <b>
+                       <font face="Tahoma,Helvetica" size="2">
+                             Seite wird verarbeitet...
+                       </font>
+                    </b>
+                    <br>
+                    <img src="/gifs/zentralelemente/wait.gif" alt="bitte warten">
+                    <br>
+                    <b>
+                       <font face="Tahoma,Helvetica" size="1">
+                             Bitte warten...
+                       </font>
+                    </b>
+                </td>
+            </tr>
+     </table>
+</div>
+<script type="text/javascript">
+WK_showWaitMessage(\'waitDiv\', 1);
+</script>
+';
+
+require("/home/praktika/etc/config.inc.php");
+// require("/home/praktika/etc/kandidatensuche.inc.php");
+
+pageheader(session_id(), session_name()); ?>
+
+      <table width="90%">
+        <tr>
+          <td><h1 class="layout1">Kandidatenliste</h1>
+
+<?
+
+if (!strpos($HTTP_REFERER,"wk.phtml") && !strpos($HTTP_REFERER,"minilogin.phtml") && !strpos($HTTP_REFERER,"bcenter")) $s_ergebnisarry["sucheingabe"]["referer"] = $HTTP_REFERER;
+if ($s_ergebnisarry["sucheingabe"]["referer"] == "") $s_ergebnisarry["sucheingabe"]["referer"] = "/home/firmen/einblick.phtml";
+
+if ($gesamt) {
+	if (!is_array($s_firmenproparray["kandidatensuche"]["warenkorb"])) $s_firmenproparray["kandidatensuche"]["warenkorb"] = array();
+
+	if (is_array($s_ergebnisarry["sucheingabe"]["userid"])) {
+		foreach ($s_ergebnisarry["sucheingabe"]["userid"] as $userid) {
+			$s_firmenproparray["kandidatensuche"]["warenkorb"][$userid] = true;
+		}
+	}
+
+	// Datens&auml;tze filtern, die schon gebucht sind
+	if ($s_loggedin=="yes") {
+		$bookmarkquery="SELECT nutzerid FROM firmenbookmark WHERE firmenid = $s_firmenid";
+
+		$bookmarkresults=mysql_db_query($database_db,$bookmarkquery,$praktdbslave);
+
+		if (mysql_num_rows($bookmarkresults) > 0) $error = "<br><br>Die gew&auml;hlten Kandidaten sind bereits auf Ihrem Merkzettel gespeichert!";
+
+		// datensaetze gefunden ? //
+		while ($bookmarkresult_row = mysql_fetch_array ( $bookmarkresults, MYSQL_ASSOC )) {
+			unset($s_firmenproparray["kandidatensuche"]["warenkorb"][$bookmarkresult_row["nutzerid"]]);
+		}
+	}
+
+	$anzahl = count($s_firmenproparray["kandidatensuche"]["warenkorb"]);
+
+} else {
+
+	// Datens&auml;tze filtern, die schon gebucht sind
+	if ($s_loggedin=="yes") {
+		$bookmarkquery="SELECT nutzerid FROM firmenbookmark WHERE firmenid = $s_firmenid";
+
+		$bookmarkresults=mysql_db_query($database_db,$bookmarkquery,$praktdbslave);
+
+		if (mysql_num_rows($bookmarkresults) > 0) $error = "Die gew&auml;hlten Kandidaten sind bereits auf Ihrem Merkzettel gespeichert!";
+
+		// datensaetze gefunden ? //
+		while ($bookmarkresult_row = mysql_fetch_array ( $bookmarkresults, MYSQL_ASSOC )) {
+			unset($s_firmenproparray["kandidatensuche"]["warenkorb"][$bookmarkresult_row["nutzerid"]]);
+		}
+	}
+
+	if ($s_firmenproparray["kandidatensuche"]["warenkorb"]) {
+		if ($delete=="yes") {
+			//foreach ($s_firmenproparray["kandidatensuche"]["warenkorb"] as $ergebniskey => $ergebnisvalue) {
+			//	if ($delete == $ergebnisvalue) {unset($s_firmenproparray["kandidatensuche"]["warenkorb"][$ergebniskey]);}
+			//}
+			$s_firmenproparray["kandidatensuche"]["warenkorb"] = array();
+		}
+		$anzahl = count ($s_firmenproparray["kandidatensuche"]["warenkorb"]);
+	}
+}
+
+if ($dest) $s_firmenproparray["kandidatensuche"]["destination"] = $dest;
+
+
+if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+	if (!$s_firmenproparray["kandidatensuche"]["destination"]) $s_firmenproparray["kandidatensuche"]["destination"]="merkzettel";
+} else {
+	if (!$s_firmenproparray["kandidatensuche"]["destination"]) $s_firmenproparray["kandidatensuche"]["destination"]="mailing";
+}
+
+
+echo "<script type=\"text/javascript\">\n";
+echo "WK_showWaitMessage('waitDiv', 0);\n";
+echo "</script>\n";
+
+if ( $anzahl  > 0) {
+
+	echo "<a href=\"wk_inhalt.phtml?".session_name()."=".session_id()."\">Auf der Kandidatenliste befinden derzeit insgesamt <B>".$anzahl."</B> Kandidaten.</a><br><br>\n";
+	echo "<form action=\"wk.phtml\" method=\"get\">\n";
+	echo "<table width=\"100%\" border=\"0\">\n";
+	echo "<tr>\n";
+	echo "<td width=\"10%\">&nbsp;</td>\n";
+	echo "<td width=\"35%\"><b>Suchm&ouml;glichkeit</b></td>\n";
+	echo "<td align=\"right\"><b>Menge</b></td>\n";
+	if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+		echo "<td width=\"15%\" align=\"right\"><b>Einzelpreis</b></td>\n";
+		echo "<td width=\"15%\" align=\"right\"><b>Rabatt</b></td>\n";
+		echo "<td width=\"15%\" align=\"right\"><b>Gesamtpreis</b></td>\n";
+	}
+	echo "</tr>\n";
+	echo "<tr align=\"center\">\n";
+	if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+		echo "<td colspan=\"6\" height=\"1\" bgcolor=\"#F7E7CE\"></td>\n";
+	} else {
+		echo "<td colspan=\"3\" height=\"1\" bgcolor=\"#F7E7CE\"></td>\n";
+	}
+	echo "</tr>\n";
+
+	if ($s_loggedin=="yes") {
+		$query="SELECT `gesuchedb` FROM `firmen_prop_assign` WHERE firmenid = $s_firmenid";
+		$gesucheresults=mysql_db_query($database_db,$query,$praktdbmaster);
+
+		$gesuche_anzahl = mysql_result($gesucheresults,0,"gesuchedb");
+	} else {
+		$gesuche_anzahl = 0;
+	}
+
+	$gesuche_anzahl_berechnung = $gesuche_anzahl;
+
+	if ($anzahl > 0) {
+		$rabattsatz = rabattstaffel($anzahl);
+		echo "<tr>\n";
+		echo "<td align=\"right\" width=\"10%\"><a href=\"wk.phtml?delete=yes\"><IMG SRC=\"/home/gifs/symbole/loeschen.gif\" ALT=\"diese Suche l&ouml;schen\" border=\"0\"></a></td>\n";
+		echo "<td width=\"55%\"><a href=\"wk_inhalt.phtml?profilsuche=true\">Profilsuche</a></td>\n";
+		echo "<td align=\"right\">".$anzahl."</td>\n";
+		if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+			echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",$preis)."</td>\n";
+			echo "<td align=\"right\" width=\"15%\">".((1 - $rabattsatz)*100)."%</td>\n";
+			$guthabenanzahl = $anzahl - $gesuche_anzahl_berechnung;
+			if ($guthabenanzahl < 0) { $guthabenanzahl=0; }
+			$gesuche_anzahl_berechnung = $gesuche_anzahl_berechnung-($anzahl-$guthabenanzahl);
+			echo "<td align=\"right\" width=\"15%\">EUR&nbsp;".sprintf("%01.2f",($gesamtpreis = $preis*$guthabenanzahl*$rabattsatz))."</td>\n";
+		}
+		echo "</tr>\n";
+	}
+
+	if ($gesuche_anzahl >= $anzahl) {
+		$gesamtpreis = 0;
+
+	}
+	if ($s_loggedin!="yes" || $s_firmenlevel < 2 || $s_firmenlevel > 2) {
+
+		if ($gesamtpreis < 12 && $gesamtpreis != 0) {
+			$gesamtpreis = 12;
+			echo "<tr>\n";
+			echo "<td colspan=\"5\" align=\"right\"><b><u>Mindestsumme:</u></b></td>\n";
+			echo "<td align=\"right\" width=\"15%\"><b><u>EUR&nbsp;".sprintf("%01.2f",($gesamtpreis))."</u></b></td>\n";
+			echo "</tr>\n";
+		} else {
+			echo "<tr>\n";
+			echo "<td colspan=\"5\" align=\"right\"><b><u>Summe:</u></b></td>\n";
+			echo "<td align=\"right\" width=\"15%\"><b><u>EUR&nbsp;".sprintf("%01.2f",($gesamtpreis))."</u></b></td>\n";
+			echo "</tr>\n";
+		}
+		echo "<tr><td colspan=6 class=small><br><br>Alle Preise verstehen sich zuz&uuml;glich ".$mwst_satz."% MwSt.</td></tr>";
+
+		echo "<tr valign=\"top\"><td colspan=6><hr></td></tr>";
+
+		echo "<tr valign=\"top\"><td colspan=6>Bitte w&auml;hlen Sie die Aktion nach der Buchung: <select name=\"dest\" onChange=\"submit();\">";
+		echo "<option value=\"mailing\"";
+		if ($s_firmenproparray["kandidatensuche"]["destination"] == "mailing") echo " selected";
+		echo ">Email an alle Kandidaten</option>";
+		echo "<option value=\"warenkorb\"";
+		if ($s_firmenproparray["kandidatensuche"]["destination"] == "warenkorb") echo " selected";
+		echo ">auf Merkzettel setzen</option>";
+		echo "</select></td></tr>\n";
+
+
+	} else {
+
+		echo "<tr valign=\"top\"><td colspan=6><br><br>Bitte w&auml;hlen Sie die ensprechende Aktion: <select name=\"dest\" onChange=\"submit();\">";
+		echo "<option value=\"mailing\"";
+		if ($s_firmenproparray["kandidatensuche"]["destination"] == "mailing") echo " selected";
+		echo ">Email an alle Kandidaten</option>";
+		echo "<option value=\"warenkorb\"";
+		if ($s_firmenproparray["kandidatensuche"]["destination"] == "warenkorb") echo " selected";
+		echo ">auf Merkzettel setzen</option>";
+		echo "</select></td></tr>\n";
+
+	}
+?>
+</table></form>
+<hr>
+<table width="100%" border=0>
+<? if ($gesamtpreis != 0) { ?>
+			<tr><td colspan="2"><img src="/home/gifs/symbole/neu.gif" alt="">&nbsp;<a href="wk_drucken.phtml?<? echo session_name()."".session_id(); ?>" target="wk_drucken">Diese Kandidatenliste drucken und per <b>Fax</b> bestellen...</a></td></tr>
+<? } ?>
+			<tr><td colspan="2"><hr></td></tr>
+<?
+if ($s_loggedin=="yes") {
+
+	if ($gesuche_anzahl > 0) echo "<tr><td colspan=\"2\">Sie haben noch ein Guthaben vom $gesuche_anzahl Kandidaten.</td></tr>";
+
+}
+echo "<tr><td align=\"left\">";
+
+if ($s_loggedin=="yes" && ($s_firmenlevel < 2  || $s_firmenlevel > 2) && $gesuche_anzahl < $anzahl) {
+	echo"<form action=\"/home/firmen/commerce/produktbuchung/kandidatensuche/bestaetigen.phtml\" method=\"POST\">\n";
+	echo"<input type=\"submit\" value=\"Buchung vornehmen\" name=\"submit\">\n";
+	echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+	echo"<input type=\"hidden\" value=\"". $gesamtpreis ."\" name=\"preis\">\n";
+	echo"<input type=\"hidden\" value=\"3\" name=\"pid\">\n";
+	echo"</form>\n";
+
+} elseif ($s_loggedin=="yes") {
+	if ($s_ergebnisarry["sucheingabe"]["destination"] == "mailing") {
+		echo"<form action=\"mailing.phtml\" method=\"POST\">\n";
+		echo"<input type=\"submit\" value=\"Mailing vorbereiten\" name=\"submit\">\n";
+		echo"<input type=\"hidden\" value=\"yes\" name=\"mailinsert\">\n";
+		echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+		echo"</form>\n";
+	}
+	else {
+		echo"<form action=\"uebertrag.phtml\" method=\"POST\">\n";
+		echo"<input type=\"submit\" value=\"auf Merkzettel &uuml;bertragen\" name=\"submit\">\n";
+		echo"<input type=\"hidden\" value=\"". session_id() ."\" name=\"". session_name()."\">\n";
+		echo"</form>\n";
+	}
+
+} else {
+	echo"<form action=\"\">\n";
+	echo"<input type=\"button\" value=\"Einloggen\" onClick=\"window.open('/home/quicklogin/minilogin.phtml?loginwer=Unternehmen&amp;".session_name()."=".session_id()."','messageWindow','scrollbars=yes,statusbar=no,toolbar=yes,width=380,height=250');\">\n";
+	echo"</form>\n";
+}
+if ($s_ergebnisarry["sucheingabe"]["referer"]=="") { $link = "/home/firmen/einblick.phtml?".session_name()."=".session_id();} else { $link = $s_ergebnisarry["sucheingabe"]["referer"];}
+?>
+			</td>
+			<td align=right>
+			<form action="">
+			<input type="BUTTON" name="y" value="zur&uuml;ck zur Ergebnisliste" onClick="location.replace('<? echo $link; ?>');">
+			</form></td></tr></table>
+
+                  <? if ($s_loggedin !="yes") { ?><br>
+                  Um eine Buchung des Produktes "Kandidatensuche" vorzunehmen, m&uuml;ssen Sie angemeldet sein. <span class=normal><a href="#?<? echo session_name(); ?>=<? echo session_id(); ?>" onMouseOver="return Describe('')" onMouseOut="return Describe('')" onClick="windowanm=window.open('/home/quicklogin/minilogin.phtml?loginwer=Unternehmen&amp;<? echo session_name(); ?>=<? echo session_id(); ?>','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=380,height=250'); return false;"><b>Loggen Sie sich jetzt ein!</b></a></span><br>
+                  Sollten Sie noch nicht bei praktika.de registriert sein, k&ouml;nnen Sie sich hier <span class=normal><a href="#?<? echo session_name(); ?>=<? echo session_id(); ?>" onMouseOver="return Describe('')" onMouseOut="return Describe('')" onClick="windowanm=window.open('/home/firmen/firmencheck.phtml?<? echo session_name(); ?>=<? echo session_id(); ?>','messageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=515,height=380'); return false;"><b>kostenfrei anmelden</b></a></span>!
+                  <? } ?>
+              <? } else {
+              	if ($s_ergebnisarry[sucheingabe][referer]=="") { $link = "/home/firmen/einblick.phtml?suchwahl=volltext_new";} else { $link = $s_ergebnisarry[sucheingabe][referer];}
+              	?>
+            <table width="100%">
+              <tr>
+                <td>Es stehen derzeit keine Kandidaten auf der Liste!<br>
+                  <? echo $error; ?>
+                  <form action="">
+                    <hr>
+                      <input type="BUTTON" name="y" value="zur Suche" onClick="location.replace('<? echo $link; ?>');">
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? }
+            echo "<br><br><br>";
+            require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");
+            echo $content;
+            ?> </td>
+        </tr>
+      </table>
+
+<?
+bodyoff(session_id(), session_name());
+$s_ergebnisarry["warenkorb_id"]=wksavedb();
+?>

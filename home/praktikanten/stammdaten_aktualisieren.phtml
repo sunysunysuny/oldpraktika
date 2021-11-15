@@ -1,0 +1,486 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/anmeldung.phtml";
+$sprachbasisdatei2 = "/home/praktikanten/mystammdaten.phtml";
+
+require_once("/home/praktika/etc/config.inc.php");
+require_once("/home/praktika/etc/emailverify.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if (isset($_POST['save'])) {
+	$modify = date("YmdHis");
+
+	$check = mysql_db_query($database_db,'SELECT * FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbmaster);
+	$oldemail = mysql_result($check, 0, 'email');
+
+	if (strlen(trim($_POST['strasse'])) < 4) {
+		$_POST['strasse'] = mysql_result($check, 0, 'strasse');
+	}
+
+	if (strlen(trim($_POST['ort'])) < 3) {
+		$_POST['ort'] = mysql_result($check, 0, 'ort');
+	}
+
+	if (strlen(trim($_POST['plz'])) < 4) {
+		$_POST['plz'] = mysql_result($check, 0, 'plz');
+	}
+
+	$check2 = mysql_db_query($database_db,'SELECT email FROM nutzer WHERE email = \''.mysql_real_escape_string($_POST['email']).'\'',$praktdbmaster);
+
+	if (empty($_POST['email']) || mysql_num_rows($check2) > 1 || substr_count($email,'@praktika.de') > 0) {
+		$email = $oldemail;echo 12;
+	} else {
+		$validtext = ValidateMail($_POST['email']);
+
+		if ($validtext[0] != true) {
+			$email = $oldemail;
+		} else {
+			$email = $_POST['email'];
+		}
+	}
+
+	//Wenn Email ge&auml;ndert, dann erneut verify_nutzeremail
+	if ($oldemail != $email) {
+		verify_nutzeremail($email);
+		$verify_sql = 'emailverify = \'false\',';
+	} else {
+		$verify_sql = 'emailverify = \'true\',';
+	}
+
+	/* einfuegestring zusammensetzen */
+	$unixzeit = time();
+	$updatestring = '	UPDATE nutzer SET
+							'.$verify_sql.'
+							karierrestatus = \''.mysql_real_escape_string($_POST['karierrestatus']).'\',
+							studiengang = \''.mysql_real_escape_string($_POST['studiengang']).'\',
+							strasse = \''.mysql_real_escape_string($_POST['strasse']).'\',
+							plz = \''.mysql_real_escape_string($_POST['plz']).'\',
+							ort = \''.mysql_real_escape_string($_POST['ort']).'\',
+							bundesland = \''.mysql_real_escape_string($_POST['bundesland']).'\',
+							land = \''.mysql_real_escape_string($_POST['land']).'\',
+							grossraum = \''.mysql_real_escape_string($_POST['grossraum']).'\',
+							tel = \''.mysql_real_escape_string($_POST['tel']).'\',
+							funktel = \''.mysql_real_escape_string($_POST['funktel']).'\',
+							email = \''.mysql_real_escape_string($email).'\',
+							hochschule = \''.mysql_real_escape_string($_POST['hochschule']).'\',
+							start_praktikum_m = \''.mysql_real_escape_string($_POST['start_praktikum_m']).'\',
+							start_praktikum_y = \''.mysql_real_escape_string($_POST['start_praktikum_y']).'\',
+							start_job_m = \''.mysql_real_escape_string($_POST['start_job_m']).'\',
+							start_job_y = \''.mysql_real_escape_string($_POST['start_job_y']).'\',
+							semester = \''.mysql_real_escape_string($_POST['semester']).'\',
+							host = \''.$host.'\',
+							ip = \''.$ip.'\',
+							modify = \''.$modify.'\',
+							modifyunix = \''.$unixzeit.'\'
+						WHERE
+							id = '.$_SESSION['s_nutzerid'];
+							
+	/* datensatz einfuegen */
+	mysql_db_query($database_db,$updatestring,$praktdbmaster);
+	
+	// infomail zusammenbauen
+	$emailobj = new emailtemplate(95);
+	$emailobj->replace("{id}",$_SESSION['s_nutzerid']);
+	$emailobj->replace("{strasse}",$_POST['strasse']);
+	$emailobj->replace("{plz}",$_POST['plz']);
+	$emailobj->replace("{ort}",$_POST['ort']);
+	$emailobj->replace("{land}",$_POST['land']);
+	$emailobj->replace("{bundesland}",$_POST['bundesland']);
+	$emailobj->replace("{grossraum}",$_POST['grossraum']);
+	$emailobj->replace("{tel}",$_POST['tel']);
+	$emailobj->replace("{funktel}",$_POST['tel']);
+	$emailobj->replace("{email}",$email);
+	$emailobj->replace("{host}",$host);
+	$emailobj->replace("{ip}",$ip);
+	$emailobj->replace("{updatestring}",$updatestring);
+	$emailobj->send_email();
+	unset($emailobj);
+
+	/* Logfile eintragen */
+	$fp = fopen($logfile, "a");
+	fputs($fp, $updatestring);
+	fputs($fp, "\n");
+	fclose($fp);
+
+	recalc_profilquali();
+
+	/* datensatz in $database_community einfuegen */
+	if (!empty($_POST['praktort'])) {
+		$praktStrasse = ($_POST['ort'] == $_POST['praktort']) ? $_POST['strasse'] : '';
+
+		$georesult = geocoding($_POST['praktland'], '', '', $_POST['praktort'], $praktStrasse);
+		
+		if ($georesult['lat'] == 0 && $georesult['long'] == 0) {
+			$georesult = geocoding($_POST['praktland'],'','',$_POST['praktort'],'');
+		}
+		
+		if ($georesult['lat'] <> 0 && $georesult['long'] <> 0) {
+			$_POST['end_praktikum_m'] = $_POST['start_praktikum_m'] + 5;
+			$_POST['end_praktikum_y'] = $_POST['start_praktikum_y'];
+			
+			if ($_POST['end_praktikum_m'] > 12) {
+				$_POST['end_praktikum_m'] = $_POST['end_praktikum_m'] - 12;
+				$_POST['end_praktikum_y']++;
+			}
+	
+		 	$sql = '	INSERT INTO stationlist (
+		 					nutzerid,
+		 					category,
+		 					landid,
+		 					plz,
+		 					ort,
+		 					strasse,
+		 					start_praktikum_m,
+		 					start_praktikum_y,
+		 					start_praktikum,
+		 					end_praktikum_m,
+		 					end_praktikum_y,
+		 					end_praktikum,
+		 					`long`,
+		 					lat,
+		 					datum_eintrag
+		 				) VALUES (
+		 					\''.$_SESSION['s_nutzerid'].'\',
+		 					\'2\',
+		 					\''.ucfirst(mysql_real_escape_string($_POST['praktland'])).'\',
+		 					\'\',
+		 					\''.ucfirst(mysql_real_escape_string($_POST['praktort'])).'\',
+		 					\'\',
+		 					\''.mysql_real_escape_string($_POST['start_praktikum_m']).'\',
+		 					\''.mysql_real_escape_string($_POST['start_praktikum_y']).'\',
+		 					\''.strtotime(mysql_real_escape_string($_POST['start_praktikum_y']).'-'.mysql_real_escape_string($_POST['start_praktikum_m']).'-01').'\',
+		 					\''.mysql_real_escape_string($_POST['end_praktikum_m']).'\',
+		 					\''.mysql_real_escape_string($_POST['end_praktikum_y']).'\',
+		 					\''.strtotime(mysql_real_escape_string($_POST['end_praktikum_y']).'-'.mysql_real_escape_string($_POST['end_praktikum_m']).'-30').'\',
+		 					\''.$georesult['long'].'\',
+		 					\''.$georesult['lat'].'\',
+		 					UNIX_TIMESTAMP()
+		 				);';
+			mysql_db_query($database_community,$sql,$praktdbmaster);
+		}
+	}
+
+	/* Wohnort datensatz in $database_community einfuegen */
+	if (!empty($_POST['ort'])) {
+		$georesult = geocoding($_POST['land'],$_POST['bundesland'],$_POST['plz'],$_POST['ort'],$_POST['strasse']);
+		
+		if ($georesult['lat'] == 0 && $georesult['long'] == 0) {
+			$georesult = geocoding($_POST['land'],'','',$_POST['ort'],'');
+		}
+		
+		if ($georesult['lat'] <> 0 && $georesult['long'] <> 0) {
+			$_POST['end_praktikum_m'] = $_POST['start_praktikum_m'] + 5;
+			$_POST['end_praktikum_y'] = $_POST['start_praktikum_y'];
+			
+			if ($_POST['end_praktikum_m'] > 12) {
+				$_POST['end_praktikum_m'] = $_POST['end_praktikum_m'] - 12;
+				$_POST['end_praktikum_m']++;
+			}
+	
+		 	$sql = '	INSERT INTO stationlist (
+		 					nutzerid,
+		 					category,
+		 					landid,
+		 					bundeslandid,
+		 					plz,
+		 					ort,
+		 					strasse,
+		 					start_praktikum_m,
+		 					start_praktikum_y,
+		 					start_praktikum,
+		 					end_praktikum_m,
+		 					end_praktikum_y,
+		 					end_praktikum,
+		 					`long`,
+		 					lat,
+		 					datum_eintrag
+		 				) VALUES (
+		 					\''.$_SESSION['s_nutzerid'].'\',
+		 					\'8\',
+		 					\''.mysql_real_escape_string($_POST['land']).'\',
+		 					\''.mysql_real_escape_string($_POST['bundesland']).'\',
+		 					\''.mysql_real_escape_string($_POST['plz']).'\',
+		 					\''.ucfirst(mysql_real_escape_string($_POST['ort'])).'\',
+		 					\''.mysql_real_escape_string($_POST['strasse']).'\',
+		 					\''.mysql_real_escape_string($_POST['start_praktikum_m']).'\',
+		 					\''.mysql_real_escape_string($_POST['start_praktikum_y']).'\',
+		 					\''.strtotime(mysql_real_escape_string($_POST['start_praktikum_y']).'-'.mysql_real_escape_string($_POST['start_praktikum_m']).'-01').'\',
+		 					\''.mysql_real_escape_string($_POST['end_praktikum_m']).'\',
+		 					\''.mysql_real_escape_string($_POST['end_praktikum_y']).'\',
+		 					\''.strtotime(mysql_real_escape_string($_POST['end_praktikum_y']).'-'.mysql_real_escape_string($_POST['end_praktikum_m']).'-30').'\',
+		 					\''.$georesult['long'].'\',
+		 					\''.$georesult['lat'].'\',
+		 					\''.time().'\'
+		 				);';
+			mysql_db_query($database_community,$sql,$praktdbmaster);
+		}
+	}
+
+	header("Location: /cms/Aktualisierung_Bewerberdaten.1264.0.html");
+	exit;
+}
+
+pageheader(array('page_title' => 'Aktualisierung Ihrer Bewerberdaten'));
+
+/*
+-----------------------------------------------------------------------------
+&Auml;nderung der Stammdaten
+-----------------------------------------------------------------------------
+*/
+$nutzer = mysql_db_query($database_db,'SELECT *,DATE_FORMAT(geburtsdatum, \'%d.%m.%Y\') AS gebdat FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+
+if (isset($_POST['land'])) {
+	$landid = $_POST['land'];
+} else {
+	$landid = mysql_result($nutzer,0,"land");
+}
+
+$bundesland = mysql_result($nutzer,0,"bundesland");
+$grossraum = mysql_result($nutzer,0,"grossraum");
+
+$land = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].', id FROM land ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+$anz_land = mysql_num_rows($land);
+
+$bundeslandselect = mysql_db_query($database_db,'SELECT * FROM bundesland WHERE landid = '.$landid.' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+$anz_bundesland = mysql_num_rows($bundeslandselect);
+
+if ($anz_bundesland > 0) {
+	$bundeslandsel = mysql_result($bundeslandselect,0,"id");
+	
+	if (empty($bundesland)) {
+		$bundesland = $bundeslandsel;
+	}
+
+	$grossraumselect = mysql_db_query($database_db,'SELECT grossraum, id FROM grossraum WHERE bundesland = '.$bundesland.' ORDER BY grossraum',$praktdbslave);
+	$anz_grossraum = mysql_num_rows($grossraumselect);
+}
+
+$karierrestats = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].', id FROM karierrestatus ORDER BY anzeigeorder',$praktdbslave);
+$anz_karierrestatus = mysql_num_rows($karierrestats);
+
+$anrede = mysql_result($nutzer,0,"anrede");
+
+/* Nutzer */
+if ($_SESSION['s_preregister'] == 'true') {
+	echo '<p>Sehr geehrter Nutzer,<br /><br />Sie melden sich heute das erste mal bei praktika.de an.<br />Um mit praktika.de arbeiten zu k&ouml;nnen, ben&ouml;tigen wir noch einige Angaben von Ihnen. Wir bitten Sie nun, diese jetzt nachzutragen.</p>'."\n";
+}
+
+if ($aktiviert == "YES") {
+	echo '<p>Sie haben Ihren Account nun aktiviert. Ab sofort k&ouml;nnen Sie sich auf Stellen bewerben, Ihr Profil hinterlegen, Jobmail konfigurieren und vieles mehr.<br /><br /><a href="/home/praktikanten/karriere/">zum KarriereCenter</a></p>'."\n";
+}
+
+if (isset($_POST['save']) && (mysql_num_rows($check2) < 2 || substr_count($email,"@praktika.de") < 1) && $_SESSION['s_preregister'] == "false") {
+	echo '<p class="error">Ihre Stammdaten wurden erfolgreich ge&auml;ndert.</p>'."\n";
+}
+
+// eMail pr&uuml;fen
+if (isset($_POST['save'])) {
+	$emailgleich = mysql_db_query($database_db,'SELECT email FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+}
+
+if (isset($_POST['save']) && ((mysql_num_rows($check2) > 1 && mysql_num_rows($emailgleich) == 0)) || substr_count($email,"@praktika.de") > 0) {
+	echo '<p class="error">'.$language['strEMailfalsch'].'</p>'."\n";
+}
+
+if (isset($_POST['save']) && $passwort != "" && $passwort <> $passwort2) {
+	echo '<p class="error">Das eingegebenen Passwort und das Kontrollpasswort stimmen nicht &uuml;berein. Das Passwort wurde nicht ge&auml;ndert.</p>'."\n";
+}
+
+$strasse = mysql_result($nutzer,0,"strasse");
+$plz = mysql_result($nutzer,0,"plz");
+$ort = mysql_result($nutzer,0,"ort");
+$email = mysql_result($nutzer,0,"email");
+$tel = mysql_result($nutzer,0,"tel");
+$funktel = mysql_result($nutzer,0,"funktel");
+$hochschule = mysql_result($nutzer,0,"hochschule");
+$start_praktikum_m = mysql_result($nutzer,0,"start_praktikum_m");
+$start_praktikum_y = mysql_result($nutzer,0,"start_praktikum_y");
+$start_job_m = mysql_result($nutzer,0,"start_job_m");
+$start_job_y = mysql_result($nutzer,0,"start_job_y");
+$semester = mysql_result($nutzer,0,"semester");
+
+echo '<form action="stammdaten_aktualisieren.phtml" method="post" name="stammdaten">'."\n";
+echo '	<h4>Ihre Bewerberdaten</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="strasse"'.(empty($strasse) ? ' class="error"' : '').'>Stra&szlig;e:</label>'."\n";
+echo '			<input id="strasse" name="strasse" value="'.htmlspecialchars($strasse).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="plz"'.((empty($plz) || empty($ort)) ? ' class="error"' : '').'>PLZ / Ort:</label>'."\n";
+echo '			<input id="plz" name="plz" value="'.htmlspecialchars($plz).'" />'."\n";
+echo '			<input id="ort" name="ort" value="'.htmlspecialchars($ort).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="land">Land:</label>'."\n";
+echo '			<select id="land" name="land">'."\n";
+
+$i = 0;
+while ($i < $anz_land) {
+	$html = htmlspecialchars(mysql_result($land,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($land,$i,"id") == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($land,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="bundesland">Bundesland:</label>'."\n";
+echo '			<select id="bundesland" name="bundesland">'."\n";
+
+$i = 0;
+while ($i < $anz_bundesland) {
+	$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($bundeslandselect,$i,"id") == $bundesland) ? 'selected="selected" ' : '').'value="'.mysql_result($bundeslandselect,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="grossraum">Gro&szlig;raum:</label>'."\n";
+echo '			<select id="grossraum" name="grossraum">'."\n";
+
+$i = 0;
+while ($i < $anz_grossraum) {
+	$html = htmlspecialchars(mysql_result($grossraumselect,$i,'grossraum'));
+	echo '				<option '.((mysql_result($grossraumselect,$i,"id") == $grossraum) ? 'selected="selected" ' : '').'value="'.mysql_result($grossraumselect,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email"'.(empty($email) ? ' class="error"' : '').'>eMail:</label>'."\n";
+echo '			<input id="email" name="email" value="'.htmlspecialchars($email).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel">Telefonnummer:</label>'."\n";
+echo '			<input id="tel" name="tel" value="'.htmlspecialchars($tel).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="funktel">Handynummer:</label>'."\n";
+echo '			<input id="funktel" name="funktel" value="'.htmlspecialchars($funktel).'" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<h4>Angaben f&uuml;r Ihre Bewerbung</h4>'."\n";
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="karierrestatus">Karrierestatus:</label>'."\n";
+echo '			<select id="karierrestatus" name="karierrestatus">'."\n";
+
+$i = 0;
+while ($i < $anz_karierrestatus) {
+	$html = htmlspecialchars(mysql_result($karierrestats,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($karierrestats,$i,"id") == mysql_result($nutzer,0,"karierrestatus")) ? 'selected="selected" ' : '').'value="'.mysql_result($karierrestats,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+
+$studiumsel = mysql_db_query($database_db,'SELECT studiengang, id FROM studiengaenge ORDER BY studiengang',$praktdbslave);
+$anz_studium = mysql_num_rows($studiumsel);
+
+echo '		<p>'."\n";
+echo '			<label for="studiengang">Studium:</label>'."\n";
+echo '			<select id="studiengang" name="studiengang">'."\n";
+
+$i = 0;
+while ($i < $anz_studium) {
+	$html = htmlspecialchars(mysql_result($studiumsel,$i,'studiengang'));
+	echo '				<option '.((mysql_result($studiumsel,$i,"id") == mysql_result($nutzer,0,"studiengang")) ? 'selected="selected" ' : '').'value="'.mysql_result($studiumsel,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="hochschule">Uni / Bildungseinrichtung:</label>'."\n";
+echo '			<input id="hochschule" name="hochschule" value="'.htmlspecialchars($hochschule).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="start_praktikum_m">n&auml;chstes Praktikum ab:<sup>*</sup></label>'."\n";
+echo '			<select id="start_praktikum_m" name="start_praktikum_m" class="month">'."\n";
+echo '				<option value="">--</option>'."\n";
+
+$j = 1;
+while ($j < 13) {
+	echo '				<option '.($j == $start_praktikum_m ? 'selected="selected" ' : '').'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+	$j++;
+}
+
+echo '			</select> / '."\n";
+echo '			<select id="start_praktikum_y" name="start_praktikum_y" class="year">'."\n";
+echo '				<option value="">--</option>'."\n";
+
+$j = date("Y");
+while ($j <= date("Y") + 5) {
+	echo '				<option '.($j == $start_praktikum_y ? 'selected="selected" ': '').'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+	$j++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="praktland">n&auml;chstes Praktikumsland:</label>'."\n";
+echo '			<select id="praktland" name="praktland">'."\n";
+
+$i = 0;
+while ($i < $anz_land) {
+	$html = htmlspecialchars(mysql_result($land,$i,$_SESSION['s_sprache']));
+	echo '				<option '.((mysql_result($land,$i,"id") == $landid) ? 'selected="selected" ' : '').'value="'.mysql_result($land,$i,"id").'">'.$html.'</option>'."\n";
+	$i++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="praktort">n&auml;chster Praktikumsort:</label>'."\n";
+echo '			<input id="praktort" name="praktort" value="" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="start_job_m">Berufsstart ca. ab:<sup>*</sup></label>'."\n";
+echo '			<select id="start_job_m" name="start_job_m" class="month">'."\n";
+echo '				<option value="">--</option>'."\n";
+
+$j = 1;
+while ($j < 13) {
+	echo '				<option '.($j == $start_job_m ? 'selected="selected" ' : '').'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+	$j++;
+}
+
+echo '			</select> / '."\n";
+echo '			<select id="start_job_y" name="start_job_y" class="year">'."\n";
+echo '				<option value="">--</option>'."\n";
+
+$j = date("Y");
+while ($j <= date("Y") + 6) {
+	echo '				<option '.($j == $start_job_y ? 'selected="selected" ': '').'value="'.$j.'">'.sprintf("%02.0f",$j).'</option>'."\n";
+	$j++;
+}
+
+echo '			</select>'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="semester">aktuelles Semester:<sup>*</sup></label>'."\n";
+echo '			<input id="semester" name="semester" value="'.$semester.'" class="year" />. Semester'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<button type="submit" name="save" value="Bewerberdaten best&auml;tigen"><span><span><span>Bewerberdaten best&auml;tigen</span></span></span></button>'."\n";
+echo '			<input type="hidden" name="usercode" value="'.$usercode.'" />'."\n";
+echo '			<input type="hidden" name="id" value="'.$id.'" />'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+echo '</form>'."\n";
+
+bodyoff();
+?>

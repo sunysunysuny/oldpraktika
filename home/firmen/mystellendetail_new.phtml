@@ -1,0 +1,316 @@
+<?php
+#$restricted = "yes";
+#$gruppe = "firmen";
+require("/home/praktika/etc/config.inc.php"); 
+
+$stellenid = $_GET['stellenid'];
+$firmenid = $_SESSION['s_firmenid'];
+$_SESSION['sidebar'] = 'none';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Stellenstatistik <img src="/styles/images/beta.png" />'));
+
+$monatsArray = array("Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember");
+
+$objFirma = new Praktika_Firma($_SESSION["s_firmenid"]);
+$stellen = $objFirma->getAllExistingJobs();
+
+$checkboxes = array();
+$checkboxes[] = array("id" => "Alle", "title" => "Alle Stellen");
+
+# Statistik-CSS-Modul wird hinzugefügt
+Praktika_Static::__("statistik");
+
+# Layout.php wird geladen (Wegen CheckBoxList-Funktion)
+$layout = new Praktika_Layout();
+
+?>
+<!--[if IE]><script language="javascript" type="text/javascript" src="../excanvas.min.js"></script><![endif]-->
+
+<script language="javascript" type="text/javascript" src="/scripts/framework/base.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/charts/chartv2.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/charts/flot/jquery.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/charts/flot/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/charts/flot/jquery.flot.selection.js"></script>
+<script type="text/javascript">
+    P_Framework.addModule("ajax");
+	P_Framework.addModule("display");
+    var Wochentag = new Array("Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag");
+	var flot_overview;
+    var flot_plot;
+    var aktDataSet;
+    var statDays = 0;
+    var startDate = 0;
+	var previousPoint = null;
+	var stellen = {};
+	var writeTablePerm = false;
+<?
+for($a = 0;$a < count($stellen);$a++) {
+	$checkboxes[] = array("id" => $stellen[$a]["stellenid"], "title" => $stellen[$a]["stellenid"]." - ".$stellen[$a]["taetigkeit"]."");
+	echo 'stellen['.$stellen[$a]["stellenid"].'] = "'.strip_tags($stellen[$a]["taetigkeit"]).'";'."\n";
+}
+?>
+</script>
+<div class="fullsize">
+    <div class="itemChooser" id="itemChooser">
+        <?
+        echo layout_generateCheckableList("itemChooser", $checkboxes, array("class" => "chooser", "height" => "400px", "width" => "360px", "other" => "padding:5px;font-size:10px !important;"), array($_GET["stellenid"]), array("onclick" => "loadData();"));
+        ?>
+    </div>
+    
+    <div class="timespan">
+        Zeitraum:
+        <input type="text" maxlength="10" id="time_from" value="<?=date("d.m.Y",time() - 86400 * 30) ?>" /> -
+        <input type="text" maxlength="10" style="" id="time_to" value="<?=date("d.m.Y",time() - 86400) ?>" />
+        <button onclick="loadData();"><span><span><span>Übernehmen</span></span></span></button>
+    </div>
+
+	<div class="clearfix statContainer">
+		<div id="placeholder" style="width:600px;height:300px;"></div>
+		<div id="statLegend"></div>
+		<div id="overview" style="display:none; margin-left:50px;margin-top:20px;width:400px;height:50px"></div>
+	
+		<span id="x" style="display:none;">0</span><span id="y" style="display:none;">0</span>
+    </div>
+		<div class="dataTable">
+			<span id="showTable"><a href="#" onclick="P_Display.changeDisplay($('#dataTable_data')[0]);P_Display.changeDisplay($('#showTable')[0]);writeTable(aktDataSet); return false;">Statistik-Tabelle einblenden</a></span>
+			<div style="display:none;" id="dataTable_data">
+				<table id="data_table">
+					<tr id="data_head_year"></tr>
+					<tr id="data_head_month"></tr>
+					<tr id="data_head_tr"></tr>
+				</table>
+				*= (Sucheinblendungen / Merkzetteleinträge / Bewerbungen)
+			</div>
+			
+		</div>
+	<a href="/home/firmen/mystellendetail-print.php?stellenid=<?=$_GET["stellenid"] ?>" target="blank">Druckversion</a>
+	
+	<div class="mail_send">
+		Statistik monatlich an folgende Mail:
+		<input type="input" id="mailAdr" name="mailAdr" value="<?="swarnat@praktika.de" ?>" />
+		<button><span><span><span>Speichern</span></span></span></button>
+	</div>
+    <script type="text/javascript">P_Framework.write();</script>
+        <? bodyoff(); ?>
+        <? exit(); ?>
+<style type="text/css">
+	div#Auswertung div,div#Auswertung td,div#Auswertung table {
+		margin:0px !important;
+		clear:nonschulee !important;
+		width:auto !important;
+	}
+	
+</style>
+
+  <div>
+    <table cellspacing="2" cellpadding="2">
+      <colgroup>
+        <col width="50%" />
+        <col width="50%" />
+      </colgroup>
+<?php
+
+$komplexMode = true;
+$allPlacements = false;
+
+$sql = sprintf('SELECT 
+					COUNT(id) AS anzahl
+				FROM 
+					viewstatsfirmen 
+				WHERE
+					firmenid = %d AND 
+					stellenid= %d',
+					$firmenid,
+					$stellenid);
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+?>
+      <tr>
+        <td>Gesamtanzahl der Abrufe:</td>
+        <td><?=mysql_result($result,0,'anzahl')?></td>
+      </tr>
+<?php
+$sql = sprintf('SELECT DISTINCT 
+					n.id,
+					n.vname,
+					n.name
+				FROM 
+					nutzer AS n,
+					viewstatsfirmen AS v
+				WHERE
+					n.id = v.userid AND
+					v.firmenid = %d AND 
+					v.stellenid= %d',
+					$firmenid,
+					$stellenid);
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+$numRows = mysql_num_rows($result);
+?>
+      <tr>
+        <td>Identifizierte Abrufe:</td>
+        <td><?=$numRows?></td>
+      </tr>
+
+      <tr>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+      </tr>
+<?php
+for($i = 0; $i < $numRows; $i++) {
+?>
+      <tr>
+        <td><?=($i == 0) ? 'Identifizierte Bewerber:': '&nbsp;'?></td>
+        <td><?=mysql_result($result,$i,'vname').' '.mysql_result($result,$i,'name')?></td>
+      </tr>
+<?php
+	#echo "<a onmouseover=\"window.status='" . $language["strInfos"] . "';return true\" href=\"/home/firmen/userdetail.phtml?id=" . mysql_result($result,$i,"id") . "&amp;stellenid=" . $stellenid . "\">" . mysql_result($result,$i,"vname") . " " . mysql_result($result,$i,"name") . "</a>, ";
+}
+?>
+    </table>
+    <p align="center" style="margin-top:10px">
+      <button type="button" name="back" onclick="location.href='/firmen/angeboteliste/'" value="zur&uuml;ck zur Stellenverwaltung"><span><span><span>ZUR&Uuml;CK ZUR STELLENVERWALTUNG</span></span></span></button>
+    </p>
+  </div>
+<!--<input type="checkbox" name="insg" id="insg" value="1" onclick="recalc();" />Unternehmen insgesamt | <input onclick="recalc();" type="checkbox" name="anz" id="anz" value="1" /> Stellenanzeige-->
+    <div id="placeholder" style="width:600px;height:300px;"></div>
+
+    <div id="overview" style="display:none; margin-left:50px;margin-top:20px;width:400px;height:50px"></div>
+	<span id="x" style="display:none;">0</span><span id="y" style="display:none;">0</span>
+	
+<? if(1==1 || $_SESSION["s_firmenlevel"] > 1) {
+	?>
+	<script language="javascript" type="text/javascript" src="/scripts/charts/month.js"></script>
+	<?
+} else {
+	?>
+	<script language="javascript" type="text/javascript" src="/scripts/charts/year.js"></script>
+	<?
+	
+}		?>
+	<script type="text/javascript">
+		var Wochentag = new Array("Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag");
+<?
+
+if($komplexMode == true) { 
+	if(1==1 || $_SESSION["s_firmenlevel"] > 1) {
+                if($allPlacements == true) {
+                    $sql = "SELECT id FROM prakt2.stellen WHERE firmenid = ".$firmenid."";
+                    $allStellenRst = $hDB->query($sql, $praktdbslave);
+
+                    $allStellen = array();
+                    while($stelle = mysql_fetch_assoc($allStellenRst)) {
+                        $allStellen[] = $stelle["id"];
+                    }
+                    $sql = "SELECT stellenid, date, 
+                                SUM(`view`) as `view`,
+                                SUM(`read`) as `read`,
+                                SUM(app) as app,
+                                UNIX_TIMESTAMP(date) as datets
+                            FROM prakt2_stat.stellen_stat
+                            WHERE   stellenid IN (".implode(",",$allStellen).") AND
+                                    date > DATE(DATE_ADD(NOW(), INTERVAL -30 DAY)) GROUP BY DATE(date)";
+                } else {
+                    $sql = "SELECT *,
+                                UNIX_TIMESTAMP(date) as datets
+                            FROM prakt2_stat.stellen_stat
+                            WHERE   stellenid = ".$stellenid." AND
+                                    date > DATE(DATE_ADD(NOW(), INTERVAL -30 DAY))";
+                }
+# echo $sql;
+		#$sql = "SELECT COUNT(*) as aufrufe, DAY(`modify`) as tag FROm viewstatsfirmen WHERE stellenid = ".$stellenid." AND MONTH(`modify`) = ".date("m")." GROUP BY DAY(`modify`) ORDER BY DAY(`modify`)";
+		
+		$daten = $hDB->query($sql, $praktdbslave);
+		# echo $sql;
+		
+		$sql = "SELECT UNIX_TIMESTAMP(DATE_ADD(NOW(),INTERVAL -29 DAY)) AS date";
+		$startDate = mysql_result($hDB->query($sql, $praktdbslave),0,"date");
+                # $startDate = mktime(0,0,0,10,27,2009);
+                
+		$row = mysql_fetch_assoc($daten);
+                $dates = array();
+
+		for($a = 0; $a < 30; $a++) {
+#echo $startDate."\n";
+                        if(date("Y-m-d", $row["datets"]) == date("Y-m-d", $startDate)) {
+
+                           $views[] = array($startDate, $row["view"], $row["read"], $row["app"]);
+
+                            $row = mysql_fetch_assoc($daten);
+
+                            if($row == false) {
+                                $row["datets"] = mktime(0,0,0,9,15,2030);
+                            }
+                        } else {
+                           $views[] = array($startDate, 0, 0, 0);
+                        }
+                        # echo date("d.m.Y", $startDate)."\n";
+#echo $startDate."\n";
+                        # $views[] = array($startDate, rand(100, 1000), rand(10,100), rand(1,4));
+                        $startDate = $startDate + 86400;
+#echo $startDate."\n";
+		}
+
+                $data1 = array();
+                $data2 = array();
+                $data3 = array();
+                $daten = array();
+                #var_dump($views);
+                for($a = 0; $a < count($views);$a++) {
+                    $data1[] = "[".$views[$a][0]."000, ".$views[$a][1]."]";
+                    $data2[] = "[".$views[$a][0]."000, ".$views[$a][2]."]";
+                    $data3[] = "[".$views[$a][0]."000, ".$views[$a][3]."]";
+                    $daten[] = "'".date("d.m.Y", $views[$a][0])."'";
+                }
+
+		?>
+		
+		var d = [<?=implode(",", $data1) ?>];
+		var d2 = [<?=implode(",", $data2) ?>];
+                var d3 = [<?=implode(",", $data3) ?>];
+		var daten = [<?=implode(",", $daten) ?>];
+                
+	<? } else { 
+	
+		$sql = "SELECT COUNT(*) as aufrufe, MONTH(modify) AS monat FROM viewstatsfirmen WHERE stellenid = 15304 AND YEAR(`modify`) = '2009' GROUP BY MONTH(`modify`) ORDER BY MONTH(`modify`)";
+		$daten = mysql_query($sql, $praktdbslave);
+	
+		$views = array();
+		$monate = array();
+		$row = mysql_fetch_assoc($daten);
+		$yearVal = 2009;
+		
+		for($a = 0;$a < 12;$a++) {
+			if($row["monat"] == $a+1) {
+				$read[] = "[".($a+1).",".rand(10,60)."]";
+				$row = mysql_fetch_assoc($daten);
+				
+				if($row == false) {
+					$row = array();
+					$row["monat"] = "70";
+				}
+			} else {
+				# echo date("d.m.Y", mktime(2,0,0, $monthVal,$a+1,  $yearVal));
+				
+				$read[] = "[".($a + 1).", ".rand(500,1000)."]";
+			}
+			
+			$views[] = "[".($a + 1).",".rand(0,50)."]";
+			
+		}	
+	?>
+		var d = [<?=implode(",", $read) ?>];
+		var d2 = [<?=implode(",", $views) ?>];
+		
+		var DatumString = "<?=$yearVal ?>";
+	<?	
+	 } 
+}
+	 ?>
+
+         function recalc() {
+                 
+         }
+</script>
+</div>
+<?php bodyoff(); ?>

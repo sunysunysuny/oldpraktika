@@ -1,0 +1,75 @@
+<?
+require('/home/praktika/etc/config.inc.php');
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+pageheader(array('page_title' => 'Ihre Stellenstatistik'));
+
+if (isset($_GET['stellenid'])) {
+	$stellenid = intval($_GET['stellenid']);
+}
+
+$taetigkeitsel = mysql_db_query($database_db,'	SELECT
+													*
+												FROM 
+													stellen
+												WHERE
+													stellen.firmenid = '.$_SESSION['s_firmenid'].' AND
+													stellen.id = '.$stellenid,$praktdbmaster);
+
+$array = mysql_fetch_array($taetigkeitsel);
+
+if ($array['inactive'] == 'false') {
+
+	echo '<p>Status der Stelle: <span class="success">AKTIVIERT!</span></p>'."\n";
+}
+if ($array['inactive'] == 'true') {
+	
+	echo '<p>Status der Stelle: <span class="error">DEAKTIVIERT</span></p>'."\n";
+}
+
+if ($array['link_anzeige_abfr'] == 'true') {
+	echo '<p>Anzeigentyp: eignene Anzeige</p>'."\n";
+}
+if (!empty($array['jobcode'])) {
+	echo '<p>'.$language['strJobcode'].': '.$array['jobcode'].'</p>'."\n";
+}
+
+$bearbeiterarray = array();
+$bearbeiterresult = mysql_db_query($database_db,'SELECT * FROM bearbeiter WHERE firmenid = '.$_SESSION['s_firmenid'].' AND inactive = \'false\'',$praktdbslave);
+while ($row = mysql_fetch_array($bearbeiterresult, MYSQL_ASSOC)) {
+	$bearbeiterarray[$row['id']] = $row['vname'].' '.$row['name'];
+}
+
+
+
+echo '<p>Stellenbezeichnung: <a href="/box/firmen/suche/stelle/'.$stellenid.'/'.$_SESSION['s_firmenid'].'/" onclick="return PB_showFullScreen(\'\', this.href)">'.$array['taetigkeit'].'</a></p>'."\n";
+echo '<p>Ansprechpartner: '.$bearbeiterarray[$array['ansprechpartnerid']].'</p>'."\n";
+
+$viewstat = mysql_db_query($database_db,'SELECT COUNT(id) AS anzahl FROM viewstatsfirmen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND stellenid = '.$stellenid,$praktdbmaster);
+
+$statsarray = mysql_fetch_array($viewstat);
+
+echo '<p>Abrufe: ';
+
+echo '<a href="/firmen/stelle/statistik/detail/'.$stellenid.'/'.$spalte.'/">'.$statsarray['anzahl'].' Abruf'.($statsarray['anzahl'] != 1 ? 'e' : '').'</a>'."\n";	
+
+echo '</p>'."\n";
+
+
+echo '<p>Eintrag vom: '.strftime("%x",strtotime($array['datum_eintrag'])).'</p>'."\n";
+echo '<p>letzte &Auml;nderung: '.strftime("%x",strtotime($array['modify'])).'</p>'."\n";
+
+echo '<div class="control_panel">'."\n";
+echo '	<p align="center">'."\n";
+echo '		<button type="button" name="statistik" onclick="location.href=\'/firmen/angeboteliste/\'" value="zur&uuml;ck zur stellenverwaltung"><span><span><span>ZUR&Uuml;CK ZUR STELLENVERWALTUNG</span></span></span></button></p>'."\n";
+echo '	</p>'."\n";
+echo '</div>'."\n";
+
+bodyoff();
+?>

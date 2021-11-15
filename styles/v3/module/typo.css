@@ -1,0 +1,254 @@
+/* css styled content - Begin */
+
+/* headlines */
+
+div.csc-default h1, div.csc-default h2, div.csc-default h3 {
+	margin: 15px 0 -5px 0;
+}
+
+/* headlines end */
+
+/* default styles for extension "tx_cssstyledcontent" */
+DIV.csc-textpic-caption-c .csc-textpic-caption { text-align: center; }
+DIV.csc-textpic-caption-r .csc-textpic-caption { text-align: right; }
+DIV.csc-textpic-caption-l .csc-textpic-caption { text-align: left; }
+
+/* Needed for noRows setting */
+DIV.csc-textpic DIV.csc-textpic-imagecolumn { float: left; display: inline; }
+
+/* Border just around the image */
+DIV.csc-textpic-border DIV.csc-textpic-imagewrap .csc-textpic-image IMG, DIV.csc-textpic-border DIV.csc-textpic-single-image IMG {
+	border: 2px solid black;
+	padding: 0px 0px;
+}
+
+DIV.csc-textpic-imagewrap { padding: 0; }
+
+DIV.csc-textpic IMG { border: none; max-width: 590px; }
+
+/* DIV: This will place the images side by side */
+DIV.csc-textpic DIV.csc-textpic-imagewrap DIV.csc-textpic-image { float: left; }
+
+/* UL: This will place the images side by side */
+DIV.csc-textpic DIV.csc-textpic-imagewrap UL { list-style: none; margin: 0; padding: 0; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap UL LI { float: left; margin: 0; padding: 0; }
+
+/* DL: This will place the images side by side */
+DIV.csc-textpic DIV.csc-textpic-imagewrap DL.csc-textpic-image { float: left; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap DL.csc-textpic-image DT { float: none; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap DL.csc-textpic-image DD { float: none; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap DL.csc-textpic-image DD IMG { border: none; } /* FE-Editing Icons */
+DL.csc-textpic-image { margin: 0; }
+DL.csc-textpic-image DT { margin: 0; display: inline; }
+DL.csc-textpic-image DD { margin: 0; }
+
+/* Clearer */
+DIV.csc-textpic-clear { clear: both; }
+
+/* Margins around images: */
+
+/* Pictures on left, add margin on right */
+DIV.csc-textpic-left DIV.csc-textpic-imagewrap .csc-textpic-image,
+DIV.csc-textpic-intext-left-nowrap DIV.csc-textpic-imagewrap .csc-textpic-image,
+DIV.csc-textpic-intext-left DIV.csc-textpic-imagewrap .csc-textpic-image {
+	display: inline; /* IE fix for double-margin bug */
+margin-right: 10px;
+}
+
+/* Pictures on right, add margin on left */
+DIV.csc-textpic-right DIV.csc-textpic-imagewrap .csc-textpic-image,
+DIV.csc-textpic-intext-right-nowrap DIV.csc-textpic-imagewrap .csc-textpic-image,
+DIV.csc-textpic-intext-right DIV.csc-textpic-imagewrap .csc-textpic-image {
+	display: inline; /* IE fix for double-margin bug */
+margin-left: 10px;
+}
+
+/* Pictures centered, add margin on left */
+DIV.csc-textpic-center DIV.csc-textpic-imagewrap .csc-textpic-image {
+	display: inline; /* IE fix for double-margin bug */
+margin-left: 10px;
+}
+DIV.csc-textpic DIV.csc-textpic-imagewrap .csc-textpic-image .csc-textpic-caption { margin: 0; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap .csc-textpic-image IMG { margin: 0; vertical-align:bottom; }
+
+/* Space below each image (also in-between rows) */
+DIV.csc-textpic DIV.csc-textpic-imagewrap .csc-textpic-image { margin-bottom: 10px; }
+DIV.csc-textpic-equalheight DIV.csc-textpic-imagerow { margin-bottom: 10px; display: block; }
+DIV.csc-textpic DIV.csc-textpic-imagerow { clear: both; }
+DIV.csc-textpic DIV.csc-textpic-single-image IMG { margin-bottom: 10px; }
+
+/* IE7 hack for margin between image rows */	
+*+html DIV.csc-textpic DIV.csc-textpic-imagerow .csc-textpic-image { margin-bottom: 0; }
+*+html DIV.csc-textpic DIV.csc-textpic-imagerow { margin-bottom: 10px; }
+
+/* No margins around the whole image-block */
+DIV.csc-textpic DIV.csc-textpic-imagewrap .csc-textpic-firstcol { margin-left: 0px !important; }
+DIV.csc-textpic DIV.csc-textpic-imagewrap .csc-textpic-lastcol { margin-right: 0px !important; }
+
+/* Add margin from image-block to text (in case of "Text w/ images") */
+DIV.csc-textpic-intext-left DIV.csc-textpic-imagewrap,
+DIV.csc-textpic-intext-left-nowrap DIV.csc-textpic-imagewrap {
+	margin-right: 10px !important;
+}
+DIV.csc-textpic-intext-right DIV.csc-textpic-imagewrap,
+DIV.csc-textpic-intext-right-nowrap DIV.csc-textpic-imagewrap {
+	margin-left: 10px !important;
+}
+
+/* Positioning of images: */
+
+/* Above */
+DIV.csc-textpic-above DIV.csc-textpic-text { clear: both; }
+
+/* Center (above or below) */
+DIV.csc-textpic-center { text-align: center; /* IE-hack */ }
+DIV.csc-textpic-center DIV.csc-textpic-imagewrap { margin: 0 auto; }
+DIV.csc-textpic-center DIV.csc-textpic-imagewrap .csc-textpic-image { text-align: left; /* Remove IE-hack */ }
+DIV.csc-textpic-center DIV.csc-textpic-text { text-align: left; /* Remove IE-hack */ }
+
+/* Right (above or below) */
+DIV.csc-textpic-right DIV.csc-textpic-imagewrap { float: right; }
+DIV.csc-textpic-right DIV.csc-textpic-text { clear: right; }
+
+/* Left (above or below) */
+DIV.csc-textpic-left DIV.csc-textpic-imagewrap { float: left; }
+DIV.csc-textpic-left DIV.csc-textpic-text { clear: left; }
+
+/* Left (in text) */
+DIV.csc-textpic-intext-left DIV.csc-textpic-imagewrap { float: left; }
+
+/* Right (in text) */
+DIV.csc-textpic-intext-right DIV.csc-textpic-imagewrap { float: right; }
+
+/* Right (in text, no wrap around) */
+DIV.csc-textpic-intext-right-nowrap DIV.csc-textpic-imagewrap { float: right; clear: both; }
+/* Hide from IE5-mac. Only IE-win sees this. \*/
+* html DIV.csc-textpic-intext-right-nowrap .csc-textpic-text { height: 1%; }
+/* End hide from IE5/mac */
+
+/* Left (in text, no wrap around) */
+DIV.csc-textpic-intext-left-nowrap DIV.csc-textpic-imagewrap { float: left; clear: both; }
+/* Hide from IE5-mac. Only IE-win sees this. \*/
+* html DIV.csc-textpic-intext-left-nowrap .csc-textpic-text,
+* html .csc-textpic-intext-left ol,
+* html .csc-textpic-intext-left ul { height: 1%; }
+/* End hide from IE5/mac */
+
+DIV.csc-textpic DIV.csc-textpic-imagerow-last { margin-bottom: 0; }
+
+/* Browser fixes: */
+
+/* Fix for unordered and ordered list with image "In text, left" */
+.csc-textpic-intext-left ol, .csc-textpic-intext-left ul {padding-left: 40px; overflow: auto; }
+
+/* css styled content - End */
+
+
+/* spezifische styles fuer praktika.de - Begin */
+
+body.typo {
+	margin: 10px;
+}
+
+div.csc-default ul {
+	list-style-type: square;
+}
+
+div.csc-default ul li {
+	margin-left: 20px;
+}
+
+ul.tx-irfaq-questions-list {
+	list-style-type: none !important;
+}
+
+.tx-photogals-pi1 {
+	margin: 0px;
+	padding: 0px;
+}
+.tx-photogals-pi1-big a {
+	padding: 5px;
+	background-color: #fff;
+	text-align: center;
+	display: block;
+}
+.tx-photogals-pi1-small a {
+	border: 1px solid #ccc;
+	background-color: #fff;
+	padding: 4px;
+	margin-right: 6px;
+	margin-bottom: 3px;
+	margin-top: 3px;
+	float: left;
+}
+.tx-photogals-pi1-small a:hover {
+	border: 1px solid #000;
+}
+.tx-photogals-pi1-small-active a {
+	border: 1px solid #000;
+	background-color: #fff;
+	padding: 4px;
+	margin-right: 6px;
+	margin-bottom: 3px;
+	margin-top: 3px;
+	float: left;
+}
+.tx-photogals-pi1-small-active a:hover {
+	border: 1px solid #000;
+}
+
+/* mailform */
+div#main form input.csc-mailform-submit {
+	border: 1px solid #c95d00;
+	color: #fff;
+	width: auto;
+	margin: 20px 0 0 190px;
+	cursor: pointer;
+	background: #f27000;
+
+	/* IE10 */ 
+	background-image: -ms-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Mozilla Firefox */ 
+	background-image: -moz-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Opera */ 
+	background-image: -o-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Webkit (Safari/Chrome 10) */ 
+	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #fdac64), color-stop(1, #f27000));
+
+	/* Webkit (Chrome 11+) */ 
+	background-image: -webkit-linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* Proposed W3C Markup */ 
+	background-image: linear-gradient(top, #fdac64 0%, #f27000 100%);
+
+	/* For Internet Explorer 5.5 - 7 */
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr=#fffdac64, endColorstr=#fff27000);
+
+	/* For Internet Explorer 8 */
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#fffdac64, endColorstr=#fff27000)";
+
+	box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+	-webkit-box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+	-moz-box-shadow: inset rgba(255,255,255,1) 0px 0px 2px, rgba(0,0,0,0.3) 0px 1px 3px;
+}
+div#main form input.csc-mailform-submit:hover {
+	-webkit-box-shadow: inset rgba(0,0,0,0.2) 0 0px 10px;
+	-moz-box-shadow: inset rgba(0,0,0,0.2) 0 0px 10px;
+	box-shadow: inset rgba(0,0,0,0.2) 0 0px 10px;
+}
+div#main form input#form-subject {
+	display: none;
+}
+/* spezifische styles fuer praktika.de - End */
+
+
+/* Sidebar - Begin */
+
+div#erfahrungsberichte p img {
+	margin-top: 0;
+}
+
+/* Sidebar - End */

@@ -1,0 +1,110 @@
+<?
+
+$_SESSION['s_bereich'] = 1;
+$template = _load_view("/home/praktika/etc/vorlagen/kCenterMessageRow.phtml");
+
+// Kürzere Bezeichnung
+$s_kcenter = &$_SESSION['s_nutzerproparray']['kcenter'];
+
+/*
+$ds_pro_seite = 15;
+
+$spalteLabel = array("","Praktikum","Bachelor-/Masterarbeit","Nebenjob","Ausbildung","Berufseinstieg","Projekt","Trainee");
+
+praktikaInclude(array("String.php"));
+	
+if(empty($_SESSION['s_nutzerproparray']['kcenter']['pageNumber'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['pageNumber'] = 1;
+}
+if(empty($_SESSION['s_nutzerproparray']['kcenter']['rowOnPage'])) {
+	$_SESSION['s_nutzerproparray']['kcenter']['rowOnPage'] = 10;
+}
+
+
+
+$ordnerquery = 'AND ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];		
+
+$result = array();
+
+// Anzahl abfragen
+$anzahl = $hDB->query('SELECT COUNT(id) `num_rows`
+	FROM prakt2.bewerberkontakte 
+	WHERE bewerberkontakte.nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+	bewerberkontakte.versendet = \'true\' AND 
+	bewerberkontakte.inactive = \'false\' '.$ordnerquery.'',
+	$praktdbslave);
+	
+// $result["rows"] = (int)mysql_result($anzahl,0,"num_rows");
+// $result["rowsOnPage"] = $s_kcenter["rowOnPage"];
+
+$result["template"] = _load_view("/home/praktika/etc/vorlagen/kCenterMessageRow.phtml");
+$result["data"]["pageNumber"] = Praktika_Layout::paging("kc_page({page});", (int)mysql_result($anzahl,0,"num_rows"), $_SESSION['s_nutzerproparray']['kcenter']['pageNumber'], $_SESSION['s_nutzerproparray']['kcenter']['rowOnPage']);
+
+$result["data"]["num_rows"] = (int)mysql_result($anzahl,0,"num_rows");
+
+if($s_kcenter["sort"] == "firma") {
+	$result["data"]["sorted_firma"] = "active";
+}
+if($s_kcenter["sort"] == "betreff") {
+	$result["data"]["sorted_betreff"] = "active";
+}
+if($s_kcenter["sort"] == "datum") {
+	$result["data"]["sorted_datum"] = "active";
+}
+if($s_kcenter["sort"] == "spalte") {
+	$result["data"]["sorted_spalte"] = "active";
+}
+if($s_kcenter["sort_asc"] == "asc") {
+	$result["data"]["sorted_asc"] = "upSort";
+} else {
+	$result["data"]["sorted_asc"] = "downSort";	
+}
+ 
+// abfrage ausfuehren  //
+$results = $hDB->query('SELECT bewerberkontakte.id, bewerberkontakte.angebote_id, bewerberkontakte.firmenid, bewerberkontakte.betreff, 
+	UNIX_TIMESTAMP(bewerberkontakte.datum) AS datum, bewerberkontakte.gelesen, bewerberkontakte.spalte, bewerberkontakte.firma, firmenprofil.id `profilid`
+	FROM prakt2.bewerberkontakte
+		LEFT JOIN prakt2.firmenprofil ON(firmenprofil.firmenid = bewerberkontakte.firmenid)
+	WHERE bewerberkontakte.nutzerid = '.$_SESSION['s_nutzerid'].' AND 
+	bewerberkontakte.versendet = \'true\' AND 
+	bewerberkontakte.inactive = \'false\' '.$ordnerquery.' 
+	ORDER BY bewerberkontakte.id DESC
+	LIMIT '.(($s_kcenter["pageNumber"]-1)*$s_kcenter["rowOnPage"]).','.$s_kcenter["rowOnPage"], 
+	$praktdbslave);
+
+while ($result_row = mysql_fetch_assoc($results)) {
+	$data = array();
+	if ($result_row['gelesen'] == 'false') {
+		$data["status"] = '<img src="/styles/images/icons/neu1.png" alt="neu" />';
+	} else {
+		$data["status"] = '';
+	}
+	$data["firma"] = Praktika_String::cutWord($result_row["firma"], 20);
+	
+	$data["betreff"] = stripslashes(htmlentities(Praktika_String::cutWord($result_row["betreff"], 30)));
+	
+	$data["datum"] = date("d.m.Y", $result_row["datum"]);
+	$data["spalte"] = $spalteLabel[$result_row["spalte"]];
+	$data["messageID"] = $result_row["id"];
+	$data["firmenID"] = $result_row["firmenid"];
+	$data["spaltenID"] = $result_row["spalte"];
+	if(empty($result_row["profilid"])) $data["show_profil"] = false;
+	$data["show_merkzettel"] = false;
+	
+	$result["data"]["row"][] = $data;
+}
+
+
+*/
+
+if($s_kcenter['ordnerid'] != 0) {
+	$sql = "SELECT name FROM prakt2.nutzerordner WHERE id = ".(int)$s_kcenter['ordnerid']." AND nutzerid = ".$_SESSION["s_nutzerid"];
+	$ordnername = mysql_result(mysql_query($sql, $praktdbslave),0,"name");
+}
+echo "<div id='posteingang_container'></div></p>";
+echo "<script id='tmp_container' type='type/javascript' style='display:none;'>".$template."</script>
+<script type='text/javascript'>kc_lastTemplate = document.getElementById('tmp_container').innerHTML; 
+kc_page(1);
+</script>";
+return;
+// datensaetze gefunden ? //

@@ -1,0 +1,228 @@
+#navigation p {
+	margin-top: -2.2em;
+}
+
+
+
+
+
+.subnavigation ul li {
+	padding: 1px 3px 0;
+}
+
+.subnavigation div.abroad ul li {
+	padding-left: 25px;
+}
+
+
+
+
+
+#intro {
+	height: 105px;
+}
+
+#intro .menu {
+	height: 7.5em;
+}
+
+#intro .menu ul li { width: 32%; }
+
+* html #intro .menu ul li.cc dt {
+	background-image: url("/gifs/karriere/symbol_blitz.gif");
+}
+
+* html #intro .menu ul li.profile dt {
+	background-image: url("/gifs/karriere/symbol_blume.gif");
+}
+
+* html #intro .menu ul li.community dt {
+	background-image: url("/gifs/karriere/symbol_menschen.gif");
+}
+
+* html #my .cc {
+	background-color: #038aa7;
+	background-image: url("/gifs/zentralelemente/headerBG_blue.gif");
+}
+
+/*
+#intro .menu table {
+	position: absolute;
+	left: 0;
+	height: 100%;
+	border-collapse: collapse;
+	border: 3px solid blue;
+}
+
+#intro .menu ul li a ul {
+	display: block;
+}
+#intro .menu ul li ul {
+	visibility: visible;
+	border: 1px solid red;
+	color: blue;
+}
+#intro .menu ul li a:hover ul {
+	display: block;
+	border: 1px solid red;
+	color: blue;
+}*/
+/** html form#search fieldset {
+	margin-left: 115px;
+}
+
+* html form#search p.extensive_search {
+	padding-right: 0;
+}*/
+
+
+
+
+
+/*
+div#content div#voting form p input.radio {
+	margin-top: -.1em;
+}*/
+
+* html form#quicklogin {
+	width: 30%;
+}
+
+* html #content #usermenu_right {
+	width: 34% !important; 
+}
+
+#content #usermenu_right {
+	width: 34% !important;
+}
+
+form#quicksearch {
+	margin: 0 35% 0 28%;
+}
+
+* html form#quicksearch fieldset {
+	background-color: #ebebeb;
+	/*width: 375px;*/
+}
+
+/*form#quicksearch fieldset p {
+	display: block;
+}
+*/
+
+* html form#quicksearch fieldset p.searchterm {
+	background-image: url("/gifs/zentralelemente/suche_left.gif");
+}
+
+form#quicksearch fieldset p.searchterm {
+	padding: 9px 0 8px 1.5em;
+}
+
+* html form#quicksearch fieldset p.searchsubmit {
+	background-image: url("/gifs/zentralelemente/suche_right.gif");
+}
+
+form#quicksearch fieldset p.searchsubmit {
+	padding: 10px .8em 8px 0;
+}
+
+/*form#quicksearch fieldset p input.text {
+	width: 20em;
+}
+
+form#quicksearch p.extensive_search {
+	padding-right: 3.5em;
+}*/
+
+
+/*#home form#search fieldset p.searchterm {
+	background: url(../gifs/zentralelemente/suche_gruen_left.gif) no-repeat left top;
+}
+
+#home form#search fieldset p.searchsubmit {
+	background: url(../gifs/zentralelemente/suche_gruen_right.gif) no-repeat right top;
+}
+
+#intro blockquote {
+	margin-bottom: 0;
+}*/
+
+#karriereveranstaltungen table col.ort {
+	width: 20%;
+}
+
+
+#content #cvdata ul {
+	height: 4.1em;
+	margin-right: -2px;
+}
+#content #cvdata ul li {
+	height: 4em;
+}
+#content #cvdata ul li.ssl img {
+	margin: 5px 0;
+}
+#content #cvdata ul li.passport_photo img {
+	margin: 9px 0;
+}
+#content #cvdata ul li.preview img {
+	margin: 3px 0;
+}
+#content #cvdata ul li.pdf_view img {
+	margin: 5px 0;
+}
+#content #cvdata ul li.pdf_save img {
+	margin: 7px 0;
+}
+#content #cvdata ul li.pdf_mail img {
+	margin: 4px 0;
+}
+
+
+#content #cvdata ol,
+#content #profile ol {
+	width: 100%;
+}
+
+#content #cvdata li.col_2,
+#content #profile li.col_2 {
+	float: right;
+}
+
+
+#content #profile input {
+	border: 0;
+}
+
+#content form fieldset.kurzbewerbung input.radios {
+	border: 12px;
+	background: transparent;
+}
+
+#content form fieldset table.profile_language {
+	margin-left: 4px;
+}
+
+div#content div#voting form p input.radio {
+	border: 0;
+}
+div#content div#voting form p {
+	border: 1px dotted red;
+	margin-bottom: .5em;
+}
+
+
+
+table col.zeit {
+	width: 23%;
+}
+
+
+div#footer p {
+	margin: 0 24%;
+	width: 50%;
+}
+
+div.searchResult {
+	width:750px !important;
+}

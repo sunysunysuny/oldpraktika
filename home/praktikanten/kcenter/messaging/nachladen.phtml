@@ -1,0 +1,40 @@
+<?
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+if(!empty($_POST["directory"]) || $_POST["directory"] === "0") {
+	$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = (int)$_POST["directory"];
+}
+
+if(!empty($_POST["action"])) {
+	switch($_POST["action"]) {
+		case "verschieben":
+			include(dirname(__FILE__)."/verschieben.phtml");
+			$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] = $newDirectoryID;
+			break;
+	}
+}
+// $_POST["page"] = $_GET["page"];
+
+if($_SESSION['s_nutzerproparray']['kcenter']['ordnerid'] != 0) {
+	$sql = "SELECT name FROM prakt2.nutzerordner WHERE id = ".(int)$_SESSION['s_nutzerproparray']['kcenter']['ordnerid']." AND nutzerid = ".$_SESSION["s_nutzerid"];
+	$ordnername = " - ".htmlentities(mysql_result(mysql_query($sql, $praktdbslave),0,"name"));
+	$ordnerid = (int)$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];
+} else {
+	$ordnername = "";
+	$ordnerid = 0;
+}
+
+switch($_SESSION["s_bereich"]) {
+	case 1:
+		$file = "posteingang_ajax.phtml";
+		break;
+	case 2:
+		$file = "merkzettel_ajax.phtml";		
+		break;
+	case 3:
+		$file = "bewerbungen_ajax.phtml";		
+		break;
+}
+
+include(dirname(__FILE__)."/".$file);

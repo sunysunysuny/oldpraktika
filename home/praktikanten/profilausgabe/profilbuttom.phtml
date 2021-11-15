@@ -1,0 +1,97 @@
+<?
+ $sprachbasisdatei="/home/praktikanten/previewtop.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+
+
+$bewerbung=mysql_db_query($database_bprofil,"select lebenslauftemplate from einstellungen where nutzerid=$id",$praktdbslave);
+$lebenlaufwahl=mysql_result($bewerbung,0,"lebenslauftemplate");
+
+if ($lebenlaufwahl>10) { $sprachid=1; } else { $sprachid=2; }
+if ($lebenlaufwahl=="20" || $lebenlaufwahl=="10") $lebenlaufwahl="01";
+if (empty($lebenlaufwahl)) $lebenlaufwahl="01";
+
+
+
+
+?>
+<HTML>
+
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+</HEAD>
+
+<body BGCOLOR="#FFFFF0">
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (parent.previewmain.window.print) {
+  parent.previewmain.focus();
+  parent.previewmain.window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+
+function DreiFrames(ID,Einstellungen) {
+  Frame1=eval("parent.previewtop");
+  Frame2=eval("parent.previewmain");
+  Frame3=eval("parent.previewbuttom");
+  Frame1.location.href = "<? echo "profiltop.phtml?id=\" + ID + \"&sprachid=".$sprachid."&mappe=1&" . session_name() . "=" . session_id(); ?>";
+  Frame2.location.href = "<? echo "/home/praktikanten/profil/previewlebenslauf".$lebenlaufwahl.".phtml?nid=\" + ID + \"&sprachid=".$sprachid."&einstellungen=\" + Einstellungen + \"&" . session_name() . "=" . session_id(); ?>";
+  Frame3.location.href = "<? echo "profilbuttom.phtml?id=\" + ID + \"&bewerbsprache=".$bewerbsprache."&einstellungen=\" + Einstellungen + \"&" . session_name() . "=" . session_id(); ?>";
+}
+
+//-->
+</script>
+
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+<table width="100%" border="0">
+<?
+if ($s_loggedin=="yes") {
+
+if ($merken=="yes") {
+$datum_eintrag = date("Y-m-d");
+	$insertfirmenbookmark=mysql_db_query($database_db,"INSERT INTO firmenbookmark set nutzerid=$id, profil='true', firmenid=$s_firmenid,datum_eintrag='$datum_eintrag'",$praktdbmaster);
+}
+
+reset ($s_nutzeridarray);
+for($i = 0; $i < count($s_nutzeridarray); $i++) { 
+if ($id ==$s_nutzeridarray[$i][0]) break;
+}
+
+echo "<tr>\n";
+if ($s_nutzeridarray[$i-1][0]) {
+echo "    <td align=\"center\"><a href=\"javascript:DreiFrames('".$s_nutzeridarray[$i-1][0]."','".$s_nutzeridarray[$i-1][1]."');\">zur&uuml;ck</a></td>\n";
+}
+
+//echo "    <td align=\"center\"><a href=\"profillebenslauf.phtml?id=" . $id . "&bewerbsprache=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" target=\"previewmain\">" . $language ["strLebenslauf"] . "</a></td>\n";
+$check=mysql_db_query($database_db,"select * from firmenbookmark where nutzerid=$id AND firmenid=$s_firmenid AND profil='true'",$praktdbslave);
+$gebuchtprofildb=mysql_db_query($database_db,"select profildb from firmen_prop_assign where firmenid=$s_firmenid AND profildb>0",$praktdbslave);
+
+if (mysql_num_rows($check) <1 && mysql_num_rows($gebuchtprofildb) >0) {
+echo "<td align=\"center\"><a href=\"profilbuttom.phtml?merken=yes&id=" . $id . "&bewerbsprache=".$bewerbsprache."&einstellungen=".$einstellungen."&" . session_name() . "=" . session_id() . "\" target=\"previewbuttom\">Bewerber notieren</a></td>\n";
+}
+if (mysql_num_rows($check) ==0 && mysql_num_rows($gebuchtprofildb) ==0) { ?>
+<td align="center"><a href="javascript:alert('Um diesen Service zu benutzen, ben&ouml;tigen Sie das Produkt BEWERBERPROFILE!\nAusf&uuml;hrliche Beschreibungen oder Buchungsm&ouml;glichkeiten finden Sie\nin Ihrem RecruitingCenter unter \'Preise & Produkte\'.')">Bewerber notieren</a></td>
+<? }
+
+if (mysql_num_rows($check) >0) { 
+echo "    <td align=\"center\"><a href=\"javascript:printform();\">" . $language ["strEinzelseite"] . "</a></td>\n"; 
+}
+
+if ($s_nutzeridarray[$i+1][0]) {
+echo "    <td align=\"center\"><a href=\"javascript:DreiFrames('".$s_nutzeridarray[$i+1][0]."','".$s_nutzeridarray[$i+1][1]."');\">weiter</a></td>\n";
+}
+}
+?>
+  </tr>
+</table>
+</body>
+</HTML>

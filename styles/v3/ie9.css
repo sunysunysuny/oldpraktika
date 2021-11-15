@@ -1,0 +1,25 @@
+div#searchbox {
+	width: 350px;
+}
+div#searchbox div {
+	word-spacing: 9px;
+}
+/*div#skyscraper2 a {
+	position: absolute;
+	width: 728px;
+	height: 90px;
+	margin-left: -728px;
+}
+
+div#skyscraper2 a:last-child {
+	position: relative;
+	width: 728px;
+	height: 90px;
+	margin-left: 0;
+}
+div#skyscraper2 img#j-1-leaderboard {
+	position: absolute !important;
+	width: 728px;
+	height: 90px;
+	margin-left: -728px;
+}*/

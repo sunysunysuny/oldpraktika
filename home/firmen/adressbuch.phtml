@@ -1,0 +1,380 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+if (isset($_GET['id'])) {
+	$_SESSION['backID'] = intval($_GET['id']);
+}
+
+if (isset($_GET['spalte'])) {
+	$_SESSION['backSpalte'] = intval($_GET['spalte']);
+}
+
+if (isset($_GET['datei'])) {
+	$_SESSION['datei'] = $_GET['datei'];
+}
+
+if (isset($_GET['aid']) || isset($_POST['aid'])) {
+	if (isset($_GET['aid'])) {
+		$aid = intval($_GET['aid']);
+	} else {
+		$aid = intval($_POST['aid']);
+	}
+}
+
+$objAdressbuch = new Praktika_Firmen_Adressbuch($_SESSION["s_nutzerid"]);
+
+if(!empty($_POST["act"]) && $_POST["act"] == "edit" && !empty($_POST["id"])) {
+	$objAdressbuch->editRecord($_POST["id"], $_POST["name"], $_POST["email"]);
+	exit();
+}
+if(!empty($_POST["act"]) && $_POST["act"] == "del" && !empty($_POST["id"])) {
+	$objAdressbuch->removeRecord($_POST["id"]);
+	exit();
+}
+if(!empty($_POST["act"]) && $_POST["act"] == "create") {
+	$objAdressbuch->createRecord($_POST["name"], $_POST["email"]);
+	exit();
+}
+
+// Wenn nicht per Ajax, dann bitte PageHeader ausgeben
+if(!$_SERVER["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest") {
+	pageheader(array('page_title' => 'Ihr Adressbuch verwalten'));
+} else {
+?>
+<div style="width:580px; padding:10px;" class="sb-adressbuch">
+<h2>Ihr Adressbuch verwalten</h2><br />
+<?php 	
+}
+
+
+
+$records = $objAdressbuch->getRecords();
+
+?>
+<script type="text/javascript">
+	var activeEdit = false;
+	var oldButtonHtml = "";
+
+	var adressbuch = {
+		activeEdit:false,
+		oldButtonHtml:{},
+		oldName:{},
+		oldEmail:{},
+		removeID:false,
+		edit:function(id) {
+			var nameInput = document.createElement("input");
+			nameInput.value = $('ab_name_' + id).innerHTML;
+			
+			nameInput.id = 'ab_name_input_' + id;
+			addClass(nameInput, "inputField");
+
+			adressbuch.oldName[id] = $('ab_name_' + id).innerHTML;
+			
+			$('ab_name_' + id).innerHTML = "";
+			$('ab_name_' + id).appendChild(nameInput);
+	
+			var mailInput = document.createElement("input");
+			mailInput.value = $('ab_email_' + id).innerHTML;
+			
+
+			mailInput.id = 'ab_email_input_' + id;
+			addClass(mailInput, "inputField");
+
+			adressbuch.oldEmail[id] = $('ab_email_' + id).innerHTML;
+			
+			$('ab_email_' + id).innerHTML = "";
+			$('ab_email_' + id).appendChild(mailInput);	
+	
+			activeEdit = id;	
+			adressbuch.oldButtonHtml[id] = $('ab_buttons_' + id).innerHTML;
+			
+			$('ab_buttons_' + id).innerHTML = "<a href='#' onclick='adressbuch.saveChanges(" + id + ");'><b>Speichern</b></a>&nbsp;|&nbsp;<a href='#' onclick='adressbuch.cancelChanges(" + id + ");'>Abbrechen</a>";
+
+			return false;
+		},
+		saveChanges:function(id) {
+			if(adressbuch.oldEmail == $('ab_email_input_' + id).value && adressbuch.oldName == $('ab_name_input_' + id).value) return;
+
+			xhr("/recruiting/adressbuch/<?php echo $_SESSION["s_firmenid"] ?>/", "act=edit&id=" + id + "&name=" + escape($('ab_name_input_' + id).value) + "&email=" + escape($('ab_email_input_' + id).value), function(e) {
+				$('ab_email_' + this.id).innerHTML = $('ab_email_input_' + id).value;
+				$('ab_name_' + this.id).innerHTML = $('ab_name_input_' + id).value;
+				$('ab_buttons_' + this.id).innerHTML = adressbuch.oldButtonHtml[id];
+				adressbuch.oldEmail[id] = undefined;
+				adressbuch.oldName[id] = undefined;
+				adressbuch.oldButtonHtml[id] = undefined;
+
+			}.bind({id:id}));
+		},
+		cancelChanges:function(id) {
+			$('ab_email_' + id).innerHTML = adressbuch.oldEmail[id];
+			$('ab_name_' + id).innerHTML = adressbuch.oldName[id];
+			$('ab_buttons_' + id).innerHTML = adressbuch.oldButtonHtml[id];
+		},
+		remove:function(id) {
+			adressbuch.removeID = id;
+			$('sb_adressbuch_confirm_name').innerHTML = $('ab_name_' + id).innerHTML;
+			$('sb_adressbuch_confirm').style.display='';
+			
+			return false;
+		},
+		removeRealy:function() {
+			if(adressbuch.removeID == false) return;
+
+			xhr("/recruiting/adressbuch/<?php echo $_SESSION["s_firmenid"] ?>/", "act=del&id=" + adressbuch.removeID, function(e) {
+				$('ab_tr_' + this.id).parentNode.removeChild($('ab_tr_' + this.id));
+
+				$('sb_adressbuch_confirm').style.display = 'none';
+
+				adressbuch.removeID = false;
+				
+			}.bind({id:adressbuch.removeID}));
+			
+			
+		},
+		createRecord:function() {
+			var newRow = document.createElement("tr");
+			newRow.id = "ab_tr_new"
+			var td1 = document.createElement("td");
+			var td2 = document.createElement("td");
+			var td3 = document.createElement("td");
+
+			td1.innerHTML = "<form onsubmit='adressbuch.saveCreation(); return false;'><input type='text' id='sb_adressbuch_new_name' class='inputField' value='' /></form>";
+			td2.innerHTML = "<form onsubmit='adressbuch.saveCreation(); return false;'><input type='text' id='sb_adressbuch_new_email' class='inputField' value='' /></form>";
+			td3.innerHTML = "<a href='#' onclick='adressbuch.saveCreation();'><b>Erstellen</b></a>&nbsp;|&nbsp;<a href='#' onclick='adressbuch.cancelCreation();'>Abbrechen</a></form>";
+			addClass(td3, 'buttons');
+					
+			newRow.appendChild(td1);
+			newRow.appendChild(td2);
+			newRow.appendChild(td3);
+			$('ad_tbody').appendChild(newRow);
+			
+			return false;
+		},
+		cancelCreation:function() {
+			$('ab_tr_new').parentNode.removeChild($('ab_tr_new'));
+		},
+		saveCreation:function() {
+			if($('sb_adressbuch_new_email').value == "") {
+				addClass($('sb_adressbuch_new_email'), "error");
+				return;
+			}
+			xhr("/recruiting/adressbuch/<?php echo $_SESSION["s_firmenid"] ?>/", "act=create&name=" + escape($('sb_adressbuch_new_name').value) + "&email=" + escape($('sb_adressbuch_new_email').value), function(e) {
+
+				bcenter.showAdressbuch(<?php echo $_GET["id"] ?>,'weiterleitung');
+
+			});
+		}
+	}	
+
+</script>
+<div id='sb_adressbuch_confirm' style='display:none;'>
+M&ouml;chten Sie den Eintrag <span id='sb_adressbuch_confirm_name'></span> wirklich <b>entg&uuml;ltig l&ouml;schen</b>?<br />
+<button class="green" onclick='$("sb_adressbuch_confirm").style.display="none";'><span><span><span>Nein</span></span></span></button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<button class="red" onclick="adressbuch.removeRealy();"><span><span><span>Ja</span></span></span></button>
+<br />
+</div>
+	<table>
+		<thead>
+			<th width='200'>Name des Eintrages</th>
+			<th width='180'>Gespeicherte eMail</th>
+			<th width='150'></th>
+		</thead>
+		<tbody id='ad_tbody'>
+			<?php for($a = 0; $a < count($records); $a++) {	?>
+			<tr class='adressbuch row_<?php echo ($a % 2) + 1 ?>' id='ab_tr_<?php echo $records[$a]["id"] ?>'>
+				<td id='ab_name_<?php echo $records[$a]["id"] ?>'><?php echo Praktika_String::htmlentities($records[$a]["name"]) ?></td>
+				<td id='ab_email_<?php echo $records[$a]["id"] ?>'><?php echo Praktika_String::htmlentities($records[$a]["email"]) ?></td>
+				<td id='ab_buttons_<?php echo $records[$a]["id"] ?>' class='buttons'><a href='#' onclick='return adressbuch.edit(<?php echo $records[$a]["id"] ?>)'>&Auml;ndern</a> | <a href='#' onclick='return adressbuch.remove(<?php echo $records[$a]["id"] ?>)'>L&ouml;schen</a></td>
+			</tr>
+			<?php } ?>
+		</tbody>
+	</table>
+</div>
+<br />
+<div class="smallbox_footer" style="text-align:center;">
+	<button type="button" name="" value="Eintrag hinzuf&uuml;gen" onclick="return adressbuch.createRecord();"><span><span><span>EINTRAG HINZUF&Uuml;GEN</span></span></span></button>
+	<button type="button" name="" value="zur&uuml;ck" onclick="return bcenter.showWeiterleitung(<?php echo $_GET["id"] ?>);"><span><span><span>ZUR&Uuml;CK</span></span></span></button>
+</div>
+<?php 
+if(!$_SERVER["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest") {
+	bodyoff();
+}
+exit();
+if ($_SESSION['s_loggedin'] == true) {
+	$nutzgruppe = 'firma';
+}
+
+if (isset($_POST['save'])) {
+	if (empty($_POST['vname']) || empty($_POST['name']) || empty($_POST['email'])) { 
+		echo '<p class="error">Ihr Eintrag ist nicht vollst&auml;ndig!</p>'."\n";
+		echo '<p class="control_panel"><button type="button" name="" value="zur&uuml;ck" onclick="location.href = \'/recruiting/adressbuch/aenderung/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button></p>'."\n";
+	} else { /* einfuegestring zusammensetzen */
+		$final['vname'] = mysql_real_escape_string($_POST['vname']);
+		$final['name'] = mysql_real_escape_string($_POST['name']);
+		$final['email'] = mysql_real_escape_string($_POST['email']);
+
+		if (!isset($aid)) { //INSERT
+			$final['loginid'] = $_SESSION['s_loginid'];
+			$final['gruppe'] = $nutzgruppe;
+
+			$sqlInsertString = 'INSERT INTO adressbuch SET ';
+			
+			foreach ($final as $key => $value) {
+				$sqlInsertString .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+			}
+			
+			$sqlInsertString = substr($sqlInsertString,0,strlen($sqlInsertString)-2);
+			
+			$res = mysql_db_query($database_db, $sqlInsertString, $praktdbmaster);
+			$aid = mysql_insert_id($praktdbmaster);
+			
+			echo '<p class="success">'.$language['strEintrag'].'</p>'."\n";
+		} else { // UPDATE
+			$sqlUpdateString = 'UPDATE adressbuch SET ';
+			
+			foreach ($final as $key => $value) {
+				$sqlUpdateString .= $key.' = \''.mysql_real_escape_string($value).'\', ';
+			}
+			
+			$sqlUpdateString = substr($sqlUpdateString,0,strlen($sqlUpdateString)-2);
+			
+			$sqlUpdateString .= ' WHERE loginid = '.$_SESSION['s_loginid'].' AND id = '.$aid;
+			
+			$res = mysql_db_query($database_db, $sqlUpdateString, $praktdbmaster);
+			
+			echo '<p class="success">'.$language['strAenderung'].'</p>'."\n";
+		}
+		
+		$rs = mysql_db_query($database_db,'SELECT * FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND id = '.$aid,$praktdbmaster);
+		$profilrow = mysql_fetch_array($rs);
+		
+		echo '<table>'."\n";
+		echo '	<colgroup>'."\n";
+		echo '		<col width="30%" />'."\n";
+		echo '		<col width="70%" />'."\n";
+		echo '	</colgroup>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<th colspan="2">'.$language['strSecetion'].':</td>'."\n";
+		echo '	</tr>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<td>'.$language['strVorNachname'].':</td>'."\n";
+		echo '		<td>'.htmlentities($profilrow['vname'].' '.$profilrow['name']).'</td>'."\n";
+		echo '	</tr>'."\n";
+		echo '	<tr>'."\n";
+		echo '		<td>eMail:</td>'."\n";
+		echo '		<td>'.$profilrow['email'].'</td>'."\n";
+		echo '	</tr>'."\n";
+		echo '</table>'."\n";
+		echo '<p class="control_panel"><button type="button" name="" value="zur&uuml;ck" onclick="location.href = \''.$_SERVER['PHP_SELF'].'\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button></p>'."\n";
+	}
+} elseif (isset($_GET['down'])) {
+	$rs = mysql_db_query($database_db,'SELECT * FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND gruppe = \''.$nutzgruppe.'\' AND id = '.$aid,$praktdbmaster);
+	$profilrow = mysql_fetch_array($rs);
+	
+	echo '<p><strong>'.$language['strSecetionDown'].'</strong></p>'."\n";
+	echo '<table>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strVorNachname'].':</td>'."\n";
+	echo '		<td>'.htmlentities($profilrow['vname'].' '.$profilrow['name']).'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>'.$language['strEmail'].':</td>'."\n";
+	echo '		<td>'.$profilrow['email'].'</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+	echo '<p class="error">M&ouml;chten Sie diesen Eintrag wirklich l&ouml;schen?</p>'."\n";
+	echo '<p class="control_panel">'."\n";
+	echo '	<button type="button" name="ja" value="ja" onclick="location.href = \'/recruiting/adressbuch/loeschen_confirm/'.$aid.'/\'"><span><span><span>JA</span></span></span></button>'."\n";
+	echo '	<button type="button" name="no" value="nein" onclick="location.href = \''.$_SERVER['PHP_SELF'].'\'"><span><span><span>NEIN</span></span></span></button>'."\n";
+	echo '</p>'."\n";
+} elseif (isset($_GET['downfinal'])) {
+	$deletestring = 'DELETE FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND gruppe = \''.$nutzgruppe.'\' AND id = '.$aid;
+	mysql_db_query($database_db,$deletestring,$praktdbmaster);
+
+	echo '<p class="success">Der Adressbucheintrag wurde erfolgreich gel&ouml;scht.</p>'."\n";
+	echo '<p class="control_panel"><button type="button" name="back" value="zur&uuml;ck" onclick="location.href = \''.$_SERVER['PHP_SELF'].'\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button></p>'."\n";
+} elseif (isset($_GET['aendern'])) {
+	echo '<form action="'.$_SERVER['PHP_SELF'].'" method="post">'."\n";
+	echo '	<table>'."\n";
+	echo '		<tr>'."\n";
+	
+	if (isset($aid)) {
+		echo '<input type="hidden" name="aid" value="'.$aid.'" />'."\n";
+		
+		$rs = mysql_db_query($database_db,'SELECT * FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND gruppe = \''.$nutzgruppe.'\' AND id = '.$aid,$praktdbmaster);
+		$profilrow = mysql_fetch_array($rs);
+		
+		echo '		<th colspan="2">'.$language['strAendern'].'</th>'."\n";
+	} else {
+		echo '		<th colspan="2">'.$language['strNeu'].'</th>'."\n";
+	}
+	
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td><label for="vname">Vor- und Nachname:</label></td>'."\n";
+	echo '		<td><input class="stdStyle" id="vname" name="vname" size="13" value="'.(isset($profilrow['vname']) ? $profilrow['vname'] : '').'" style="width: 150px;" /> <input class="stdStyle" style="width:150px;" id="name" name="name" size="13" value="'.(isset($profilrow['name']) ? $profilrow['name'] : '').'" /></td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td><label for="email">eMail:</label></td>'."\n";
+	echo '		<td><input class="stdStyle" id="email" name="email" size="30" value="'.(isset($profilrow['email']) ? $profilrow['email'] : '').'" /></td>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td colspan="2">'."\n";
+	echo '			<fieldset class="control_panel">'."\n";
+	echo '				<p>'."\n";
+	echo '					<button type="submit" name="save" value="speichern"><span><span><span>SPEICHERN</span></span></span></button>'."\n";
+	echo '				</p>'."\n";
+	echo '			</fieldset>'."\n";
+	echo '		</td>'."\n";
+	echo '	</tr>'."\n";
+	echo '</table>'."\n";
+	echo '</form>'."\n";
+} else {
+	$rs = mysql_db_query($database_db,'SELECT * FROM adressbuch WHERE loginid = '.$_SESSION['s_loginid'].' AND gruppe = \''.$nutzgruppe.'\' ORDER BY name',$praktdbmaster);
+	$num = mysql_num_rows($rs);
+	
+	if ($num != 0) {
+		echo '<p>Es wurde'.($num != 1 ? 'n ' : ' ').$num.' gefunden</p>';
+		
+		echo '<table id="adressbuch" cellspacing="1">'."\n";
+		
+		$i = 0;
+		while ($i < $num) { 
+			$resultid = mysql_result($rs,$i,'id');
+			$modulowert = $i % 2;
+			
+			echo '	<tr'.(($i % 2 == 0) ? ' class="eintrag even"' : ' class="eintrag odd"').'>'."\n";
+			echo '		<td><div style="width: 30px; float: left;">'.($i+1).'.</div>'.mysql_result($rs,$i,'vname').' '.mysql_result($rs,$i,'name').'</td>'."\n";
+			echo '		<td style="text-align:center;">
+				<button style="display:inline;" onclick="window.location.href=\'/recruiting/adressbuch/aendern/'.mysql_result($rs,$i,'id').'\'"><span><span><span>&auml;ndern</span></span></span></button>
+				<button style="display:inline;" onclick="window.location.href=\'/recruiting/adressbuch/loeschen/'.mysql_result($rs,$i,'id').'\'"><span><span><span>l&ouml;schen</span></span></span></button>
+				
+				</td>'."\n";
+			echo '	</tr>'."\n";
+			
+			$i++;
+		}
+	
+		echo '</table>'."\n";
+	} else {
+		echo '<p class="error">Es wurden keine Eintr&auml;ge gefunden.</p>'."\n";
+	}
+
+	echo '<p class="control_panel">'."\n";
+	echo '	<button type="button" name="" value="Eintrag hinzuf&uuml;gen" onclick="location.href = \'/recruiting/adressbuch/aenderung/\'"><span><span><span>EINTRAG HINZUF&Uuml;GEN</span></span></span></button>'."\n";
+	echo '	<button type="button" name="" value="zur&uuml;ck" onclick="return bcenter.showWeiterleitung('.$_GET["id"].');location.href = \'/recruiting/'.$_SESSION['datei'].'/'.$_SESSION['backID'].'/'.$_SESSION['backSpalte'].'/\'"><span><span><span>ZUR&Uuml;CK</span></span></span></button>'."\n";
+	echo '</p>'."\n";
+}
+?></div><?php 
+if(!$_SERVER["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest") {
+	bodyoff();
+}
+?>

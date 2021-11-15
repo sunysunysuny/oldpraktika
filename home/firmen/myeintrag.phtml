@@ -1,0 +1,719 @@
+<?
+$spalte = 1;
+$restricted = "yes";
+$gruppe = "firmen";
+require("/home/praktika/etc/config.inc.php");
+
+pageheader(session_id(), session_name());
+
+include("../../scripts/fckeditor/fckeditor.php");
+?>
+<script language="JavaScript" type="text/javascript" src="/scripts/bundesland.js"></script>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="bundeslandvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<OBJECT CLASSID="clsid:333C7BC4-460F-11D0-BC04-0080C7055A83" ID="grossraumvalues" WIDTH="0" HEIGHT="0">
+<PARAM NAME="FieldDelim" VALUE=";"><PARAM NAME="UseHeader" VALUE="True"></OBJECT>
+<script for="bundeslandvalues" event="ondatasetcomplete">show_bundesland(this.recordset);</script>
+<script for="grossraumvalues" event="ondatasetcomplete">show_grossraum(this.recordset);</script>
+<?php
+if ($image == "true") { $zusatz="Neue Stelle mit Image-Anzeige ver&ouml;ffentlichen"; } else { $zusatz="Standardanzeige ver&ouml;ffentlichen"; }
+
+//Stellenanzahl pr&uuml;fen
+$results = mysql_db_query($database_db,"SELECT count(id) as zahl FROM stellenlaufzeit WHERE firmenid = $s_firmenid AND produktid IN (26,27,28,29,33)",$praktdbslave);
+
+if (!isset($SAVE) && (mysql_result($results,0,"zahl") > 2) && ($s_firmenlevel == 0) && ($image!="true")) { ?>
+
+               <table width="90%">
+        <tr>
+          <td><h1 class="layout1"><? echo $zusatz; ?></h1>
+<?php
+
+
+//echo $language["strZuviele"] ." <span class=normal><A ONMOUSEOVER=\"window.status='" . $language["strAnsichtsseite"] . "';return true\" href=/home/werbung/werbung_komfort.phtml?" . session_name(). "=" . session_id() . ">" . $language["strProduktVorschau"] . "</a></span>";
+echo "In Ihrer aktuellen \"Servicelizenz BASIS\" k&ouml;nnen Sie maximal <br>3 Standardanzeigen auf praktika.de ausschreiben.<br><br>Folgende M&ouml;glichkeiten bieten wir Ihnen an:<br><br>";
+echo "<form method=post name=\"Auswahl\">";
+echo "<table>";
+echo "<tr valign=\"baseline\"><td colspan=\"2\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>Stellenaussschreibung</b></td></tr>\n";
+echo "<tr valign=\"baseline\"><td width=190><input type=\"radio\" name=\"imageanzeigentyp\" value=\"true\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\">&nbsp;IMAGEANZEIGE</td><td>Hier k&ouml;nnen Sie zus&auml;tzlich zur einfachen Stellenanzeige ein Popup im von uns vorgeschlagenen oder in Ihrem Design schalten. Diese M&ouml;glichkeit erzielt bei Bewerbern ein h&ouml;heres Interesse.</td></tr>\n";
+echo "<tr valign=\"baseline\"><td width=190><input type=\"radio\" name=\"imageanzeigentyp\" value=\"true\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\">&nbsp;SERVICELIZENZ KOMFORT</td><td>Mit der Servicelizenz KOMFORT erhalten Sie ein effektives Recruitinginstrument mit komfortablen L&ouml;sungen f&uuml;r Ihre Bewerber. Sie k&ouml;nnen ausserdem unbegrenzt viele Stellen im Bereich Praktikum, Bachelor-/Masterarbeit, Nebenjob und Ausbildung ausschreiben.</td></tr>\n";
+echo "</table>";
+?>
+
+
+        <br><br>
+        <input type="button" onClick="Stellenausschreibungbasis(<? echo "'". session_id()."','". session_name()."'";?>)" value="Weiter">
+       	&nbsp;&nbsp;&nbsp;<input type="BUTTON" name="y" value="Stellen&uuml;bersicht" onClick=location.replace('/home/firmen/myangeboteliste.phtml?<?=session_name()."=".session_id()?>')>
+
+        </form>
+          </td>
+        </tr>
+      </table>
+
+
+<?
+// Stellenausschreibung Beginn
+
+} else {
+	/* Eintragungsseite */
+	$plzcheck=mysql_db_query($database_db,"select plz from firmen where id=$s_firmenid",$praktdbslave);
+	$plzda=mysql_result($plzcheck,0,"plz");
+
+	$teststring = "INSERT INTO praktikumsstellen (inactive, firmenid, bearbeiterid, jobcode, sprache, abteilung, ansprechpartner, anspdurchwahl, berufsfeld, taetigkeit, stichwort, qualifikation, sonst_qualifikation, schuelerprakt, hochschulprakt, wprakt, sonstprakt, sprachkenntnisse1, sprachkenntnisse2, sprachkenntnisse3, fuehrerschein, zeitraum_von, zeitraum_bis, zeitraum, entgelt, waehrung, entgelttext, zahlungsart, studienrichtung1, studienrichtung2, studienrichtung3, geschlecht, beschreibung, einsatzland,einsatzbundesland,einsatzgrossraum einsatzort, prakt_alter, unterkunft, bewerbungpertel, bewerbungperpost, bewerbungperemail, bearbeiter, host, ip, datum_eintrag, datum_verfall, modify) VALUES('$inactive', '$s_firmenid', '$ansprechpartnerid', '$jobcode', '$sprache', '$abteilung', '$ansprechpartner', '$anspdurchwahl', '$berufsfeld', '$taetigkeit', '$stichwort', '$qualifikation', '$sonst_qualifikation', '$schuelerprakt', '$hochschulprakt', '$wprakt', '$sonstprakt', '$sprachkenntnisse1', '$sprachkenntnisse2', '$sprachkenntnisse3', '$fuehrerschein', '$zeitraum_von', '$zeitraum_bis', '$zeitraum', '$entgelt', '$waehrung', '$entgelttext', '$zahlweise', '$studienrichtung1', '$studienrichtung2', '$studienrichtung3', '$geschlecht', '$beschreibung', '$land','$bundesland','$grossraum', '$einsatzort', '$prakt_alter', '$unterkunft', '$bewerbungpertel', '$bewerbungperpost', '$bewerbungperemail', '$bearbeiter', '$host', '$ip', '$datum_eintrag', '$datum_verfall', '$modify')";
+	if ($SAVE == "YES" && substr_count($teststring,"@") <1 && substr_count($teststring,"(at)") <1 && substr_count($teststring,"www.") <1 && substr_count($teststring,$plzda) <1 && trim($ansprechpartner)!="" && trim($taetigkeit)!="" && trim($beschreibung)!="") {
+
+		if ($entgelt != "" &&  $zahlweise == "") $zahlweise="monatlich";
+
+		if ($von_monat != ""  && ($von_monat <1 || $von_monat>12)) $von_monat=date("m");
+		if ($von_jahr != ""  && ($von_jahr < date("Y") || $von_jahr> (date("Y")+2))) $von_jahr=date("Y");
+		if ($von_tag != ""  && $von_monat!=2 && ($von_tag <1 || $von_tag>31)) $von_tag=30;
+		if ($von_tag != ""  && $von_monat==2 && ($von_tag <1 || $von_tag>31)) $von_tag=28;
+
+		if ($bis_monat != ""  && ($bis_monat <1 || $bis_monat>12)) $bis_monat=date("m");
+		if ($bis_jahr != ""  && ($bis_jahr < date("Y") || $bis_jahr> (date("Y")+2))) $bis_jahr=(date("Y")+1);
+		if ($bis_tag != ""  && $bis_monat!=2 && ($bis_tag <1 || $bis_tag>31)) $bis_tag=30;
+		if ($bis_tag != ""  && $bis_monat==2 && ($bis_tag <1 || $bis_tag>31)) $bis_tag=28;
+
+		if ($image == "true") { $zusatz="Neue Stelle mit Imageanzeige ver&ouml;ffentlichen"; } else { $zusatz="Neue Stelle ver&ouml;ffentlichen"; }
+
+
+		/* Bewerbung checken */
+		if ($bewerbungpertel == "") {
+			$bewerbungpertel = "false";
+		}
+		if ($bewerbungperpost == "") {
+			$bewerbungperpost = "false";
+		}
+		if ($bewerbungperemail == "") {
+			$bewerbungperemail = "false";
+		}
+		if ($bewerbungperemail == "") {
+			$bewerbungperemail = "false";
+		}
+		if ($bewerbungperonline == "") {
+			$bewerbungperonline = "false";
+		}
+		if ($bewerbungperkurzm == "") {
+			$bewerbungperkurzm = "false";
+		}
+
+		if ($schuelerprakt == "") {
+			$schuelerprakt = "false";
+		}
+		if ($hochschulprakt == "") {
+			$hochschulprakt = "false";
+		}
+		if ($wprakt == "") {
+			$wprakt = "false";
+		}
+		if ($sonstprakt == "") {
+			$sonstprakt = "false";
+		}
+		if (isset($bundesland) && empty($bundesland)) $bundesland = 0;
+		if (isset($grossraum) && empty($grossraum)) $grossraum = 0;
+
+		/* datumsfelder zusammensetzen  */
+		$zeitraum_von = $von_jahr . "-" . $von_monat . "-" . $von_tag;
+		$zeitraum_bis = $bis_jahr . "-" . $bis_monat . "-" . $bis_tag;
+
+		if ($s_firmenlevel < 1 && $bewerbungperpost == "false" && $bewerbungperonline == "false" && $bewerbungperkurzm == "false") $bewerbungperonline="true";
+		//if ($s_firmenlevel == 0) { $bewerbungperemail="true"; $bewerbungpertel="true";}
+		if ($s_firmenlevel > 0 && $bewerbungpertel == "false" && $bewerbungperpost == "false" && $bewerbungperemail == "false" && $bewerbungperonline == "false" && $bewerbungperkurzm == "false") $bewerbungperonline="true";
+
+
+		// INSERT machen, wenn noch keine Stelle Angelegt wurde
+		if (!$stellenid) {
+			/* einfuegestring zusammensetzen */
+			$insertstring = "INSERT INTO praktikumsstellen (inactive,
+					firmenid,
+					bearbeiterid,
+					jobcode,
+					sprache,
+					abteilung,
+					ansprechpartner,
+					anspdurchwahl,
+					berufsfeld,
+					taetigkeit,
+					stichwort,
+					qualifikation,
+					sonst_qualifikation,
+					schuelerprakt,
+					hochschulprakt,
+					wprakt,
+					sonstprakt,
+					sprachkenntnisse1,
+					sprachkenntnisse2,
+					sprachkenntnisse3,
+					fuehrerschein,
+					zeitraum_von,
+					zeitraum_bis,
+					zeitraum,
+					entgelt,
+					waehrung,
+					entgelttext,
+					zahlungsart,
+					studienrichtung1,
+					studienrichtung2,
+					studienrichtung3,
+					geschlecht,
+					beschreibung,
+					einsatzland,
+					einsatzbundesland,
+					einsatzgrossraum,
+					einsatzort,
+					prakt_alter,
+					unterkunft,
+					bewerbungpertel,
+					bewerbungperpost,
+					bewerbungperemail,
+					bewerbungperonline,
+					bewerbungperkurzm,
+					bearbeiter,
+					host,
+					ip,
+					datum_eintrag,
+					datum_verfall,
+					modify) VALUES('true',
+					'$s_firmenid',
+					'$ansprechpartnerid',
+					'$jobcode',
+					'$s_sprachid',
+					'$abteilung',
+					'$ansprechpartner',
+					'$anspdurchwahl',
+					'$berufsfeld',
+					'$taetigkeit',
+					'$stichwort',
+					'$qualifikation',
+					'$sonst_qualifikation',
+					'$schuelerprakt',
+					'$hochschulprakt',
+					'$wprakt',
+					'$sonstprakt',
+					'$sprachkenntnisse1',
+					'$sprachkenntnisse2',
+					'$sprachkenntnisse3',
+					'$fuehrerschein',
+					'$zeitraum_von',
+					'$zeitraum_bis',
+					'$zeitraum',
+					'$entgelt',
+					'$waehrung',
+					'$entgelttext',
+					'$zahlweise',
+					'$studienrichtung1',
+					'$studienrichtung2',
+					'$studienrichtung3',
+					'$geschlecht',
+					'$beschreibung',
+					'$land',
+					'$bundesland',
+					'$grossraum',
+					'$einsatzort',
+					'$prakt_alter',
+					'$unterkunft',
+					'$bewerbungpertel',
+					'$bewerbungperpost',
+					'$bewerbungperemail',
+					'$bewerbungperonline',
+					'$bewerbungperkurzm',
+					'$bearbeiter',
+					'$host',
+					'$ip',
+					'$datum_eintrag',
+					'$datum_verfall',
+					'$modify')";
+
+			/* datensatz einfuegen */
+			mysql_db_query($database_db,$insertstring,$praktdbmaster);
+			//echo $insertstring;
+
+			/* id bestimmen */
+			$insert_id = mysql_insert_id($praktdbmaster);
+			$stellenid=$insert_id;
+
+			/* Logfile eintragen */
+			$fp = fopen( $logfile, "a" );
+			fputs( $fp, $insertstring);
+			fputs( $fp, "\n");
+			fclose( $fp);
+
+			/* infomail zusammenbauen */
+			$subject = "praktika.de Firmen-Eintrag Praktikantenstelle: ID: " . $stellenid;
+			$mailstring = "FIRMENAUSSCHREIBUNG PRAKTIKUM - EINTRAG\n\n";
+			$mailstring = $mailstring . "ID: " . $stellenid . "\n\n";
+			$mailstring = $mailstring . "Jobcode: " . $jobcode . "\n";
+			$mailstring = $mailstring . "Taetigkeit: " . $taetigkeit . "\n";
+			$mailstring = $mailstring . "Qualifikation: " . $qualifikation . "\n";
+			$mailstring = $mailstring . "sonstige Qualifikation: " . $sonst_qualifikation . "\n";
+			if ($schuelerprakt == "true") $mailstring = $mailstring . "Sch&uuml;lerpraktikum\n";
+			if ($hochschulprakt == "true") $mailstring = $mailstring . "Hochschulpraktikum\n";
+			if ($wprakt == "true") $mailstring = $mailstring . "Weiterbildungspraktikum\n";
+			if ($sonstprakt == "true") $mailstring = $mailstring . "sonstiges Praktikum\n";
+			$mailstring = $mailstring . "1. Studienrichtung: " . $studienrichtung1 . "\n";
+			$mailstring = $mailstring . "2. Studienrichtung: " . $studienrichtung2 . "\n";
+			$mailstring = $mailstring . "3. Studienrichtung: " . $studienrichtung3 . "\n";
+			$mailstring = $mailstring . "Zeitraum vom: " . $zeitraum_von . "\n";
+			$mailstring = $mailstring . "Zeitraum bis: " . $zeitraum_bis . "\n";
+			$mailstring = $mailstring . "Zeitraum: " . $zeitraum . "\n";
+			$mailstring = $mailstring . "Entgelt: " . $entgelt . " ". $waehrung . "\n";
+			$mailstring = $mailstring . "Entgelttext: " . $entgelttext . "\n";
+			$mailstring = $mailstring . "Fuehrerschein: " . $fuehrerschein . "\n";
+			$mailstring = $mailstring . "Geschlecht: " . $geschlecht . "\n";
+			$mailstring = $mailstring . "Beschreibung: " . $beschreibung . "\n\n";
+			$mailstring = $mailstring . "Praktikantenalter: " . $prakt_alter . "\n";
+			$mailstring = $mailstring . "Ansprechpartner: " . $ansprechpartner . "\n";
+			$mailstring = $mailstring . "Durchwahl: " . $anspdurchwahl . "\n";
+			$mailstring = $mailstring . "Abteilung: " . $abteilung . "\n";
+			$mailstring = $mailstring . "Stichwort: " . $stichwort . "\n";
+			$mailstring = $mailstring . "1. Sprache: " . $sprachkenntnisse1 . "\n";
+			$mailstring = $mailstring . "2. Sprache: " . $sprachkenntnisse2 . "\n";
+			$mailstring = $mailstring . "3. Sprache: " . $sprachkenntnisse3 . "\n";
+			$mailstring = $mailstring . "Bewerbung per: ";
+			if ($bewerbungpertel == "true") $mailstring = $mailstring . "per Telefon\n";
+			if ($bewerbungperpost == "true") $mailstring = $mailstring . "per Post\n";
+			if ($bewerbungperemail == "true") $mailstring = $mailstring . "per EMail\n";
+			if ($bewerbungperonline == "true") $mailstring = $mailstring . "per Onlinebewerbung\n";
+			if ($bewerbungperkurzm == "true") $mailstring = $mailstring . "per Kurzmitteilung\n";
+			$mailstring = $mailstring . "\n";
+			$mailstring = $mailstring . "Host: " . $host . "\n";
+			$mailstring = $mailstring . "IP: " . $ip . "\n";
+			$mailstring = $mailstring . "Datum Eintrag: " . $datum_eintrag . "\n";
+			$mailstring = $mailstring . "\n\nDATENBANKSTRING:\n";
+			$mailstring = $mailstring . $insertstring . "\n";
+
+			/* infomail verschicken */
+			mail($infomail, $subject, $mailstring,
+			"From: $infomail\nX-Mailer: praktika.de Mailscript PHP");
+
+			// Eintrag in Stellenlaufzeit f&uuml;r die Stellenbuchung und &Uuml;bersicht der Aktualit&auml;t
+			if ($image=="true") { $produktid=7; } else {$produktid=26; }
+			$insertstring = "INSERT INTO stellenlaufzeit (inactive, firmenid, bearbeiterid, stellenid, spalte, produktid, datum_eintrag, modify) VALUES ('true', '$s_firmenid', '$s_loginid', '$stellenid', '$s_spalte', '$produktid', '$datum_eintrag', '$modify')";
+			mysql_db_query($database_db,$insertstring,$praktdbmaster);
+		} else {
+			$updatestring = "UPDATE praktikumsstellen SET jobcode='$jobcode', entgelttext='$entgelttext',bearbeiterid='$ansprechpartnerid', schuelerprakt='$schuelerprakt',hochschulprakt='$hochschulprakt',wprakt='$wprakt',sonstprakt='$sonstprakt',abteilung='$abteilung',taetigkeit='$taetigkeit',anspdurchwahl='$anspdurchwahl',qualifikation='$qualifikation',stichwort='$stichwort',sonst_qualifikation='$sonst_qualifikation',sprachkenntnisse1='$sprachkenntnisse1 ',sprachkenntnisse2='$sprachkenntnisse2',sprachkenntnisse3='$sprachkenntnisse3',fuehrerschein='$fuehrerschein ',zeitraum_von='$zeitraum_von',zeitraum_bis='$zeitraum_bis',zeitraum='$zeitraum',ansprechpartner='$ansprechpartner',entgelt='$entgelt',waehrung='$waehrung',zahlungsart='$zahlweise',studienrichtung1='$studienrichtung1',studienrichtung2='$studienrichtung2',studienrichtung3='$studienrichtung3',geschlecht='$geschlecht',beschreibung='$beschreibung',berufsfeld='$berufsfeld',einsatzland='$land',einsatzbundesland='$bundesland',einsatzgrossraum='$grossraum',einsatzort='$einsatzort',prakt_alter='$prakt_alter',unterkunft='$unterkunft',bewerbungpertel='$bewerbungpertel',bewerbungperpost='$bewerbungperpost',bewerbungperemail='$bewerbungperemail',bewerbungperkurzm='$bewerbungperkurzm',bewerbungperonline='$bewerbungperonline',bearbeiter='$bearbeiter',host='$host',ip='$ip',modify='$modify' WHERE id='$stellenid'";
+			mysql_db_query($database_db,$updatestring,$praktdbmaster);
+			//echo $updatestring;
+		}
+	}
+
+	// Ausgaben definieren
+
+	// AUsgabe der Vorschau
+	if ($VORSCHAU && $stellenid > 0) {
+		echo "<SCRIPT>\n";
+		echo "vorschau=window.open('preview.phtml?id=".$stellenid."&miniwindow=yes&noadvertise=yes&".session_name()."=".session_id()."','PreviewWindow','scrollbars=yes,status=no,toolbar=no,width=550,height=550');\n";
+		echo "</SCRIPT>\n";
+	}
+
+
+	// Wenn fertig und keine Vorschau mehr verlangt wird!
+	if ($FERTIG && $stellenid >0) {
+		echo "<table width=\"90%\">";
+		echo "<tr><td><h1 class=\"layout1\">".$zusatz."</h1>";
+		echo "<table width=\"100%\">";
+
+		echo "<tr valign=\"baseline\"><td colspan=\"2\">Ihr Stellenausschreibung wurde erfolgreich eingetragen.<br>Diese Stelle ist derzeit noch <b>deaktiviert</b>.<br>Zur Aktivierung der Stelle klicken Sie bitte auf \"Weiter\".</td></tr>\n";
+
+
+		if ($image=="true") {
+			$templatecheck=mysql_db_query($database_db,"select count(*) as anzahl from stellentemplates where firmenid=$s_firmenid",$praktdbslave);
+			$templateda=mysql_result($templatecheck,0,"anzahl");
+
+			echo "<form method=post name=\"Auswahl\">";
+			echo "<tr valign=\"baseline\"><td colspan=\"2\"><br></td></tr>\n";
+			echo "<tr valign=\"baseline\"><td colspan=\"2\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>Image-Anzeige</b></td></tr>\n";
+			echo "<tr valign=\"baseline\"><td colspan=\"2\">Sie m&ouml;chten zu dieser ausgeschriebenen Stelle eine Image-Anzeige hinzuf&uuml;gen. Folgende M&ouml;glichkeiten stehen zur Verf&uuml;gung:</td></tr>\n";
+			echo "<tr valign=\"baseline\"><td colspan=\"2\"><br></td></tr>\n";
+			echo "<tr valign=\"baseline\"><td width=150><input type=\"radio\" checked name=\"imageanzeigentyp\" value=\"true\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\">&nbsp;INSTANT ANZEIGE</td><td>W&auml;hlen Sie aus unseren Layoutvorlagen f&uuml;r Image-Anzeigen das passende f&uuml;r Sie und erstellen Sie Ihre Anzeige gleich selbst.</td></tr>\n";
+			if ($templateda == 0) {
+				echo "<tr valign=\"baseline\"><td width=150><input type=\"radio\" name=\"imageanzeigentyp\" value=\"true\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\">&nbsp;EIGENE VORLAGE</td><td>Sie liefern uns Ihre bereits gestalteten Anzeigen in HTML und wir binden diese f&uuml;r Sie ein.</td></tr>\n";
+				echo "<tr valign=\"baseline\"><td width=150><input type=\"radio\" name=\"imageanzeigentyp\" value=\"true\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\">&nbsp;ERSTELLUNG</td><td>Wir gestalten Ihnen Ihre eigene Image-Anzeige im individuellen Design.</td></tr>\n";
+			}
+		}
+
+?>
+            </table>
+            <form name="x">
+              <hr>
+<? if ($templateda != 0) { ?>
+              	<input type="button" onClick="location.replace('/home/firmen/imageanzeigen/myeintrag.phtml?<? echo "id=$stellenid&title=$taetigkeit&jobcode=$jobcode"; ?>')" value="Weiter">
+<? } elseif ($image=="true") { ?>
+              	<input type="button" onClick="Stellenausschreibung(<? echo $stellenid.",'".$taetigkeit."','".$jobcode."','". session_id()."','". session_name()."'";?>)" value="Weiter">
+<? } else { ?>
+		<input type="BUTTON" name="y" value="Weiter" onClick=location.replace('/home/firmen/commerce/produktbuchung/stellenanzeigen/liste.phtml?stellenid=<?echo $stellenid."&".session_name()."=".session_id()?>')>
+<? } ?>
+
+              <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+              <input type="hidden" name="stellenid" value="<? echo $stellenid ?>">
+              <input type="hidden" name="SAVE" value="yes">
+            </form>
+          </td>
+        </tr>
+      </table>
+</form>
+
+<?
+	} else {
+?>
+
+      <table width="90%">
+        <tr>
+          <td><h1 class="layout1"><? echo $zusatz; ?></h1>
+          	<form action="myeintrag.phtml" name="Formular" method="post">
+             <table cellpadding="2" cellspacing="4" border="0" width="450" STYLE="table-layout:fixed">
+              <COL WIDTH=10><COL WIDTH=150><COL WIDTH=290>
+
+<?
+$bearbeiter = mysql_db_query($database_db,"select id,anrede,vname,name,email from bearbeiter where firmenid=$s_firmenid",$praktdbslave);
+if ($bearbeiter != false) $anz_bearbeiter = mysql_NumRows($bearbeiter);
+else $anz_bearbeiter=0;
+
+$sprachen = mysql_db_query($database_db,"select $s_sprache,id from sprachen where inactive='false' order by $s_sprache",$praktdbslave);
+if ($bearbeiter != false) $anz_sprachen = mysql_NumRows($sprachen);
+else $anz_bearbeiter=0;
+
+$qualifikationen = mysql_db_query($database_db,"select qualifikation,id from qualifikation order by folge",$praktdbslave);
+if ($qualifikationen != false) $anz_qualifikationen = mysql_NumRows($qualifikationen);
+else $anz_qualifikationen=0;
+
+$studienrichtungen = mysql_db_query($database_db,"select * from studiengaenge order by studiengang",$praktdbslave);
+if ($studienrichtungen != false) $anz_studienrichtungen = mysql_NumRows($studienrichtungen);
+else $anz_studienrichtungen=0;
+
+$berufsfelder = mysql_db_query($database_db,"select * from berufsfelder where $s_sprache <> '' order by $s_sprache",$praktdbslave);
+if ($berufsfelder != false) $anz_berufsfelder = mysql_NumRows($berufsfelder);
+else $anz_berufsfelder=0;
+
+$landselect = mysql_db_query($database_db,"select $s_sprache,id from land order by $s_sprache",$praktdbslave);
+if ($landselect != false) $anz_land = mysql_NumRows($landselect);
+else $anz_land=0;
+
+$waehrung2 = mysql_db_query($database_comm,"select id,bezeichner from waehrungen order by id",$praktdbslave);
+if ($waehrung2 != false) $anz_waehrung = mysql_NumRows($waehrung2);
+else $anz_waehrung=0;
+
+
+
+
+
+// Fehlermeldungen
+if ($SAVE == "YES" && ($ansprechpartner=="" || $taetigkeit=="" || $beschreibung =="" || ($zeitraum == "" && $von_tag== "" && $bis_tag == ""))) {
+	echo "<tr valign=\"baseline\"><td colspan=\"3\"><FONT COLOR=\"red\">" . $language["strLeider"] . "</FONT><br><br></td></tr>\n";
+}
+if ($SAVE == "YES" && (substr_count($teststring,"@") >0 || substr_count($teststring,"(at)") >0 || substr_count($teststring,$plzda) >0 || substr_count($teststring,"www.") >0)) {
+	echo "<tr valign=\"baseline\"><td colspan=\"3\"><FONT COLOR=\"red\">" . $language["strEMailhinterlegen"] . "</FONT><br><br></td></tr>\n";
+}
+
+// Beginn der Ausgabe der Maske
+
+
+echo "<tr valign=\"baseline\"><td colspan=\"3\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>" . $language["strBeschreibung"] . "</b></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Stellencode / Ihr Zeichen:</td><td><nobr><input name=\"jobcode\" value=\"$jobcode\" size=\"14\" size=\"10\" maxlength=\"30\" class=\"eingabe210\">".formhelp(jobcode)."</nobr></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+if ($SAVE == "YES" && $taetigkeit == "") echo "<FONT COLOR=\"red\">";
+echo "Stellen-, Positions-<br><nobr>bezeichnung, Schlagzeile:</nobr></td> <td ><input name=\"taetigkeit\" value=\"$taetigkeit\" size=\"14\" maxlength=\"250\" class=\"eingabe210\">".formhelp(taetigkeit)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Schlagwort f&uuml;r Suche:</td><td><input name=\"stichwort\" value=\"$stichwort\" size=\"5\" maxlength=\"50\" class=\"eingabe210\">".formhelp(stichwort)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strMindestQ"] . ":</td> <td ><select name=\"qualifikation\" class=\"eingabe210\">\n";
+echo "    <option value=\"10\">" . $language["strAuswaehlen"] . "</OPTION>\n";
+$i=0;
+while ($i<$anz_qualifikationen):
+$html = htmlspecialchars(mysql_result($qualifikationen,$i,"qualifikation"));
+echo "    <option ";
+if  (mysql_result($qualifikationen,$i,"id") == $qualifikation) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($qualifikationen,$i,"id") . "\">$html</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(qualifikation)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strSonstigeQ"] . ":</td> <td ><input name=\"sonst_qualifikation\" value=\"$sonst_qualifikation\" size=\"14\" maxlength=\"50\" class=\"eingabe210\">".formhelp(sonst_qualifikation)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strArtP"] . ":</td> <td><input type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" name=\"schuelerprakt\" value=\"true\" "; if ($schuelerprakt == "true") echo " checked"; echo "> ".$language["strSchuelerpraktikum"].formhelp(praktikumsart)."<br><input type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" name=\"hochschulprakt\" value=\"true\"  "; if ($hochschulprakt == "true") echo " checked"; echo "> ".$language["strHochschulpraktikum"].formhelp(praktikumsart)."<br><input type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" name=\"wprakt\" value=\"true\"  "; if ($wprakt == "true") echo " checked"; echo "> ".$language["strWeiterbildungspraktikum"].formhelp(praktikumsart)."<br><input type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" name=\"sonstprakt\" value=\"true\"  "; if ($sonstprakt == "true") echo " checked"; echo "> ".$language["strSonstigesPraktikum"].formhelp(praktikumsart)."<br><br></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strRichtung"] . ":</td> <td ><select name=\"studienrichtung1\" class=\"eingabe210\">\n";
+echo "    <option value=\"\">" . $language["strAuswaehlen"] . "</option>\n";
+
+$i=0;
+while ($i<$anz_studienrichtungen):
+$html = htmlspecialchars(mysql_result($studienrichtungen,$i,"studiengang"));
+echo "<option ";
+if (mysql_result($studienrichtungen,$i,"id") == $studienrichtung1) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($studienrichtungen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo "</select>".formhelp(studienrichtung1)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>&nbsp;</td> <td ><select name=\"studienrichtung2\" class=\"eingabe210\">\n";
+echo "    <option value=\"\"></option>\n";
+$i=0;
+while ($i<$anz_studienrichtungen):
+$html = htmlspecialchars(mysql_result($studienrichtungen,$i,"studiengang"));
+echo "<option ";
+if (mysql_result($studienrichtungen,$i,"id") == $studienrichtung2) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($studienrichtungen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(studienrichtung2)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>&nbsp;</td> <td ><select name=\"studienrichtung3\" class=\"eingabe210\">\n";
+echo "    <option value=\"\"></option>\n";
+$i=0;
+while ($i<$anz_studienrichtungen):
+$html = htmlspecialchars(mysql_result($studienrichtungen,$i,"studiengang"));
+echo "<option ";
+if (mysql_result($studienrichtungen,$i,"id") == $studienrichtung3) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($studienrichtungen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(studienrichtung3)."</td></tr>\n";
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+if ($SAVE == "YES" && (($von_tag < 1 OR $von_tag > 31 ) || ($von_monat < 1 OR $von_monat > 12 ) || ($von_jahr < date('Y')) || ($von_tag == ""  || $von_monat == "" || $von_jahr == "") || $von_jahr > $bis_jahr) && $zeitraum == "") echo "<FONT COLOR=\"red\">";
+echo $language["strVon"] . ":</td> <td ><input name=\"von_tag\" value=\"$von_tag\" size=\"2\" maxlength=\"2\">.  <input name=\"von_monat\" value=\"$von_monat\" size=\"2\" maxlength=\"2\">. <input name=\"von_jahr\" value=\"$von_jahr\" size=\"4\" maxlength=\"4\">".formhelp(von_datum)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+if ($SAVE == "YES" && (($bis_tag < 1 OR $bis_tag > 31 ) || ($bis_monat < 1 OR $bis_monat > 12 ) || ($bis_jahr < date('Y')) || ($bis_tag == ""  || $bis_monat == "" || $bis_jahr == "") || $bis_jahr > $bis_jahr ) && $zeitraum == "") echo "<FONT COLOR=\"red\">";
+echo $language["strBis"] . ":</td> <td ><input name=\"bis_tag\" value=\"$bis_tag\" size=\"2\" maxlength=\"2\">.  <input name=\"bis_monat\" value=\"$bis_monat\" size=\"2\" maxlength=\"2\">. <input name=\"bis_jahr\" value=\"$bis_jahr\" size=\"4\" maxlength=\"4\">".formhelp(bis_datum)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+if ($SAVE == "YES" && $von_tag == "" && $zeitraum == "") echo "<FONT COLOR=\"red\">";
+echo $language["strOder"] . ":</td> <td ><input name=\"zeitraum\" value=\"$zeitraum\" size=\"14\" maxlength=\"150\" class=\"eingabe210\">".formhelp(zeitraum)."<font size=\"-2\"><br>" . $language["strHinweis"] . "</font></td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strFuehrerschein"] . ":</td> <td ><input name=\"fuehrerschein\" value=\"$fuehrerschein\" size=\"3\" maxlength=\"3\" class=\"eingabe100\">".formhelp(fuehrerschein)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strGeschlecht"] . ":</td> <td ><select name=\"geschlecht\" value=\"$geschlecht\" size=\"1\"> <option value=\"m / w\" selected>" . $language["strMaennlichWeiblich"] . "</option><option value=\"m&auml;nnlich\">" . $language["strMaennlich"] . "</option> <option value=\"weiblich\">" . $language["strWeiblich"] . "</option> </select>".formhelp(geschlecht)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strBerufsfeld"] . ":</td> <td ><select name=\"berufsfeld\" class=\"eingabe210\">\n";
+$i=0;
+while ($i<$anz_berufsfelder):
+$html = htmlspecialchars(mysql_result($berufsfelder,$i,$s_sprache));
+echo "<option ";
+if (mysql_result($berufsfelder,$i,"id") == $berufsfeld) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($berufsfelder,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(berufsfeld)."</td></tr>\n";
+
+
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>". $language["strAlter"] . ":</td><td><input name=\"prakt_alter\" value=\"$prakt_alter\" size=\"3\" maxlength=\"3\" class=\"eingabe50\"> <span class=\"small\">" . $language["strAlter2"] . "</span>".formhelp(prakt_alter)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strSprachkenntnisse"] . ":</td> <td > <select name=\"sprachkenntnisse1\" class=\"eingabe156\">\n";
+$i=0;
+if (!isset($sprachkenntnisse1)) $sprachkenntnisse1=$s_sprachid;
+while ($i<$anz_sprachen):
+$html = htmlspecialchars(mysql_result($sprachen,$i,$s_sprache));
+echo "<option ";
+if (mysql_result($sprachen,$i,"id") == $sprachkenntnisse1) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($sprachen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(sprachkenntnisse1)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>&nbsp;</td> <td > <select name=\"sprachkenntnisse2\" class=\"eingabe156\">\n";
+echo "    <option value=\"\"></option>\n";
+$i=0;
+while ($i<$anz_sprachen):
+$html = htmlspecialchars(mysql_result($sprachen,$i,$s_sprache));
+echo "<option ";
+if (mysql_result($sprachen,$i,"id") == $sprachkenntnisse2) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($sprachen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo"    </select>".formhelp(sprachkenntnisse2)."</td></tr>\n";
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>&nbsp;</td> <td > <select name=\"sprachkenntnisse3\" class=\"eingabe156\">\n";
+echo "    <option value=\"\"></option>\n";
+$i=0;
+while ($i<$anz_sprachen):
+$html = htmlspecialchars(mysql_result($sprachen,$i,$s_sprache));
+echo "<option ";
+if (mysql_result($sprachen,$i,"id") == $sprachkenntnisse3) {
+	echo "selected ";
+}
+echo "value=\"" . mysql_result($sprachen,$i,"id") . "\">" . $html . "</option>\n";
+$i++;
+endwhile;
+echo" </select>".formhelp(sprachkenntnisse3)."</td></tr>\n";
+
+// Land, Bundesland und Gro&szlig;raum
+if (!$land) {
+	$firmenland=mysql_db_query($database_db,"SELECT land from firmen where id=$s_firmenid",$praktdbslave);
+	$land=mysql_result($firmenland,0,"land");
+}
+
+$bundeslandselect = mysql_db_query($database_db,"select * from bundesland where landid='$land' order by $s_sprache",$praktdbslave);
+if ($bundeslandselect != false) $anz_bundesland = mysql_NumRows($bundeslandselect);
+else $anz_bundesland = 0;
+
+if ($anz_bundesland > 0) {
+	$bundeslandsel=mysql_result($bundeslandselect,0,"id");
+	if ($bundesland == "") $bundesland = $bundeslandsel;
+	$grossraumselect = mysql_db_query($database_db,"select grossraum,id from grossraum where bundesland=$bundesland order by grossraum",$praktdbslave);
+	if ($grossraumselect != false) $anz_grossraum = mysql_NumRows($grossraumselect);
+	else $anz_grossraum = 0;
+}
+
+$browser = SniffBrowser();
+echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strEinsatzland"] . ":</td><td>\n";
+if ($browser['type'] == 'Explorer') {
+	echo "<select name=\"land\" class=\"eingabe210\" onChange=\"load_bundesland(this.value)\">\n";
+} else {
+	echo "<select name=\"land\" onChange=\"netscape_reload('Formular')\" class=\"eingabe210\">\n";
+}
+$i=0;
+while ($i < $anz_land):
+$html = htmlspecialchars(mysql_result($landselect,$i,$s_sprache));
+echo "    <option ";
+if  (mysql_result($landselect,$i,"id") == $land) {
+	echo "selected ";			}
+	echo "value=\"" . mysql_result($landselect,$i,"id") . "\">" . $html . "</option>\n";
+	$i++;
+	endwhile;
+	echo"    </select>".formhelp(einsatzland)."</td></tr>\n";
+
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Einsatzbundesland:</td><td>\n";
+	if ($browser['type'] == 'Explorer') {
+		echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"load_grossraum(document.Formular.land.value,this.value)\" onClick=\"load_grossraum(document.Formular.land.value,this.value)\" id=\"bundeslandid\">\n";
+	} else {
+		echo "<select name=\"bundesland\" class=\"eingabe210\" onChange=\"netscape_reload('Formular')\" class=\"eingabe210\">\n";
+	}
+	$i=0;
+	while ($i<$anz_bundesland):
+	$html = htmlspecialchars(mysql_result($bundeslandselect,$i,$s_sprache));
+	echo "    <option ";
+	if  (mysql_result($bundeslandselect,$i,"id") == $bundesland) {
+		echo "selected ";
+	}
+	echo "value=\"" . mysql_result($bundeslandselect,$i,"id") . "\">" . $html . "</option>\n";
+	$i++;
+	endwhile;
+	echo "</select></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Einsatzgrossraum:</td><td><select name=\"grossraum\" class=\"eingabe210\" id=\"grossraumid\">\n";
+	$i=0;
+	while ($i<$anz_grossraum):
+	$html = htmlspecialchars(mysql_result($grossraumselect,$i,"grossraum"));
+	echo "<option ";
+	if  (mysql_result($grossraumselect,$i,"id") == $grossraum) {
+		echo "selected ";
+	}
+	echo "value=\"" . mysql_result($grossraumselect,$i,"id") . "\">" . $html . "</option>\n";
+
+	$i++;
+	endwhile;
+	echo "</select></td></tr>\n";
+	// Ende Land,Bundesland und Gro&szlig;raum
+
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+	if ($SAVE == "YES" && $einsatzort == "") echo "<font color=\"red\">";
+	echo $language["strEinsatzort"] . ":</td> <td ><input name=\"einsatzort\" value=\"$einsatzort\" size=\"14\" maxlength=\"50\" class=\"eingabe210\">".formhelp(einsatzort)."</td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strUnterkunft"] . ":</td> <td ><select name=\"unterkunft\" size=\"1\" class=\"eingabe210\">";
+	echo "<option value=\"vorhanden\"";
+	if ($unterkunft == "vorhanden") echo " selected";
+	echo ">" . $language["strJo"] . "</option><option value=\"keine vorhanden\"";
+	if ($unterkunft=="keine vorhanden") echo " selected";
+	echo ">" . $language["strNoe"] . "</option><option value=\"Hilfe bei der Suche\"";
+	if ($unterkunft=="Hilfe bei der Suche") echo " selected";
+	echo ">". $language["strHilfe"] . "</option> </select>".formhelp(unterkunft)."</td></tr>\n";
+
+
+	echo "<tr valign=\"top\"><td>".$einruecken."</td><td>";
+	if ($SAVE == "YES" && $beschreibung == "") echo "<FONT COLOR=\"red\">";
+	if ($SAVE == "YES" && substr_count($beschreibung,"@") >0 || substr_count($beschreibung,"www") >0) echo "<FONT COLOR=\"red\">";
+	echo $language["strAngebot"] . ":</td> <td></td></tr>\n";
+
+	if ($s_firmenlevel <1 && $image != "true") {
+		echo "<tr><td>".$einruecken."</td><td colspan=\"2\"><img src=\"../gifs/german/rte.gif\" border=\"0\" usemap=\"#RteMap\"><map name=\"RteMap\"><area shape=\"poly\" coords=\"6,4,5,53,413,53,413,25,214,26,214,4\" href=\"level.phtml?level=1\" target=\"_blank\"></map><textarea name=\"beschreibung\" cols=\"68\" rows=\"16\" style=\"width:420px\" wrap=\"PHYSICAL\">".htmlspecialchars(stripslashes(stripslashes(trim($beschreibung))))."</textarea>".formhelp(beschreibung)."<br><font size=-2>" . $language["strHinweis2"] . "</font><br><br></td></tr>\n";
+	} else {
+
+		echo "<tr><td>".$einruecken."</td><td colspan=\"2\">\n";
+
+		$content = stripslashes(stripslashes(trim($beschreibung)));
+
+		$oFCKeditor = new FCKeditor('beschreibung') ;
+		$oFCKeditor->BasePath = '/scripts/fckeditor/' ;
+		$oFCKeditor->ToolbarSet = 'Praktika';
+
+		$oFCKeditor->Value = $content ;
+		$oFCKeditor->Create() ;
+
+		echo "<br><font size=-2>" . $language["strHinweis2"] . "</font><br><br></td></tr>\n";
+	}
+
+	echo "<tr><td colspan=\"3\"><br></td></tr>\n";
+
+	echo "<tr valign=\"baseline\"><td colspan=\"3\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>Praktikumsverg&uuml;tung</b></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strEntgelt"] .  ":</td> <td ><input name=\"entgelt\" size=\"6\" maxlength=\"6\">&nbsp;" . $language["strWaehrung"] . "&nbsp;";
+	echo "<select name=\"waehrung\">\n";
+	$i=0;
+	while ($i<$anz_waehrung):
+	$html = htmlspecialchars(mysql_result($waehrung2,$i,"bezeichner"));
+	echo "<option ";
+	if (mysql_result($waehrung2,$i,"id") == $waehrung) {
+		echo "selected ";
+	}
+	echo "value=\"" . mysql_result($waehrung2,$i,"id") . "\">" . $html . "</option>\n";
+	$i++;
+	endwhile;
+	echo"    </select>".formhelp(entgelt)."</td></tr>\n";
+
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strEntgelttext"] . ":</td> <td ><input name=\"entgelttext\" value=\"$entgelttext\" maxlength=\"150\" size=\"14\" class=\"eingabe210\">".formhelp(entgelttext)."";
+	echo "<tr valign=\"middle\"><td>".$einruecken."</td><td>";
+	if ($SAVE == "YES" && (!$entgelt == "" && $zahlweise == "")) echo "<FONT COLOR=\"red\">";
+	echo $language["strZahlweise"] . ":</td> <td ><table cellpadding=\"2\"><tr valign=\"top\"><td>" . $language["strMonatlich"] . "</td><td><input name=\"zahlweise\" type=\"radio\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"monatlich\" "; if ($zahlweise == "monatlich") echo " checked"; echo ">".formhelp(zahlweise)."</td></tr><tr><td>" . $language["strEinmalige"] . "</td><td><input name=\"zahlweise\" type=\"radio\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"einmalig\" "; if ($zahlweise == "einmalig") echo " checked"; echo ">".formhelp(zahlweise)."</td></tr></table></td></tr>\n";
+
+	echo "<tr><td><br></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td colspan=\"3\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>" . $language["strBewerbungsarten"] . "</b></td></tr>\n";
+	//if ($s_firmenlevel <1 && $image != "true") { $textausgabe="<font class=\"small\">" . $language["strBemerkung"] . "</font>"; $deaktiviert="disabled";}
+	if (!$bewerbungperpost) $bewerbungperpost="true";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>per Post:</td> <td ><input name=\"bewerbungperpost\" type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"true\""; if ($bewerbungperpost == "true") echo " checked"; echo "></td></tr>\n";
+	if (!$bewerbungperonline) $bewerbungperonline="true";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Onlinebewerbung:</td> <td valign=middle ><input name=\"bewerbungperonline\" type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"true\""; if ($bewerbungperonline == "true") echo " checked"; echo "></td></tr>\n";
+	if (!$bewerbungperkurzm) $bewerbungperkurzm="true";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>Kurzmitteilung:</td> <td valign=middle ><input name=\"bewerbungperkurzm\" type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"true\""; if ($bewerbungperkurzm == "true") echo " checked"; echo "></td></tr>\n";
+	if (!$bewerbungperemail) $bewerbungperemail="true";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>per Email:</td> <td ><input name=\"bewerbungperemail\" ".$deaktiviert." type=\"checkbox\" style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"true\""; if ($bewerbungperemail == "true") echo " checked"; echo ">".$textausgabe."</td></tr>\n";
+	if (!$bewerbungpertel) $bewerbungpertel="true";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>per Telefon:</td> <td ><input name=\"bewerbungpertel\" type=\"checkbox\" ".$deaktiviert." style=\"border-style: none; background-color: rgb(".$praktikargb.");\" value=\"true\""; if ($bewerbungpertel == "true") echo " checked"; echo ">".$textausgabe."</td></tr>\n";
+
+
+	/* Firmendaten */
+	echo "<tr><td><br></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td colspan=\"3\" bgCOLOR=\"".$spalte2quicklogindunkel."\"><b>" . $language["strFirmendaten"] . "</b></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strAnsprechpartnerEmail"] . ":</td> <td ><select name=\"ansprechpartnerid\" class=\"eingabe210\">\n";
+	$i=0;
+	while ($i<$anz_bearbeiter):
+	$html = htmlspecialchars((mysql_result($bearbeiter,$i,"email")));
+	echo "<option value=\"" . mysql_result($bearbeiter,$i,"id") . "\">" . $html . "</option>\n";
+	$i++;
+	endwhile;
+	echo"    </select>".formhelp(ansprechpartnerEmail)."<bR><span class=\"small_underline\"><A ONMOUSEOVER=\"window.status='" . $language["strAnsichtsseite"] . "';return true\" href=/home/firmen/mynewbearbeiter.phtml?" . session_name(). "=" . session_id() . "&uri=".$_SERVER["PHP_SELF"]."&image=".$image.">(neuer Bewerbungsempf&auml;nger)</a></span></td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>";
+	if ($SAVE == "YES" && $ansprechpartner == "") echo "<FONT COLOR=\"red\">";
+	echo $language["strAnsprechpartner"] . ":</td> <td ><input name=\"ansprechpartner\" value=\"$ansprechpartner\" size=\"14\" maxlength=\"50\" class=\"eingabe210\">".formhelp(ansprechpartner)."</td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strTelefon"] . ":</td> <td ><input name=\"anspdurchwahl\" size=\"14\" maxlength=\"50\" value=\"$anspdurchwahl\" class=\"eingabe210\">".formhelp(anspdurchwahl)."</td></tr>\n";
+	echo "<tr valign=\"baseline\"><td>".$einruecken."</td><td>" . $language["strAbteilung"] . ":</td> <td ><input name=\"abteilung\" size=\"14\" maxlength=\"50\" value=\"$abteilung\" class=\"eingabe210\">".formhelp(abteilung)."</td></tr>\n";
+	echo "<tr><td><br></td></tr>\n";
+?>
+              </table>
+              <hr>
+              <input type="submit" value="Speichern & Vorschau" name="VORSCHAU" style="width: 140px">
+              <input type="submit" value="Weiter" name="FERTIG">
+              <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+              <input type="hidden" value="<? echo $stellenid ?>" name="stellenid">
+              <input type="hidden" name="image" value="<? echo $image ?>">
+              <input type="hidden" name="SAVE" value="YES">
+            </form>
+          </td>
+        </tr>
+      </table>
+<?
+if ($stellenid > 0) {
+	echo "<SCRIPT>\n";
+	echo "if (!vorschau) alert ('Sollten Sie kein Vorschau-Fenster erhalten, schalten Sie bitte eventuelle PopUp-Blocker aus!');";
+	echo "</SCRIPT>\n";
+}
+
+	}
+} 
+
+bodyoff(session_id(), session_name()); ?>

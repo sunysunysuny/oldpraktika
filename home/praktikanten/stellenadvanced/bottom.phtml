@@ -1,0 +1,111 @@
+<?
+ require("/home/praktika/etc/config.inc.php"); 
+?>
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+</HEAD>
+<body BGCOLOR="#FFFFF0">
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (parent.advancedprofilemain.window.print) {
+  parent.advancedprofilemain.focus();
+  parent.advancedprofilemain.window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+
+function ZweiFrames(ID,Firmenid,Url) {
+  Frame1=eval("parent.advancedprofilebottom");
+  Frame2=eval("parent.advancedprofilemain");
+  Frame1.location.href = "<? echo "bottom.phtml?id=\" + ID + \"&firmenid=\" + Firmenid + \""; ?>";
+if (Url == '') {
+  Frame2.location.href = "<? echo "stellentemplate.phtml?id=\" + ID + \"&firmenid=\" + Firmenid + \""; ?>";
+} else {
+  Frame2.location.href = Url;
+}
+}
+
+//-->
+</script>
+
+<?
+switch ($bewerbstatus) {
+	case "true":
+		if ($s_loggedinnutzer == true) {
+			$bewerblink="../onlinebewerbung.phtml?firmenid=" . $firmenid . "&stellenid=" . $id . "&" . session_name() . "=" . session_id();
+		} else {
+			$bewerblink="#\" onClick=\"windowanm=window.open('/home/quicklogin/minilogin.phtml?loginwer=Bewerber&".session_name()."=".session_id()."','messageWindow','scrollbars=yes,status=yes,toolbar=no,width=300,height=250'); return false;\"";
+		}
+		$target = "PraktikaMainWindow";
+	break;
+	
+	case "false":
+		$bewerblink="activebewerbung.phtml?status=".$bewerbstatus."&stellenid=" . $id . "&".session_name()."=".session_id();
+		$target = "_blank";
+	break;
+	
+	case "email":
+		$bewerblink="activebewerbung.phtml?status=".$bewerbstatus."&stellenid=" . $id . "&".session_name()."=".session_id();
+		$target = "Bewerbungsmail";
+	break;
+}
+?>
+
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+<table width="98%" border="0" align="center">
+<? 
+echo "<tr>\n";
+echo "    <td width=\"120\" align=\"center\"><a href=\"../detail.phtml?id=" . $id . "&" . session_name() . "=" . session_id() . "\" target=\"PraktikaMainWindow\"><img src=\"/partner/campusweb/gifs/logo_praktika_campus.gif\" width=\"114\" height=\"35\" border=\"0\"></a></td>\n";
+echo "    <td width=\"30\" align=\"right\"><a href=\"$bewerblink\" target=\"$target\"><img src=\"../../gifs/symbole/nichtfertig.gif\" border=\"0\" alt=\"online bewerben\" width=\"16\" height=\"16\"></a></td>\n";
+echo "    <td align=\"center\"><a href=\"$bewerblink\" target=\"PraktikaMainWindow\">" . $language ["strOnlineBewerben"] . "</a></td>\n";
+echo "    <td width=\"30\" align=\"right\"><a href=\"../../clickin/?id=" . $firmenid . "&noinsert=yes&" . session_name() . "=" . session_id() . "\" target=\"PraktikaMainWindow\"><img src=\"../../gifs/symbole/firmenliste.gif\" border=\"0\" alt=\"Stellen einsehen\" width=\"12\" height=\"12\"></a></td>\n";
+echo "    <td align=\"center\"><a href=\"../../clickin/?id=" . $firmenid . "&noinsert=yes&" . session_name() . "=" . session_id() . "\" target=\"PraktikaMainWindow\">" . $language ["strJobs"] . "</a></td>\n";
+echo "    <td width=\"30\"  align=\"right\"><a href=\"../../toppraktika/profiltemplate.phtml?id=" . $firmenid . "&stellenid=" . $id . "&" . session_name() . "=" . session_id() . "\" target=\"PraktikaMainWindow\"><img src=\"../../gifs/symbole/firmenprofil.gif\" border=\"0\" alt=\"Firmenprofil einsehen\" width=\"18\" height=\"16\"></a></td>\n";
+echo "    <td align=\"center\"><a href=\"../../toppraktika/profiltemplate.phtml?id=" . $firmenid . "&stellenid=" . $id . "&" . session_name() . "=" . session_id() . "\" target=\"PraktikaMainWindow\">" . $language ["strFirmenprofil"] . "</a></td>\n";
+echo "    <td width=\"30\"  align=\"right\">";
+echo "    <A href=\"#\" onClick=\"sendmsg=window.open('../detailsend.phtml?id=" . $id . "&" . session_name() . "=" . session_id() . "','sendMessageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=530,height=510'); return false;\"><img src=\"/home/gifs/symbole/versenden.gif\" ALT=\"".$language["strEmailDescribe"]."\" border=\"0\"></A>";
+echo "    </td>\n";
+echo "    <td align=\"center\">";
+echo "    <A href=\"#\" onClick=\"sendmsg=window.open('../detailsend.phtml?id=" . $id . "&" . session_name() . "=" . session_id() . "','sendMessageWindow','scrollbars=yes,statusbar=no,toolbar=no,width=530,height=510'); return false;\">" . $language ["strWeiterempfehlen"] . "</A>";
+echo "    </td>\n";
+echo "    <td width=\"30\"  align=\"right\"><a href=\"javascript:printform();\"><img src=\"/home/gifs/symbole/drucken.gif\" ALT=\"".$language["strDruckenDescribe"]."\" border=\"0\"></a></td>\n";
+echo "    <td align=\"center\"><a href=\"javascript:printform();\">" . $language ["strDrucken"]."</a></td>\n";
+echo "</tr>\n";
+if ($s_spalte == 5) {
+
+if(is_array($s_bstellenarray)) reset ($s_bstellenarray);
+for($i = 0; $i < count($s_bstellenarray); $i++) { 
+if ($id == $s_bstellenarray[$i][0]) break;
+}
+
+echo "<tr>\n";
+echo "<td colspan=\"11\" height=\"1\" bgcolor=\"gray\">\n";
+echo "</td>\n";
+echo "</tr>\n";
+echo "<tr>\n";
+echo "    <td align=\"left\" colspan=\"6\">\n";
+if ($s_bstellenarray[$i-1][0]) {
+echo "<a href=\"javascript:ZweiFrames('".$s_bstellenarray[$i-1][0]."','".$s_bstellenarray[$i-1][1]."','".$s_bstellenarray[$i-1][2]."');\">" . $language ["strVorherige"] . "</a>\n";
+}
+echo "</td>\n";
+echo "    <td align=\"right\" colspan=\"5\">\n";
+if ($s_bstellenarray[$i+1][0]) {
+echo "<a href=\"javascript:ZweiFrames('".$s_bstellenarray[$i+1][0]."','".$s_bstellenarray[$i+1][1]."','".$s_bstellenarray[$i+1][2]."');\">" . $language ["strNaechste"] . "</a>\n";
+}
+echo "</td>\n";
+echo "</tr>\n";
+}  
+?>
+</table>
+</body>
+</HTML>

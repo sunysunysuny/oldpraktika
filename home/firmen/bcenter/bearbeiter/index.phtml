@@ -1,0 +1,248 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+if($_POST["act"] == "deleteBearbeiter" && !empty($_POST["id"]) && md5($cryptbasis.$_POST["id"].$_SESSION["s_firmenid"].$cryptbasis) == $_POST["hashValue"]) {
+	$id = (int)$_POST["id"];
+	
+	$deletestring = 'UPDATE '.$database_db.'.bearbeiter SET inactive = "true" WHERE id='.intval($id).' and firmenid='.intval($_SESSION['s_firmenid']);
+	$deletestring2 = 'DELETE FROM '.$database_db.'.newsletter WHERE email='.mysql_real_escape_string($_POST['mail']);
+	$test = mysql_db_query($database_db,'SELECT email FROM newsletter WHERE email='.mysql_real_escape_string($_POST['mail']),$praktdbslave);
+	
+	$numrow = 0;
+	if ($test == true) {
+		$numrow = mysql_num_rows($test);
+	}
+	
+	Praktika_Log::firmenlog((int)$_SESSION['s_firmenid'], 3, "Bearbeiter ".intval($id)." deaktiviert/gel&ouml;scht");
+		
+	
+	$hDB->query($deletestring,$praktdbmaster);
+
+	$upd1 = mysql_db_query($database_db,'UPDATE bewerberkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd2 = mysql_db_query($database_db,'UPDATE bewerbung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd3 = mysql_db_query($database_db,'UPDATE fausbildungsangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd4 = mysql_db_query($database_db,'UPDATE fdiplomausschreibung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd5 = mysql_db_query($database_db,'UPDATE firmenfragebogen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd6 = mysql_db_query($database_db,'UPDATE firmenkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd7 = mysql_db_query($database_db,'UPDATE fjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd8 = mysql_db_query($database_db,'UPDATE fnebenjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd9 = mysql_db_query($database_db,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd10 = mysql_db_query($database_db,'UPDATE praktikumsstellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd11 = mysql_db_query($database_comm,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd12 = mysql_db_query($database_comm,'UPDATE buchungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd13 = mysql_db_query($database_comm,'UPDATE zahlungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd14 = mysql_db_query($database_db,'UPDATE stellenlaufzeit SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	$upd15 = mysql_db_query($database_db,'UPDATE stellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.$id,$praktdbmaster);
+	
+	if ($numrow > 0) {
+		mysql_db_query($database_db,$deletestring2,$praktdbmaster);
+	}
+	
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+
+$_SESSION["s_firmenproparray"]["lastPage"] = "bearbeiter/index";
+// pageheader(array('page_title' => 'Bearbeiter&uuml;bersicht'));
+
+if (isset($_GET['delete'])) {
+	$deletestring = 'UPDATE '.$database_db.'.bearbeiter SET inactive = "true" WHERE id='.intval($_GET['id']).' and firmenid='.intval($_SESSION['s_firmenid']);
+	$deletestring2 = 'DELETE FROM newsletter WHERE email='.mysql_real_escape_string($_GET['email']);
+	$test = mysql_db_query($database_db,'SELECT email FROM newsletter WHERE email='.mysql_real_escape_string($_GET['email']),$praktdbslave);
+	
+	$numrow = 0;
+	if ($test == true) {
+		$numrow = mysql_num_rows($test);
+	}
+
+	Praktika_Log::firmenlog((int)$_SESSION['s_firmenid'], 2, "Bearbeiter ".intval($_GET['id'])." deaktiviert/gel&ouml;scht");
+	mysql_db_query($database_db,$deletestring,$praktdbmaster);
+
+	$upd1 = mysql_db_query($database_db,'UPDATE bewerberkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd2 = mysql_db_query($database_db,'UPDATE bewerbung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd3 = mysql_db_query($database_db,'UPDATE fausbildungsangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd4 = mysql_db_query($database_db,'UPDATE fdiplomausschreibung SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd5 = mysql_db_query($database_db,'UPDATE firmenfragebogen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd6 = mysql_db_query($database_db,'UPDATE firmenkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd7 = mysql_db_query($database_db,'UPDATE fjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd8 = mysql_db_query($database_db,'UPDATE fnebenjobangebot SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd9 = mysql_db_query($database_db,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd10 = mysql_db_query($database_db,'UPDATE praktikumsstellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd11 = mysql_db_query($database_comm,'UPDATE kagentfirmen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd12 = mysql_db_query($database_comm,'UPDATE buchungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd13 = mysql_db_query($database_comm,'UPDATE zahlungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd14 = mysql_db_query($database_db,'UPDATE stellenlaufzeit SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	$upd15 = mysql_db_query($database_db,'UPDATE stellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($_GET['id']),$praktdbmaster);
+	
+	if ($numrow > 0) {
+		mysql_db_query($database_db,$deletestring2,$praktdbmaster);
+	}
+}
+
+$objFirma = new Praktika_Firma($_SESSION['s_firmenid']);
+$bearbeiter = $objFirma->getBearbeiter(array(0, 15));
+
+$myBearbeiter = new Praktika_Bearbeiter();
+
+echo '	<h3>Bearbeiter verwalten</h3>'."\n";
+
+if($myBearbeiter->isAdmin()) {
+        echo '<div style="text-align:center;" class="clearfix"><a href="#" style="float:none;" class="button red" onclick="loadContent(\'bearbeiter/neuerBearbeiter\'); return false;" name="speichern" value="neuen">Neuen Bearbeiter anlegen</a></div><br />'."\n";
+}
+
+if(count($bearbeiter) > 0) {
+    $counter = 1;
+    foreach($bearbeiter as $objBearbeiter) {
+
+        echo '<div class="bearbeiter" id="bearbeiter_'.$objBearbeiter->id.'">'."\n";
+            echo "<h4>".$counter.". ".$objBearbeiter->fullname.($objBearbeiter->isAdmin() ? ' (Administrator)' : '')."</h4>";
+
+            ?>
+				<table class="informationen">
+                    <colgroup>
+                        <col width="100">
+                        <col width="600">
+                    </colgroup>
+                    <tr>
+                        <td>LoginID</td>
+                        <td><b><? echo $objBearbeiter->id ?></b></td>
+                    </tr>
+                    <tr>
+                        <td>Abteilung</td>
+                        <td><? echo $objBearbeiter->abteilung ?></td>
+                    </tr>
+                    <tr>
+                        <td>Durchwahl</td>
+                        <td><? echo $objBearbeiter->tel ?></td>
+                    </tr>
+                    <tr>
+                        <td>eMail</td>
+                        <td><a href="mailto:<? echo $objBearbeiter->email ?>"><? echo $objBearbeiter->email ?></a></td>
+                    </tr>
+				</table>
+
+                <div class="clearfix actionButtons">
+                    <? if($myBearbeiter->isAdmin() && count($bearbeiter) > 1 && !$objBearbeiter->isAdmin()) { ?>
+                        <a href='#' onclick="deleteBearbeiter(<?echo $objBearbeiter->id ?>,'<?= md5($cryptbasis.$objBearbeiter->id.$objBearbeiter->firmenid.$cryptbasis) ?>','<? echo $objBearbeiter->email ?>'); return false;" class='button red small'>Bearbeiter l&ouml;schen</a>
+                    <? } ?>
+
+                    <? if($myBearbeiter->isAdmin() || $objBearbeiter->id == $_SESSION['s_loginid']) { ?>
+                        <a href='#' onclick="loadContent('bearbeiter/editBearbeiter','id=<?=$objBearbeiter->id ?>'); return false;" class='button alternative small'>Bearbeiter &auml;ndern</a>
+                    <? } ?>
+
+                    <? if ($objBearbeiter->id == $_SESSION['s_loginid']) { // Ich darf nur mein eigenes Passwort �ndern ?>
+                            <a href='#' onclick="showResult(); smallbox.loadUrl('','/home/firmen/bcenter/bearbeiter/newPassword.phtml', '', {'title':'Passwort &auml;ndern', 'callback':function(e) { if(e==true) { showResult('Passwort wurde ge&auml;ndert und tritt beim n&auml;chsten Login in Kraft.','success');} else if(e=='error') { showResult('Es trat ein Fehler auf.<br /><b>Bitte wenden Sie sich an den Support. (Fehler 155)</b>','error');}}});return false;loadContent('bearbeiter/newPassword'); return false;" class='button alternative small'>neues Passwort setzen</a>
+                    <? } ?>
+                </div>
+			<?
+        echo '</div>';
+
+        $counter ++;
+    }
+} else {
+	echo '<p class="error">In Ihrem Account sind keine Bearbeiter hinterlegt.<br /><br />Dabei muss es sich um ein technisches Problem handeln, weshalb Sie gebeten werden, den Praktika-Support zu kontaktieren.</p>'."\n";
+}
+
+return;
+
+$ds_count = isset($_GET['ds_count']) ? intval($_GET['ds_count']) : 0;
+$ds_pro_seite = isset($_GET['ds_pro_seite']) ? intval($_GET['ds_pro_seite']) : 0;
+
+// abfrage ausfuehren  //
+$results = mysql_db_query($database_db,'SELECT * FROM bearbeiter WHERE firmenid = '.intval($_SESSION['s_firmenid']).' AND inactive=\'false\' ORDER BY id',$praktdbslave);
+$readmin = mysql_db_query($database_db,'SELECT admin FROM bearbeiter WHERE id = '.intval($_SESSION['s_loginid']),$praktdbslave);
+	
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows($results);
+
+if ($num_rows  > 0) {
+	// erste seite? //
+	if (!isset($ds_count)) {
+		$ds_count = 0;
+	}
+
+	// datensaetze pro seite ueberpruefen und setzen //
+	if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20) )) {
+		$ds_pro_seite = 10;
+	}
+	echo '	<h3>Bearbeiter verwalten</h3>'."\n";
+	echo '<p style="text-align:center;">Bearbeiter ';
+	echo $ds_count + 1; echo ' - '.min(($ds_count + $ds_pro_seite ), $num_rows).' ';
+	echo 'von '.mysql_num_rows($results).'</p>'."\n";
+
+	/* Datensaetze anzeigen */
+	mysql_data_seek($results, $ds_count);
+
+	$end_ds = $ds_count + $ds_pro_seite;
+	
+	if (mysql_result($readmin,0,'admin') == 'true') {
+		echo '<div style="text-align:center;" class="clearfix"><a href="#" style="float:none;" class="button" onclick="loadContent(\'bearbeiter/neuerBearbeiter\'); return false;" name="speichern" value="neuen">Neuen Bearbeiter anlegen</a></div>
+'."\n";
+	}
+	echo '<div class="bearbeiter">'."\n";
+	while (($ds_count < $end_ds) &&  ($result_row = mysql_fetch_array($results))) {
+?>
+		<div class="bewerbungHeader">
+			<?=($ds_count + 1).'. '.((isset($result_row['titel']) && !empty($result_row['titel'])) ? $result_row['titel'].' ' : '').htmlentities($result_row['vname'].' '.$result_row['name']).((isset($result_row['admin']) && $result_row['admin'] == "true") ? ' (Administrator)' : '')?>
+			
+		</div>
+		<div class="bewerbungBody">
+		<ol class="actionButtons">
+			<? if (mysql_result($readmin,0,'admin') == 'true' || $result_row['id'] == $_SESSION['s_loginid']) { ?>
+				<li class="actionButton"><a href="#" onclick="loadContent('bearbeiter/editBearbeiter','id=<?=$result_row["id"] ?>'); return false;"><img src="/styles/images/icons/bearbeiten.gif" /> Bearbeiter &auml;ndern</a></li>
+				
+				<? if ($result_row['admin'] == 'false') { // Der Administrator darf nicht gel�scht werden ?>		
+					<li class="actionButton"><a href="#" onclick="deleteBearbeiter(<?=$result_row['id'] ?>,'<?=md5($cryptbasis.$result_row['id'].$_SESSION["s_firmenid"].$cryptbasis) ?>','<?=$result_row['email'] ?>'); return false;"><img src="/styles/images/icons/papierkorb.png" /> Bearbeiter l&ouml;schen</a></li>
+				<? } ?>
+			
+			<? } ?>
+			<? if ($_SESSION['s_loginid'] == $result_row['id']) { // Ich darf nur mein eigenes Passwort �ndern ?>
+				<li class="actionButton"><a href="#" onclick="showResult(); smallbox.loadUrl('','/home/firmen/bcenter/bearbeiter/newPassword.phtml', '', {'title':'Passwort &auml;ndern', 'callback':function(e) { if(e==true) { showResult('<br /><b>Passwort wurde ge&auml;ndert und tritt beim n&auml;chsten Login in Kraft.</b><br /><br />','success');} else if(e=='error') { showResult('Es trat ein Fehler auf.<br /><b>Bitte wenden Sie sich an den Support. (Fehler 155)</b>','error');}}});return false;loadContent('bearbeiter/newPassword'); return false;"><img src="/styles/images/icons/schloss.gif" /> Passwort &auml;ndern</a></li>
+			<? } ?>
+		
+			</ol>
+
+			<div class="bewerberInformation">
+				<p>LoginID: <b><?=$result_row['id'] ?></b></p>
+				Abteilung: <?=htmlentities($result_row['abteilung']) ?><br>
+				Durchwahl: <?=$result_row['tel'] ?><br>
+				eMail: <a href="mailto:<?=$result_row['email'] ?>"><?=$result_row['email'] ?></a><br><br>
+			</div>
+		</div>
+<?
+
+		$ds_count += 1;
+	}
+	echo "</div>";
+	mysql_free_result($results);
+		
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+
+	if ($ds_count < $num_rows) {
+		echo '<form action="/firmen/bearbeiter/" method="get">'."\n";
+		echo '	<input type="hidden" name="ds_count" value="'.$ds_count.' />'."\n";
+		echo '	<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.' />'."\n";
+		echo '	<input type="submit" value="die nächsten '.min($ds_pro_seite, ($num_rows - $ds_count)).' Bearbeiter >" />'."\n";
+		echo '</form>'."\n";
+	}
+} else {
+	echo '<p>Es wurden bisher keine Bearbeiter angelegt</p>'."\n";
+	echo '<div class="control_panel">'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/firmen/account/">'.$language['strZum'].'</a>'."\n";
+	echo '	</p>'."\n";
+	echo '	<p>'."\n";
+	echo '		<a href="/firmen/account/"><img alt="zur&uuml;ck zur Account&uuml;bersicht" src="/styles/images/Buttons/zurueck_comp.gif" title="zur&uuml;ck zur Account&uuml;bersicht" /></a>'."\n";
+	echo '	</p>'."\n";
+	echo '</div>'."\n";
+}

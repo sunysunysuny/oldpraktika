@@ -1,0 +1,205 @@
+<?php
+#$restricted = "yes";
+#$gruppe = "firmen";
+require("/home/praktika/etc/config.inc.php"); 
+
+$stellenid = $_GET['stellenid'];
+$firmenid = $_SESSION['s_firmenid'];
+$_SESSION['sidebar'] = 'none';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+pageheader(array('page_title' => 'Stellenstatistik <img src="/styles/images/beta.png" />'));
+
+$monatsArray = array("Januar", "Februar", "M&auml;rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember");
+
+if(!empty($_POST["statMailing"])) {
+	$sql = "UPDATE prakt2.bearbeiter SET statMailing = 'false' WHERE firmenid = '".(int)$_SESSION["s_firmenid"]."'";
+	$hDB->query($sql, $praktdbmaster);
+	
+	for($a = 0;$a < count($_POST["statMailing"]);$a++) {
+		$ids[] = (int)$_POST["statMailing"][$a];
+	} 
+	
+	$sql = "UPDATE prakt2.bearbeiter SET statMailing = 'true' WHERE firmenid = '".(int)$_SESSION["s_firmenid"]."' AND id IN (".implode(",",$ids).")";
+	$hDB->query($sql, $praktdbmaster);
+}
+
+$objFirma = new Praktika_Firma($_SESSION["s_firmenid"]);
+$stellen = $objFirma->getAllExistingJobs();
+$bearbeiter = $objFirma->getAllBearbeiter();
+
+$agenturMode = false;
+if(isset($_SESSION['s_agenturid']) && intval($_SESSION['s_agenturid']) !== 0) {
+	$agenturMode = true;
+	$agentur = new Praktika_Firmen_Agentur($_SESSION['s_firmenid']);
+}
+
+$checkboxes = array();
+$checkboxes[] = array("id" => "Alle", "title" => "Alle Stellen");
+
+# Statistik-CSS-Modul wird hinzugef�gt
+Praktika_Static::__("statistik");
+
+# Layout.php wird geladen (Wegen CheckBoxList-Funktion)
+$layout = new Praktika_Layout();
+
+if(empty($_SESSION["s_firmenid"])) {
+	header("Location: /login/");
+}
+
+$objBearbeiter = new Praktika_Bearbeiter();
+$bearbeiterMail = $objBearbeiter->getMail();
+?>
+<!--[if IE 7]>
+<style type="text/css">
+	div#placeholder {
+		margin-top:40px !important;
+	}
+	div.timespan {
+		margin-top:0px !important;
+		width:420px !important;
+	}
+	div.itemChooser {
+		margin-top:23px !important;
+		margin-right:10px !important;
+	}
+	.backToMain {
+		margin-bottom:30px !important;
+	}
+</style>
+<![endif]-->
+<!--[if IE]>
+<script language="javascript" type="text/javascript" src="/scripts/excanvas.compiled.js"></script>
+<![endif]-->
+
+<link rel="stylesheet" href="/scripts/jquery/datepicker/css/datepicker.css" type="text/css" />
+
+<script language="javascript" type="text/javascript" src="/scripts/framework/base.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/jquery/jquery-1.4.2.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/jquery/charts/chartv2.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/jquery/charts/flot-0.7/jquery.flot.js"></script>
+<script language="javascript" type="text/javascript" src="/scripts/jquery/charts/flot-0.7/jquery.flot.selection.js"></script>
+
+<script type="text/javascript" src="/scripts/jquery/datepicker/js/datepicker.js"></script>
+<script type="text/javascript" src="/scripts/jquery/datepicker/js/eye.js"></script>
+
+<script type="text/javascript" src="/scripts/jquery/datepicker/js/utils.js"></script>
+<script type="text/javascript" src="/scripts/jquery/datepicker/js/layout.js?ver=1.0.2"></script>
+
+<script type="text/javascript">
+    P_Framework.addModule("ajax");
+	P_Framework.addModule("display");
+	P_Framework.addModule("string");
+    var Wochentag = new Array("Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag");
+	var flot_overview;
+    var flot_plot;
+    var aktDataSet;
+    var statDays = 0;
+    var startDate = 0;
+	var previousPoint = null;
+	var stellen = {};
+	var writeTablePerm = false;
+
+	stellen["Alle"] = "Alle Stellen des Unternehmens";
+
+<?
+$checkboxes[] = array("id" => "group", "title" => "Stellenanzeigen");
+$lastUnternehmen = "";
+for($a = 0;$a < count($stellen);$a++) {
+	if($agenturMode === true) {
+		if(empty($stellen[$a]["firmen_agentur_id"]))
+			continue;
+			
+		if($lastUnternehmen != $stellen[$a]["firmen_agentur_id"]) {
+			$unternehmensDaten = $agentur->findeEinzelnesUnternehmen($stellen[$a]["firmen_agentur_id"]);
+			$checkboxes[] = array("id" => "group", "title" => $unternehmensDaten["name"]);
+
+			$lastUnternehmen = $stellen[$a]["firmen_agentur_id"];
+		}
+	}
+
+	$checkboxes[] = array("id" => $stellen[$a]["stellenid"], "title" => array($stellen[$a]["stellenid"], "<span class='stelle_".($stellen[$a]["inactive"]=="true"?"inactive":"active")."'>".stripslashes($stellen[$a]["taetigkeit"])."</span>"), "bgColor" => ($stellen[$a]["inactive"]=="true"?"#FDF7DF":""));
+	echo 'stellen['.$stellen[$a]["stellenid"].'] = "'.str_replace('"',"'",strip_tags($stellen[$a]["taetigkeit"])).'";'."\n";
+}
+?>
+	printVersion = false;
+</script>
+<div class="fullsize">
+    <div style="float:left;">
+		<span style="float:right;">
+			Grafik: <select id='graph_type' style='width:140px;'>
+				<option value='1'>Einblendungen</option>
+				<option value='2' selected='selected'>Aufrufe</option>
+				<option value='4'>Merkeintr&auml;ge</option>
+				<option value='3'>Bewerbungen</option>
+				<option value='5'>Weiterleitungen</option>
+			</select>
+		</span>
+		<div style="height:32px;">
+			<a href="#" onclick="openPrintWindow();">Druckversion</a>
+		</div>
+		<div class="itemChooser" id="itemChooser">
+	        <?
+	        echo Praktika_Layout::generateCheckableList("itemChooser", $checkboxes, array("class" => "chooser", "height" => "400px", "width" => "360px", "other" => "padding:5px;font-size:10px !important;"), array($_GET["stellenid"]), array("onclick" => "loadData();writeMailNumber();"));
+	        ?>
+	    </div>
+		<!-- <div class="mail_send">
+			<b>Statistiknewsletter</b><br />
+			<p>
+				Wir senden Ihnen w&ouml;chentlich die Zugriffszahlen Ihrer Stellen per eMail.
+			</p>
+			<?php if(!empty($_POST["statMailing"])) { ?>
+			<p class='success'>Einstellung wurde gespeichert</p>
+			<?php } ?>
+			<form method="POST" action="#">
+			<span id="sendMail_inputContainer">
+				<?php for($a=0;$a < count($bearbeiter);$a++) { ?>
+					<div style='margin-bottom:5px;'>
+						<input type="checkbox" <?php if($bearbeiter[$a]["statMailing"] == "true") echo "checked='checked'"; ?> name="statMailing[]" value="<?php echo $bearbeiter[$a]["id"] ?>" /><?php echo $bearbeiter[$a]["anrede"]." ".$bearbeiter[$a]["vname"]." ".$bearbeiter[$a]["name"]." <i style='font-size:10px;'>(".$bearbeiter[$a]["email"].")</i>"; ?><br />
+					</div>
+				<?php  } ?>
+				<button type='submit'><span><span><span>Speichern</span></span></span></button>
+			</span>
+			</form>
+		</div> -->
+	</div>
+
+    <div style="float:right;text-align:right; margin-top:-35px !important; " class="rightPanel timespan">
+		<a href="/firmen/angeboteliste/">&laquo; Zur&uuml;ck zur Stellen&uuml;bersicht</a>
+		<br />
+		<p style="margin-bottom:0px;margin-top:12px;height:35px;line-height:30px;">
+			<a href="#" style="float:right;margin-left:15px;margin-right:0px;" class="button small red" onclick="loadData();return false;">&uuml;bernehmen</a>
+			Zeitraum:
+			<input type="text" style="" maxlength="10" id="time_from" value="<?=date("d.m.Y",time() - 86400 * 30) ?>" /> -
+			<input type="text" style="" maxlength="10" style="" id="time_to" value="<?=date("d.m.Y",time() - 86400) ?>" />
+		</p>
+	</div>
+
+	<div class="clearfix statContainer">
+		<div id="placeholder" style="width:600px;height:310px;padding:5px;"></div>
+		<div id="overview"></div>
+		<div id="statLegend"></div>
+		<span id="x" style="display:none;">0</span><span id="y" style="display:none;">0</span>
+    </div>
+
+	<span id="showTable_on" style="font-size:11px;"><a href="#" onclick="P_Display.changeDisplay($('#dataTable_data')[0]);P_Display.changeDisplay($('#showTable_on')[0]);P_Display.changeDisplay($('#showTable_off')[0]);writeTable(aktDataSet); return false;">Statistik-Tabelle einblenden</a></span>
+		<span id="showTable_off" style="display:none;font-size:11px;"><a href="#" onclick="P_Display.changeDisplay($('#dataTable_data')[0]);P_Display.changeDisplay($('#showTable_off')[0]);P_Display.changeDisplay($('#showTable_on')[0]);writeTable(aktDataSet); return false;">Statistik-Tabelle ausblenden</a></span>
+	
+		<div class="dataTable">
+			<div style="display:none;" id="dataTable_data">
+				<table id="data_table">
+					<tr id="data_head_year"></tr>
+					<tr id="data_head_month"></tr>
+					<tr id="data_head_tr"></tr>
+				</table>
+				* = (Sucheinblendungen / Merkzetteleintr&auml;ge / Bewerbungen), ** = Noch keine Daten erfasst
+			</div>
+			
+		</div>
+		<br /><br />
+
+</div>
+<script type="text/javascript">P_Framework.write();</script>
+<? bodyoff(); ?>

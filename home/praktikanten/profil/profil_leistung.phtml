@@ -1,0 +1,318 @@
+<?
+$sprachbasisdatei = "/home/praktikanten/profil/profil_schulausbildung.phtml";
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if ($_SESSION['s_sprache'] == 'german') {
+	$text1 = 'Bewerberprofil in';
+	$text2 = 'Anzahl der Eintr&auml;ge';
+	$myaccount = 'Mein Account';
+	$lebenslaufprofil = 'zum Profil';
+	$ueberschrift = 'persönliches Leistungs- und Erfahrungsprofil';
+	$variable1 = 'F&uuml;r Unternehmen ist es von großem Interesse, detailiertere Informationen &uuml;ber Ihre Kompetenzen zu erhalten, die &uuml;ber die schulischen und beruflichen Fakten hinausgehen. In diesem Men&uuml;punkt haben Sie die M&ouml;glichkeit, genau diese F&auml;higkeiten zu beschreiben.';
+	$variable2 = 'Welche Erfahrungen haben Sie bereits erworben?';
+	$variable3 = 'Berufserfahrung:';
+	$variable4 = 'Ja';
+	$variable5 = 'Nein';
+	$variable6 = 'bitte kurz charakterisieren:';
+	$variable7 = 'Projekterfahrung:';
+	$variable8 = 'bitte kurz charakterisieren:  ';
+	$variable9 = 'Führungserfahrung:';
+	$variable10 = 'bitte kurz charakterisieren:';
+	$variable11 = 'Interkulturelle Erfahrung:';
+	$variable12 = 'bitte kurz charakterisieren:';
+	$variable13 = 'Welche Eigenschaften treffen auf Sie zu?';
+	$variable14 = '(Bitte max. 3 Nennungen pro Kategorie)';
+	$variable15 = 'Soziale Fähigkeiten';
+	$variable16 = 'Anpassungsfähigkeit';
+	$variable17 = 'Initiative';
+	$variable18 = 'Konfliktfähigkeit';
+	$variable19 = 'Kommunikationsfähigkeit';
+	$variable20 = 'Selbständigkeit';
+	$variable21 = 'Teamfähigkeit';
+	$variable22 = 'Veränderungsfähigkeit';
+	$variable23 = 'Methodische Fähigkeiten';
+	$variable24 = 'Analysefähigkeit';
+	$variable25 = 'Entscheidungsfähigkeit';
+	$variable26 = 'Gestaltungsfähigkeit';
+	$variable27 = 'Lernfähigkeit';
+	$variable28 = 'Planungs- und Organisationsgeschick';
+	$variable29 = 'vernetztes Denken';
+	$variable30 = 'Unternehmerische Fähigkeiten';
+	$variable31 = 'Coaching und Mentoring';
+	$variable32 = 'Durchsetzungsvermögen';
+	$variable33 = 'Entscheidungsfähigkeit';
+	$variable34 = 'Ergebnisorientierung';
+	$variable35 = 'Kundenorientierung';
+	$variable36 = 'Motivationsfähigkeit';
+	$variable37 = 'Strategisches Denken';
+	$variable38 = 'Verhandlungsfähigkeit';
+	$variable39 = 'Arbeitsverhalten';
+	$variable40 = 'Ausdauer';
+	$variable41 = 'Belastbarkeit';
+	$variable42 = 'Durchsetzungsfähigkeit';
+	$variable43 = 'Flexibilität';
+	$variable44 = 'Qualitätsdenken';
+	$variable45 = 'Zielorientierung';
+	$variable46 = 'Zuverlässigkeit';
+} elseif ($_SESSION['s_sprache'] == 'english') {
+	$text1 = 'Profile in';
+	$text2 = 'choose number of forms below';
+	$myaccount = 'my account';
+	$lebenslaufprofil = 'profile';
+	$ueberschrift = 'personal Listings and Experience Profile';
+	$variable1 = 'For companies it is of great interest to have information in areas of paricular competency, not just schoolastic or specialized training. Here you have the possiblity to describe any areas of talent you might posses.';
+	$variable2 = 'What expert knowledge have you already attained?';
+	$variable3 = 'Professional experience:';
+	$variable4 = 'Yes';
+	$variable5 = 'No';
+	$variable6 = 'A short description please:';
+	$variable7 = 'Project experience:';
+	$variable8 = 'A short description please:';
+	$variable9 = 'Leadership experience:';
+	$variable10 = 'A short description please:';
+	$variable11 = 'Intercultural experience:';
+	$variable12 = 'A short description please:';
+	$variable13 = 'What special qualifications do you meet?';
+	$variable14 = '(max. 3 entries per category please)';
+	$variable15 = 'Social skills';
+	$variable16 = 'Adaptability';
+	$variable17 = 'Initiative';
+	$variable18 = 'Conflict skills';
+	$variable19 = 'Communication skills';
+	$variable20 = 'Independence';
+	$variable21 = 'Teamwork';
+	$variable22 = 'Versatility';
+	$variable23 = 'Methodic ability';
+	$variable24 = 'Analitical ability';
+	$variable25 = 'Decisive ability';
+	$variable26 = 'Presentation ability';
+	$variable27 = 'Learning ability';
+	$variable28 = 'Planning and organisational ability';
+	$variable29 = 'Networking';
+	$variable30 = 'Entrepreneurial ability';
+	$variable31 = 'Coaching and mentoring';
+	$variable32 = 'Assertiveness';
+	$variable33 = 'Decision-making ability';
+	$variable34 = 'Goal orientation';
+	$variable35 = 'Customer orientation';
+	$variable36 = 'Motivational ability';
+	$variable37 = 'Strategic thinking';
+	$variable38 = 'Negotiation ability';
+	$variable39 = 'Work habbits';
+	$variable40 = 'Persistence';
+	$variable41 = 'Ability to work under pressure';
+	$variable42 = 'Authoratative ability';
+	$variable43 = 'Flexibility';
+	$variable44 = 'Quality focus';
+	$variable45 = 'Priority orientation';
+	$variable46 = 'Reliability';
+}
+
+if (isset($_POST['save']) && !isset($_POST['rueckwaerts']) && !isset($_POST['vorwaerts'])) {
+	$select = mysql_db_query($database_bprofil,'SELECT id FROM profil_leistung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'].'',$praktdbmaster);
+	$test=mysql_num_rows($select);
+
+	if ($test < 1) {
+		$insertstring = 'INSERT INTO profil_leistung (nutzerid, sprachid, datum_eintrag, modify) VALUES (\''.$_SESSION['s_loginid'].'\', \''.$_SESSION['s_sprachid'].'\', NOW(), NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+	}
+
+	$updatestring = 'UPDATE
+						profil_leistung
+					SET
+						sprachid='.$_SESSION['s_sprachid'].',
+						berufserfahrung=\''.(isset($_POST['berufserfahrung']) ? $_POST['berufserfahrung'] : '').'\',
+						berufserfahrungtext=\''.(isset($_POST['berufserfahrungtext']) ? $_POST['berufserfahrungtext'] : '').'\',
+						projekterfahrung=\''.(isset($_POST['projekterfahrung']) ? $_POST['projekterfahrung'] : '').'\',
+						projekterfahrungtext=\''.(isset($_POST['projekterfahrungtext']) ? $_POST['projekterfahrungtext'] : '').'\',
+						fuehrungserfahrung=\''.(isset($_POST['fuehrungserfahrung']) ? $_POST['fuehrungserfahrung'] : '').'\',
+						fuehrungserfahrungtext=\''.(isset($_POST['fuehrungserfahrungtext']) ? $_POST['fuehrungserfahrungtext'] : '').'\',
+						interkerfahrung=\''.(isset($_POST['interkerfahrung']) ? $_POST['interkerfahrung'] : '').'\',
+						interkerfahrungtext=\''.(isset($_POST['interkerfahrungtext']) ? $_POST['interkerfahrungtext'] : '').'\',
+						sozial1=\''.(isset($_POST['sozial1']) ? $_POST['sozial1'] : '').'\',
+						sozial2=\''.(isset($_POST['sozial2']) ? $_POST['sozial2'] : '').'\',
+						sozial3=\''.(isset($_POST['sozial3']) ? $_POST['sozial3'] : '').'\',
+						sozial4=\''.(isset($_POST['sozial4']) ? $_POST['sozial4'] : '').'\',
+						sozial5=\''.(isset($_POST['sozial5']) ? $_POST['sozial5'] : '').'\',
+						sozial6=\''.(isset($_POST['sozial6']) ? $_POST['sozial6'] : '').'\',
+						sozial7=\''.(isset($_POST['sozial7']) ? $_POST['sozial7'] : '').'\',
+						methode1=\''.(isset($_POST['methode1']) ? $_POST['methode1'] : '').'\',
+						methode2=\''.(isset($_POST['methode2']) ? $_POST['methode2'] : '').'\',
+						methode3=\''.(isset($_POST['methode3']) ? $_POST['methode3'] : '').'\',
+						methode4=\''.(isset($_POST['methode4']) ? $_POST['methode4'] : '').'\',
+						methode5=\''.(isset($_POST['methode5']) ? $_POST['methode5'] : '').'\',
+						methode6=\''.(isset($_POST['methode6']) ? $_POST['methode6'] : '').'\',
+						faehigkeit1=\''.(isset($_POST['faehigkeit1']) ? $_POST['faehigkeit1'] : '').'\',
+						faehigkeit2=\''.(isset($_POST['faehigkeit2']) ? $_POST['faehigkeit2'] : '').'\',
+						faehigkeit3=\''.(isset($_POST['faehigkeit3']) ? $_POST['faehigkeit3'] : '').'\',
+						faehigkeit4=\''.(isset($_POST['faehigkeit4']) ? $_POST['faehigkeit4'] : '').'\',
+						faehigkeit5=\''.(isset($_POST['faehigkeit5']) ? $_POST['faehigkeit5'] : '').'\',
+						faehigkeit6=\''.(isset($_POST['faehigkeit6']) ? $_POST['faehigkeit6'] : '').'\',
+						faehigkeit7=\''.(isset($_POST['faehigkeit7']) ? $_POST['faehigkeit7'] : '').'\',
+						faehigkeit8=\''.(isset($_POST['faehigkeit8']) ? $_POST['faehigkeit8'] : '').'\',
+						arbeitsverhalten1=\''.(isset($_POST['arbeitsverhalten1']) ? $_POST['arbeitsverhalten1'] : '').'\',
+						arbeitsverhalten2=\''.(isset($_POST['arbeitsverhalten2']) ? $_POST['arbeitsverhalten2'] : '').'\',
+						arbeitsverhalten3=\''.(isset($_POST['arbeitsverhalten3']) ? $_POST['arbeitsverhalten3'] : '').'\',
+						arbeitsverhalten4=\''.(isset($_POST['arbeitsverhalten4']) ? $_POST['arbeitsverhalten4'] : '').'\',
+						arbeitsverhalten5=\''.(isset($_POST['arbeitsverhalten5']) ? $_POST['arbeitsverhalten5'] : '').'\',
+						arbeitsverhalten6=\''.(isset($_POST['arbeitsverhalten6']) ? $_POST['arbeitsverhalten6'] : '').'\',
+						arbeitsverhalten7=\''.(isset($_POST['arbeitsverhalten7']) ? $_POST['arbeitsverhalten7'] : '').'\',
+						modify=NOW()
+					WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+	Praktika_Lebenslauf::deleteCache();
+	recalc_profilquali();
+
+	if($_POST["backToStart"] == "1") {
+		header("Location: /lebenslauf/ok/");
+	}
+}
+
+$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_leistung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'].'',$praktdbmaster);
+$profil = mysql_fetch_array ( $select );
+
+pageheader(array('page_title' => $ueberschrift, 'externScripts' => array("/scripts/ajax/lebenslauf.js")));
+?>
+<script type="text/javascript" src="/scripts/ajax/lebenslauf.js"></script>
+<script type="text/javascript" src="/scripts/microajax.js"></script>
+<?
+if (isset($_POST['save'])) {
+
+	if (isset($_POST['vorschau'])) {
+		echo '<script type="text/javascript">'."\n";
+		echo '	vorschau=window.open(\'/home/praktikanten/profilausgabe/einzelansicht.phtml\',\'BewerbungsWindow\',\'scrollbars=yes,status=no,toolbar=no,width=720,height=580\');'."\n";
+		echo '</script>'."\n";
+	}
+	echo '<p class="hint success">'.$language['strGespeichert'].'</p>'."\n";
+}
+
+echo '<div id="recruitingCenter">';
+
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+# language_select($text1);
+echo '		<br /><p>'.$variable1.'</p>'."\n";
+echo '		<form action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post">'."\n";
+echo '			<br /><h4>'.$variable2.'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="berufserfahrung">'.$variable3.'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="berufserfahrung"><input class="html_controlled" type="radio" id="berufserfahrung" name="berufserfahrung" value="1" '.($profil['berufserfahrung'] == '1' ? ' checked="checked"' : '').' />'.$variable4.'</label>'."\n";
+echo '						<label for="berufserfahrung2"><input class="html_controlled" type="radio" id="berufserfahrung2" name="berufserfahrung" value="0" '.($profil['berufserfahrung'] == '0' || !isset($profil['berufserfahrung']) ? ' checked="checked"' : '').' />'.$variable5.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="berufserfahrungtext">'.$variable6.'</label>'."\n";
+echo '					<textarea class="stdStyle" id="berufserfahrungtext" name="berufserfahrungtext" rows="5" cols="5">'.stripslashes(($profil['berufserfahrungtext'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="projekterfahrung">'.$variable7.'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="projekterfahrung"><input type="radio" id="projekterfahrung" name="projekterfahrung" value="1" '.($profil['projekterfahrung'] == '1' ? ' checked="checked"' : '').' />'.$variable4.'</label>'."\n";
+echo '						<label for="projekterfahrung2"><input type="radio" id="projekterfahrung2" name="projekterfahrung" value="0" '.($profil['projekterfahrung'] == '0' || !isset($profil['projekterfahrung']) ? ' checked="checked"' : '').' />'.$variable5.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="projekterfahrungtext">'.$variable8.'</label>'."\n";
+echo '					<textarea class="stdStyle"  id="projekterfahrungtext" name="projekterfahrungtext" rows="5" cols="5">'.stripslashes(($profil['projekterfahrungtext'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="fuehrungserfahrung">'.$variable9.'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="fuehrungserfahrung"><input type="radio" id="fuehrungserfahrung" name="fuehrungserfahrung" value="1" '.($profil['fuehrungserfahrung'] == '1' ? ' checked="checked"' : '').' />'.$variable4.'</label>'."\n";
+echo '						<label for="fuehrungserfahrung2"><input type="radio" id="fuehrungserfahrung2" name="fuehrungserfahrung" value="0" '.($profil['fuehrungserfahrung'] == '0' || !isset($profil['fuehrungserfahrung']) ? ' checked="checked"' : '').' />'.$variable5.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="fuehrungserfahrungtext">'.$variable10.'</label>'."\n";
+echo '					<textarea  class="stdStyle" id="fuehrungserfahrungtext" name="fuehrungserfahrungtext" rows="5" cols="5">'.stripslashes(($profil['fuehrungserfahrungtext'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="interkerfahrung">'.$variable11.'</label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="interkerfahrung"><input type="radio" id="interkerfahrung" name="interkerfahrung" value="1" '.($profil['interkerfahrung'] == '1' ? ' checked="checked"' : '').' />Ja</label>'."\n";
+echo '						<label for="interkerfahrung2"><input type="radio" id="interkerfahrung2" name="interkerfahrung" value="0" '.($profil['interkerfahrung'] == '0' || !isset($profil['interkerfahrung']) ? ' checked="checked"' : '').' />Nein</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<p class="clear_left">'."\n";
+echo '					<label for="interkerfahrungtext">'.$variable12.'</label>'."\n";
+echo '					<textarea class="stdStyle"  id="interkerfahrungtext" name="interkerfahrungtext" rows="5" cols="5">'.stripslashes(($profil['interkerfahrungtext'])).'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>';
+echo '			<h4>'.$variable13.'</h4>'."\n";
+echo '			<fieldset>';
+echo '				<p>'.$variable14.'</p>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="sozial1"><strong>'.$variable15.'</strong></label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="sozial1" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial1" name="sozial1"'.($profil['sozial1'] == "true" ? ' checked="checked"' : '').' /> '.$variable16.'</label>'."\n";
+echo '						<label for="sozial2" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial2" name="sozial2"'.($profil['sozial2'] == "true" ? ' checked="checked"' : '').' /> '.$variable17.'</label>'."\n";
+echo '						<label for="sozial3" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial3" name="sozial3"'.($profil['sozial3'] == "true" ? ' checked="checked"' : '').' /> '.$variable18.'</label>'."\n";
+echo '						<label for="sozial4" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial4" name="sozial4"'.($profil['sozial4'] == "true" ? ' checked="checked"' : '').' /> '.$variable19.'</label>'."\n";
+echo '						<label for="sozial5" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial5" name="sozial5"'.($profil['sozial5'] == "true" ? ' checked="checked"' : '').' /> '.$variable20.'</label>'."\n";
+echo '						<label for="sozial6" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial6" name="sozial6"'.($profil['sozial6'] == "true" ? ' checked="checked"' : '').' /> '.$variable21.'</label>'."\n";
+echo '						<label for="sozial7" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(1, this)" value="true" id="sozial7" name="sozial7"'.($profil['sozial7'] == "true" ? ' checked="checked"' : '').' /> '.$variable22.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<script type="text/javascript">lebenslauf.initKategorie("sozial", 1,7);</script>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="methode1"><strong>'.$variable23.'</strong></label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="methode1" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode1" name="methode1"'.($profil['methode1'] == "true" ? ' checked="checked"' : '').' /> '.$variable24.'</label>'."\n";
+echo '						<label for="methode2" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode2" name="methode2"'.($profil['methode2'] == "true" ? ' checked="checked"' : '').' /> '.$variable25.'</label>'."\n";
+echo '						<label for="methode3" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode3" name="methode3"'.($profil['methode3'] == "true" ? ' checked="checked"' : '').' /> '.$variable26.'</label>'."\n";
+echo '						<label for="methode4" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode4" name="methode4"'.($profil['methode4'] == "true" ? ' checked="checked"' : '').' /> '.$variable27.'</label>'."\n";
+echo '						<label for="methode5" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode5" name="methode5"'.($profil['methode5'] == "true" ? ' checked="checked"' : '').' /> '.$variable28.'</label>'."\n";
+echo '						<label for="methode6" class="komplette_breite"><input type="checkbox" onclick="lebenslauf.checkKategorie(2, this)" value="true" id="methode6" name="methode6"'.($profil['methode6'] == "true" ? ' checked="checked"' : '').' /> '.$variable29.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<script type="text/javascript">lebenslauf.initKategorie("methode", 2,6);</script>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="methode1"><strong>'.$variable30.'</strong></label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="faehigkeit1" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit1" name="faehigkeit1"'.($profil['faehigkeit1'] == "true" ? ' checked="checked"' : '').' /> '.$variable31.'</label>'."\n";
+echo '						<label for="faehigkeit2" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit2" name="faehigkeit2"'.($profil['faehigkeit2'] == "true" ? ' checked="checked"' : '').' /> '.$variable32.'</label>'."\n";
+echo '						<label for="faehigkeit3" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit3" name="faehigkeit3"'.($profil['faehigkeit3'] == "true" ? ' checked="checked"' : '').' /> '.$variable33.'</label>'."\n";
+echo '						<label for="faehigkeit4" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit4" name="faehigkeit4"'.($profil['faehigkeit4'] == "true" ? ' checked="checked"' : '').' /> '.$variable34.'</label>'."\n";
+echo '						<label for="faehigkeit5" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit5" name="faehigkeit5"'.($profil['faehigkeit5'] == "true" ? ' checked="checked"' : '').' /> '.$variable35.'</label>'."\n";
+echo '						<label for="faehigkeit6" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit6" name="faehigkeit6"'.($profil['faehigkeit6'] == "true" ? ' checked="checked"' : '').' /> '.$variable36.'</label>'."\n";
+echo '						<label for="faehigkeit7" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit7" name="faehigkeit7"'.($profil['faehigkeit7'] == "true" ? ' checked="checked"' : '').' /> '.$variable37.'</label>'."\n";
+echo '						<label for="faehigkeit8" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(3, this)" id="faehigkeit8" name="faehigkeit8"'.($profil['faehigkeit8'] == "true" ? ' checked="checked"' : '').' /> '.$variable38.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<script type="text/javascript">lebenslauf.initKategorie("faehigkeit", 3,8);</script>'."\n";
+echo '				<p class="checkboxes">'."\n";
+echo '					<label for="methode1"><strong>'.$variable39.'</strong></label>'."\n";
+echo '					<span class="checklist">'."\n";
+echo '						<label for="arbeitsverhalten1" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten1" name="arbeitsverhalten1"'.($profil['arbeitsverhalten1'] == "true" ? ' checked="checked"' : '').' /> '.$variable40.'</label>'."\n";
+echo '						<label for="arbeitsverhalten2" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten2" name="arbeitsverhalten2"'.($profil['arbeitsverhalten2'] == "true" ? ' checked="checked"' : '').' /> '.$variable41.'</label>'."\n";
+echo '						<label for="arbeitsverhalten3" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten3" name="arbeitsverhalten3"'.($profil['arbeitsverhalten3'] == "true" ? ' checked="checked"' : '').' /> '.$variable42.'</label>'."\n";
+echo '						<label for="arbeitsverhalten4" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten4" name="arbeitsverhalten4"'.($profil['arbeitsverhalten4'] == "true" ? ' checked="checked"' : '').' /> '.$variable43.'</label>'."\n";
+echo '						<label for="arbeitsverhalten5" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten5" name="arbeitsverhalten5"'.($profil['arbeitsverhalten5'] == "true" ? ' checked="checked"' : '').' /> '.$variable44.'</label>'."\n";
+echo '						<label for="arbeitsverhalten6" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten6" name="arbeitsverhalten6"'.($profil['arbeitsverhalten6'] == "true" ? ' checked="checked"' : '').' /> '.$variable45.'</label>'."\n";
+echo '						<label for="arbeitsverhalten7" class="komplette_breite"><input type="checkbox" value="true" onclick="lebenslauf.checkKategorie(4, this)" id="arbeitsverhalten7" name="arbeitsverhalten7"'.($profil['arbeitsverhalten7'] == "true" ? ' checked="checked"' : '').' /> '.$variable46.'</label>'."\n";
+echo '					</span>'."\n";
+echo '				</p>'."\n";
+echo '				<script type="text/javascript">lebenslauf.initKategorie("arbeitsverhalten", 4, 7);</script>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p class="center"><input class="button small" type="submit" value="Speichern" name="save" /></p>'."\n";
+echo '				<p><label for="backToStart" class="komplette_breite"><input type="checkbox" class="html_controlled" name="backToStart" id="backToStart" value="1" '.(!isset($_SESSION["backToStart"]) || (isset($_SESSION["backToStart"]) && $_SESSION["backToStart"] != "1")?'':'checked="checked"').' /> Nach dem Speichern zur&uuml;ck zur Lebenslauf&uuml;bersicht</label></p>';
+echo '			</fieldset>'."\n";
+echo '		</form>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

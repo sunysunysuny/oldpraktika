@@ -1,0 +1,330 @@
+<?
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_MY_PRAKTIKA;
+
+Praktika_Static::__("gesuche");
+if (isset($_POST['gesucheid'])) {
+	$uebergabeteil = explode("-",$_POST['gesucheid']);
+	
+	if ($uebergabeteil[1] == 1) {
+		$mystatsseite = '/Karriere_Center/gesuche/praktikum_detail/1/';
+	} elseif ($uebergabeteil[1] == 2) {
+		$mystatsseite = '/Karriere_Center/gesuche/diplom_detail/2/';
+	} elseif ($uebergabeteil[1] == 3) {
+		$mystatsseite = '/Karriere_Center/gesuche/berufseinstieg_detail/3/';
+	} elseif ($uebergabeteil[1] == 4) {
+		$mystatsseite = '/Karriere_Center/gesuche/nebenjob_detail/4/';
+	} elseif ($uebergabeteil[1] == 5) {
+		$mystatsseite = '/Karriere_Center/gesuche/ausbildung_detail/5/';
+	}
+}  else {
+	$mystatsseite = '/Karriere_Center/gesuche';
+}
+
+if (isset($_GET['B1'])) {
+	header('Location: /Karriere_Center/gesuche/praktikum');
+}
+
+if (isset($_GET['B2']) && isset($_POST['gesucheid'])) {
+	switch ($uebergabeteil[1]) {
+		case 2:
+			header('Location: /Karriere_Center/gesuche/diplom/'.$uebergabeteil[0].'/');
+			break;
+
+		case 3:
+			header('Location: /Karriere_Center/gesuche/nebenjob/'.$uebergabeteil[0].'/');
+			break;
+
+		case 4:
+			header('Location: /Karriere_Center/gesuche/ausbildung/'.$uebergabeteil[0].'/');
+ 			break;
+
+		case 5:
+			header('Location: /Karriere_Center/gesuche/berufseinstieg/'.$uebergabeteil[0].'/');
+			break;
+
+		default:
+			header('Location: /Karriere_Center/gesuche/praktikum/'.$uebergabeteil[0].'/');
+			break;
+	}
+} elseif (isset($_GET['B2'])) {
+	header('Location: '.$mystatsseite);
+}
+
+if (isset($_GET['B3']) && isset($_GET['gesucheid'])) {
+	header('Location: '.$mystatsseite.$uebergabeteil[0].'/');
+} elseif (isset($_GET['B3'])) {
+	header('Location: '.$mystatsseite);
+}
+
+if (isset($_POST['delete_send']) && !empty($_POST['delete_send'])) {
+	$value = explode('-', $_POST['delete_send']);
+	
+	switch (intval($value[0])) {
+		case 2:
+			$results = mysql_db_query($database_db,'DELETE FROM diplomgesuch WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			 break;
+
+		case 3:
+			$results = mysql_db_query($database_db,'DELETE FROM nebenjobgesuch WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			break;
+
+		case 4:
+			$results = mysql_db_query($database_db,'DELETE FROM ausbildungsgesuch WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			break;
+ 		
+		case 5:
+			$results = mysql_db_query($database_db,'DELETE FROM berufseinstieggesuch WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			break;
+
+		case 6:
+			$results = mysql_db_query($database_db,'DELETE FROM projektgesuch WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			break;
+			 		
+		default:
+			$results = mysql_db_query($database_db,'DELETE FROM praktikanten WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.intval($value[1]),$praktdbmaster);
+			break;
+	}
+} elseif (isset($_GET['B4'])) {
+	header('Location: '.$mystatsseite);
+}
+
+if (isset($_POST['B5']) && isset($_POST['gesucheid'])) {
+	$idgesuch = $uebergabeteil[0];
+	switch ($uebergabeteil[1]) {
+		case 2:
+		 	$results = mysql_db_query($database_db,'UPDATE diplomgesuch set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 3:
+ 			$results = mysql_db_query($database_db,'UPDATE nebenjobgesuch set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 4:
+		 	$results = mysql_db_query($database_db,'UPDATE ausbildungsgesuch set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 5:
+		 	$results = mysql_db_query($database_db,'UPDATE berufseinstieggesuch set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 6:
+		 	$results = mysql_db_query($database_db,'UPDATE projektgesuch set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;			
+ 		default:
+		 	$results = mysql_db_query($database_db,'UPDATE praktikanten set inactive=\'false\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+	}
+} elseif (isset($_POST['B5'])) {
+	header('Location: '.$mystatsseite);
+}
+
+if (isset($_POST['B6']) && isset($_POST['gesucheid'])) {
+	$idgesuch = $uebergabeteil[0];
+	switch ($uebergabeteil[1]) {
+		case 2:
+	 		$results = mysql_db_query($database_db,'UPDATE diplomgesuch set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 3:
+ 			$results = mysql_db_query($database_db,'UPDATE nebenjobgesuch set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 4:
+ 			$results = mysql_db_query($database_db,'UPDATE ausbildungsgesuch set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 5:
+ 			$results = mysql_db_query($database_db,'UPDATE berufseinstieggesuch set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+ 		case 5:
+ 			$results = mysql_db_query($database_db,'UPDATE projektgesuch set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;			
+ 		default:
+ 			$results = mysql_db_query($database_db,'UPDATE praktikanten set inactive=\'true\' WHERE nutzerid='.$_SESSION['s_loginid'].' AND id='.$idgesuch,$praktdbmaster);
+			break;
+	}
+} elseif (isset($_GET['B6'])) {
+	header('Location: '.$mystatsseite);
+}
+
+if (isset($_GET['B7']) && isset($_GET['gesucheid'])) {
+	header('Location: /Karriere_Center/gesuche/vorschau/'.$uebergabeteil[0].'/'.$uebergabeteil[1].'/');
+}
+
+
+
+//echo helpsystem(543242,41,'Gesuche Tipps &amp; Hilfe');
+
+$results1 = mysql_db_query($database_db,'SELECT id,inactive,taetigkeit,datum_eintrag FROM praktikanten WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+$results2 = mysql_db_query($database_db,'SELECT id,inactive,titel as taetigkeit FROM diplomgesuch WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+$results3 = mysql_db_query($database_db,'SELECT id,inactive,taetigkeit,datum_eintrag FROM nebenjobgesuch WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+$results4 = mysql_db_query($database_db,'SELECT id,inactive,taetigkeit,datum_eintrag FROM ausbildungsgesuch WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+$results5 = mysql_db_query($database_db,'SELECT id,inactive,bezeichnung as taetigkeit,datum_eintrag FROM berufseinstieggesuch WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+$results6 = mysql_db_query($database_db,'SELECT id,inactive,bezeichnung as taetigkeit,datum_eintrag FROM projektgesuch WHERE nutzerid='.$_SESSION['s_loginid'].'',$praktdbmaster);
+
+$gesuchearray = array();
+$i = 0;
+while ($result_row = mysql_fetch_array($results1)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 1;
+	$gesuchearray[$i]['spalte'] = SECTION_PRAKTIKUM;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_PRAKTIKUM_ALPHA;
+	$i++;
+}
+while ($result_row = mysql_fetch_array($results2)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 2;
+	$gesuchearray[$i]['spalte'] = SECTION_DIPLOM;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_DIPLOM_ALPHA;
+	$i++;
+}
+while ($result_row = mysql_fetch_array($results3)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 3;
+	$gesuchearray[$i]['spalte'] = SECTION_NEBENJOB;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_NEBENJOB_ALPHA;
+	$i++;
+}
+while ($result_row = mysql_fetch_array($results4)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 4;
+	$gesuchearray[$i]['spalte'] = SECTION_AUSBILDUNG;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_AUSBILDUNG_ALPHA;
+	$i++;
+}
+while ($result_row = mysql_fetch_array($results5)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 5;
+	$gesuchearray[$i]['spalte'] = SECTION_BERUFSEINSTIEG;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_BERUFSEINSTIEG_ALPHA;
+	$i++;
+}
+while ($result_row = mysql_fetch_array($results6)) {
+	$gesuchearray[$i] = $result_row;
+	$gesuchearray[$i][] = 6;
+	$gesuchearray[$i]['spalte'] = SECTION_PROJEKT;
+	$gesuchearray[$i]['spalte_alpha'] = SECTION_PROJEKT_ALPHA;
+	$i++;
+}
+if (count($gesuchearray)>0) {
+	$bereichsortierung = 'spalte';
+	$gesuchearray = array_csort($gesuchearray,$bereichsortierung,SORT_ASC);
+}
+reset($gesuchearray);
+?>
+<script type="text/javascript">
+	$('kCenterTitle').innerHTML = " - Gesuche";	
+</script>
+<?
+if (isset($gesuchearray) && !empty($gesuchearray)) {
+	echo '	<h4>Liste Meiner Gesuche</h4>'."\n";
+	echo '		<div style="margin:0px;">'."\n";
+#	echo '			<select name="gesucheid" size="8" style="width:470px;" onclick="loadInfo(this.value,true)">'."\n";
+?>
+<table id="jobAdList" cellpadding="0" cellspacing="0">
+	<colgroup>
+		<col width="100" />
+		<col width="*" />
+		<col width="85" />
+		<col width="95" />
+		<col width="134" />
+	</colgroup>
+	<thead>
+		<tr>
+			<th><span class="left_corner">&nbsp;</span><span class="middle_text">Status</span><span class="right_corner">&nbsp;</span></th>
+			<th><span class="left_corner">&nbsp;</span><span class="middle_text">Gesuch bearbeiten</span><span class="right_corner">&nbsp;</span></th>
+			<th><span class="left_corner">&nbsp;</span><span class="middle_text">Views</span><span class="right_corner">&nbsp;</span></th>
+			<th><span class="left_corner">&nbsp;</span><span class="middle_text">Datum</span><span class="right_corner">&nbsp;</span></th>
+			<th><span class="left_corner">&nbsp;</span><span class="middle_text">Optionen</span><span class="right_corner">&nbsp;</span></th>
+		</tr>
+	</thead>
+	<tbody>
+<?
+	$i=0;
+	while (current($gesuchearray)) {echo '<pre>';# var_dump($gesuchearray);echo '</pre>';
+
+		$result_row = $gesuchearray[$i];
+		$suchres = $hDB->query('SELECT count(id) AS anzahl FROM viewstatspraktikanten WHERE nutzerid = '.$_SESSION['s_nutzerid'].' AND stellenid = '.$result_row['id'] .' AND spalte = '.$result_row['spalte'], $praktdbslave);
+		$views = mysql_result($suchres, 0, "anzahl");
+		
+		if ($result_row['spalte'] == 1) {
+			$type = 'praktikum';
+		} elseif ($result_row['spalte'] == 2) {
+			$type = 'diplom';
+		} elseif ($result_row['spalte'] == 3) {
+			$type = 'nebenjob';
+		} elseif ($result_row['spalte'] == 4) {
+			$type = 'ausbildung';
+		} elseif ($result_row['spalte'] == 5) {
+			$type = 'berufseinstieg';
+		}
+		?>
+<tr class="<?=$result_row['inactive'] == "false"?"active":"inactive" ?>">
+	<td>
+		<form method="post" action="/Karriere_Center/gesuche">
+			<input type='hidden' name='gesucheid' value='<?= $result_row['id']; ?>-<?= $result_row['spalte']; ?>' />
+			<fieldset>
+				<? if ($result_row['inactive'] == 'true') { ?>
+					<input type="image" name="B5" value="Aktivieren" class="offline" src="/gifs/alpha.gif" title="Gesuch aktivieren" />
+				<? } else { ?>
+					<input type="image" name="B6" value="Deaktivieren" class="online" src="/gifs/alpha.gif" title="Gesuch deaktivieren" />
+				<? } ?>
+			</fieldset>
+		</form>
+	</td>
+	<td><?= stripslashes($result_row['taetigkeit']) ?></td>
+	<td><?= $views ?></td>
+	<td><?= date('d.m.Y', strtotime($result_row['datum_eintrag'])); ?></td>
+	<td>
+		<a class="floatleft previewButton" href="/Karriere_Center/gesuche/vorschau/<?= $result_row['id']; ?>/<?= $result_row['spalte']; ?>"><img src="/gifs/alpha.gif" alt="Stelle ansehen" class="view" /></a>
+		
+		<form method="post" action="/Karriere_Center/gesuche/bearbeiten">
+			<fieldset>
+				<input type='hidden' name='gesucheid' value='<?= $result_row['id']; ?>-<?= $result_row['spalte']; ?>' />
+				<input type="image" name="B2" value="Bearbeiten" src="/gifs/alpha.gif" class="edit" />
+			</fieldset>
+		</form>
+		<!--<a href="/Karriere_Center/gesuche/<?= $type; ?>/<?= $result_row['id']; ?>/" class="edit" title="Stelle bearbeiten"><img src="/gifs/alpha.gif" alt="Stelle ansehen" class="edit" /></a>-->
+		<form method="post" action="/Karriere_Center/gesuche">
+			<fieldset>
+				<input type="image" src="/gifs/alpha.gif" name="delete_send" value="<?= $result_row['spalte'].'-'.$result_row['id']; ?>" class="delete" title="Stelle l&ouml;schen" />
+			</fieldset>
+		</form>
+	</td>
+</tr>
+<?php
+		next($gesuchearray);
+		$i++;
+	}
+	echo "</tbody></table>";
+	
+#	echo '			</select><br /><br />'."\n";
+	echo '		<p class="gesuche_inputs control">'."\n";
+	echo '			<a class="button" href="/Karriere_Center/gesuche/anlegen">Neues Gesuch erstellen</a>'."\n";
+	echo '			<a class="button small" name="B5" style="display:none; padding-top:15px;"  id="activateButton_1" value="Aktivieren" onclick="changeStatus(true);" class="green">Aktivieren</a>';
+	echo '			<a class="button small" name="B6" style="display:none; padding-top:15px;" id="activateButton_0" onclick="changeStatus(true);" value="Deaktivieren" class="lightred">Deaktivieren</a>'."\n";
+	echo '		</p>'."\n";
+	echo '		</div>'."\n";
+	echo '</form>'."\n";
+	?>
+	<script type="text/javascript">
+	/* <![CDATA[ */
+	function CheckInput(knopf) {
+		if (document.agentform.gesucheid.selectedIndex == -1) {
+			alert(unescape("Bitte w%E4hlen Sie zuerst eine Gesuch aus%21"));
+			return false;
+		} else {
+			if (knopf == 'B4') {
+				return confirm(unescape("Wollen Sie dieses Gesuch wirklich l%uFFFDschen%3F"));
+			} else {
+				return true;
+			}
+		}
+	}
+	/* ]]> */
+	</script>
+	<?php
+} else {
+	echo '<script type="text/javascript">window.location.href="/Karriere_Center/gesuche/bearbeiten";</script>';
+}
+?>

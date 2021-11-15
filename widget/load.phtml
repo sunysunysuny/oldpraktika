@@ -1,0 +1,25 @@
+<?
+require_once("/home/praktika/etc/gb_config.inc.php");
+
+
+$sql = "SELECT stellen.taetigkeit, firmen.firma,UNIX_TIMESTAMP(stellen.modify) `modify`
+FROM 
+		prakt2_temp.tmp_stellensuche AS stellen
+	LEFT JOIN prakt2.firmen ON(firmen.id = stellen.firmenid)
+WHERE MATCH 
+(stellen.volltext,stellen.beschreibung,stellen.taetigkeit,stellen.firma,stellen.einsatzort,stellen.zeitraum) AGAINST ('+".$_GET["value"]."' IN BOOLEAN MODE) 
+ORDER BY stellen.modify DESC 
+LIMIT 0,30";
+#echo $sql;
+$result = mysql_query($sql, $praktdbslave);
+
+$array = array();
+while($row = mysql_fetch_assoc($result)) {
+	$data["taetigkeit"] = $row["taetigkeit"];
+	$data["firma"] = $row["firma"];
+	$data["modify"] = date("d.m.Y", $row["modify"]);
+	
+	$array[] = $data;
+}
+
+echo json_encode($array);

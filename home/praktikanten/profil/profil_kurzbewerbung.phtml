@@ -1,0 +1,136 @@
+<?
+$sprachbasisdatei = "/home/praktikanten/profil/profil_schulausbildung.phtml";
+
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+function convert($value) {
+	return stripslashes(str_replace('"',"'",$value));
+}
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if ($_SESSION['s_sprachid'] == 2) {
+	$text1 = 'Bewerberprofil in';
+	$myaccount = 'Mein Account';
+	$lebenslaufprofil = 'zum Profil';
+} elseif ($_SESSION['s_sprachid'] == 1) {
+	$text1 = 'Profile in';
+	$myaccount = 'my account';
+	$lebenslaufprofil = 'profile';
+}
+
+if (isset($_POST['save'])) {
+	$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_kurzbewerbung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+	$test = mysql_num_rows($select);
+
+	if ($test < 1) {
+		$insertstring = 'INSERT INTO profil_kurzbewerbung (nutzerid, sprachid, datum_eintrag, modify) VALUES (\''.$_SESSION['s_loginid'].'\', \''.$_SESSION['s_sprachid'].'\', NOW(), NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+	}
+
+	$updatestring = 'UPDATE profil_kurzbewerbung SET sprachid='.$_SESSION['s_sprachid'].',betreffzeile=\''.mysql_real_escape_string($_POST['betreffzeile']).'\',anreden=\''.mysql_real_escape_string($_POST['anreden']).'\',einleitungen=\''.mysql_real_escape_string($_POST['einleitungen']).'\',bewerbungen=\''.mysql_real_escape_string($_POST['bewerbungen']).'\',schlussalle=\''.mysql_real_escape_string($_POST['schlussalle']).'\', zeitraumalle=\''.mysql_real_escape_string($_POST['zeitraumalle']).'\', modify=NOW() WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+}
+
+$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_kurzbewerbung WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+$profil = mysql_fetch_array($select);
+
+pageheader(array('page_title' => $language['strProfil']));
+
+language_select($text1);
+echo '		<p>'.$language['strInfotext'].'</p>'."\n";
+echo '		<form action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post" name="kurzbewerbung">'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+1. Kurzbewerbung Betreff
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein1'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" id="betreff1" name="betreff" onclick="getElementById(\'betreffzeile\').value = getElementById(\'betreff1\').value" value="'.$language['strBetreff1'].'" style="border: 0;" /><label for="betreff1">'.$language['strBetreff1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="betreff2" name="betreff" onclick="getElementById(\'betreffzeile\').value = getElementById(\'betreff2\').value" value="'.$language['strBetreff2'].'" style="border: 0;" /><label for="betreff2">'.$language['strBetreff2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="betreff3" name="betreff" onclick="getElementById(\'betreffzeile\').value = getElementById(\'betreff3\').value" value="'.$language['strBetreff3'].'" style="border: 0;" /><label for="betreff3">'.$language['strBetreff3'].'</label></p>'."\n";
+echo '				<p><input type="text" id="betreffzeile" name="betreffzeile" value="'.convert($profil['betreffzeile']).'" maxlength="100" style="width: 98%; border: 1px solid #c6d7ef;" /></p>'."\n";
+echo '			</fieldset>'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+2. Kurzbewerbung Anrede
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein2'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" id="anrede1" name="anrede" onclick="getElementById(\'anreden\').value = getElementById(\'anrede1\').value" value="'.$language['strAnrede1'].'" style="border: 0;" /><label for="anrede1">'.$language['strAnrede1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="anrede2" name="anrede" onclick="getElementById(\'anreden\').value = getElementById(\'anrede2\').value" value="'.$language['strAnrede2'].'" style="border: 0;" /><label for="anrede2">'.$language['strAnrede2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="anrede3" name="anrede" onclick="getElementById(\'anreden\').value = getElementById(\'anrede3\').value" value="'.$language['strAnrede3'].'" style="border: 0;" /><label for="anrede3">'.$language['strAnrede3'].'</label></p>'."\n";
+echo '				<p><input type="text" id="anreden" name="anreden" value="'.convert($profil['anreden']).'" maxlength="100" style="width: 98%; border: 1px solid #c6d7ef;" /></p>'."\n";
+echo '			</fieldset>'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+3. Kurzbewerbung Einleitung
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein3'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" id="einleitung1" name="einleitung" onclick="getElementById(\'einleitungen\').value = getElementById(\'einleitung1\').value" value="'.$language['strEinleitung1'].'" style="border: 0;" /><label for="einleitung1">'.$language['strEinleitung1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="einleitung2" name="einleitung" onclick="getElementById(\'einleitungen\').value = getElementById(\'einleitung2\').value" value="'.$language['strEinleitung2'].'" style="border: 0;" /><label for="einleitung2">'.$language['strEinleitung2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="einleitung3" name="einleitung" onclick="getElementById(\'einleitungen\').value = getElementById(\'einleitung3\').value" value="'.$language['strEinleitung3'].'" style="border: 0;" /><label for="einleitung3">'.$language['strEinleitung3'].'</label></p>'."\n";
+echo '				<p><textarea id="einleitungen" name="einleitungen" rows="10" cols="26" style="width: 98%; border: 1px solid #c6d7ef;">'.convert($profil['einleitungen']).'</textarea></p>'."\n";
+echo '			</fieldset>'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+4. Bewerbung schreiben
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein4'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" id="bewerbung1" name="bewerbung" onclick="getElementById(\'bewerbungen\').value = getElementById(\'bewerbung1\').value" value="'.$language['strBewerbung1'].'" style="border: 0;" /><label for="bewerbung1">'.$language['strBewerbung1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="bewerbung2" name="bewerbung" onclick="getElementById(\'bewerbungen\').value = getElementById(\'bewerbung2\').value" value="'.$language['strBewerbung2'].'" style="border: 0;" /><label for="bewerbung2">'.$language['strBewerbung2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="bewerbung3" name="bewerbung" onclick="getElementById(\'bewerbungen\').value = getElementById(\'bewerbung3\').value" value="'.$language['strBewerbung3'].'" style="border: 0;" /><label for="bewerbung3">'.$language['strBewerbung3'].'</label></p>'."\n";
+echo '				<p><textarea id="bewerbungen" name="bewerbungen" rows="10" cols="26" style="width: 98%; border: 1px solid #c6d7ef;">'.convert($profil['bewerbungen']).'</textarea></p>'."\n";
+echo '			</fieldset>'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+5. Abspann
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein5'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" id="zeitraum1" name="zeitraum" onclick="getElementById(\'zeitraumalle\').value = getElementById(\'zeitraum1\').value" value="'.$language['strZeitraum1'].'" style="border: 0;" /><label for="zeitraum1">'.$language['strZeitraum1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="zeitraum2" name="zeitraum" onclick="getElementById(\'zeitraumalle\').value = getElementById(\'zeitraum2\').value" value="'.$language['strZeitraum2'].'" style="border: 0;" /><label for="zeitraum2">'.$language['strZeitraum2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="zeitraum3" name="zeitraum" onclick="getElementById(\'zeitraumalle\').value = getElementById(\'zeitraum3\').value" value="'.$language['strZeitraum3'].'" style="border: 0;" /><label for="zeitraum3">'.$language['strZeitraum3'].'</label></p>'."\n";
+echo '				<p><textarea id="zeitraumalle" name="zeitraumalle" rows="10" cols="26" style="width: 98%; border: 1px solid #c6d7ef;">'.convert($profil['zeitraumalle']).'</textarea></p>'."\n";
+echo '			</fieldset>'."\n";
+
+/*
+-------------------------------------------------------------------------------------------
+6. Abspann
+-------------------------------------------------------------------------------------------
+*/
+echo '			<h4>'.$language['strBaustein6'].'</h4>'."\n";
+echo '			<fieldset class="kurzbewerbung">'."\n";
+echo '				<p><input type="radio" class="radios" class="radios" id="schluss1" name="schluss" onclick="getElementById(\'schlussalle\').value = getElementById(\'schluss1\').value" value="'.$language['strSchluss1'].'" style="border: 0;" /><label for="schluss1">'.$language['strSchluss1'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="schluss2" name="schluss" onclick="getElementById(\'schlussalle\').value = getElementById(\'schluss2\').value" value="'.$language['strSchluss2'].'" style="border: 0;" /><label for="schluss2">'.$language['strSchluss2'].'</label></p>'."\n";
+echo '				<p><input type="radio" class="radios" id="schluss3" name="schluss" onclick="getElementById(\'schlussalle\').value = getElementById(\'schluss3\').value" value="'.$language['strSchluss3'].'" style="border: 0;" /><label for="schluss3">'.$language['strSchluss3'].'</label></p>'."\n";
+echo '				<p><textarea id="schlussalle" name="schlussalle" rows="10" cols="26" style="width: 98%; border: 1px solid #c6d7ef;">'.convert($profil['schlussalle']).'</textarea></p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p><button type="submit" value="'.$language['strSenden'].'" name="save"><span><span><span>'.$language['strSenden'].'</span></span></span></button></p>'."\n";
+echo '				<p>'."\n";
+#echo '					<a href="/karriere/account/" class="button"><span><span><span>'.$myaccount.'</span></span></span></a> | '."\n";
+echo '					<br /><a href="/lebenslauf/" class="button"><span><span><span>'.$lebenslaufprofil.'</span></span></span></a>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '		</form></div>'."\n";
+
+bodyoff();
+?>

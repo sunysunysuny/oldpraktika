@@ -1,0 +1,445 @@
+<?php
+
+require("/home/praktika/etc/config.inc.php"); 
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+	exit();
+}
+
+$_SESSION['sidebar'] = 'none';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+if (isset($_POST['buchen'])) {
+	$error = 0;
+	
+	foreach ($_POST as $key => $value) {
+		if ($key != 'preisProdukte' && $key != 'preisAlles' && $key != 'buchungsnummer' && $key != 'buchen' && $key != 'ansprechpartner' && $key != 'fax') {
+			if (empty($value)) {
+				$error++;
+			}
+		}
+	}
+
+	if (!isset($_POST['agbbestaetigt'])) {
+		$error++;
+	}
+	
+	if (isset($_POST['kuend']) && !isset($_POST['kuendigung'])) {
+		$error++;
+	}
+	
+	if ($error == 0) {
+		$_SESSION['produktID'] = $_POST['produkt'];
+		
+		$_SESSION['gesamtPreis'] =  $_POST['preisAlles'];
+		$_SESSION['gesamtPreisOhne'] = $_POST['preisAllesOhne'];
+		$_SESSION['produktPreis'] = $_POST['preisProdukte'];
+
+		$allebuchungen = mysql_db_query($database_comm,'SELECT COUNT(id) AS anzahl FROM buchungen',$praktdbslave);
+		$auftragsnummer = $_SESSION['s_firmenid'].'B'.(mysql_result($allebuchungen,0,'anzahl') + 1).'P'.$_SESSION['produktID'];
+
+		$preisQuery = mysql_db_query($database_comm,'SELECT bezeichnung, beschreibung, preis FROM produkte WHERE id = '.$_SESSION['produktID'],$praktdbslave);
+		
+		if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+			$row = mysql_fetch_array($preisQuery);
+		}
+
+		$_SESSION['zeitraum_von'] = time();
+
+		if ($_SESSION['produktID'] == 54) {
+			$zeitraumBis = strtotime('+1 month', time());
+		} elseif ($_SESSION['produktID'] == 55) {
+			$zeitraumBis = strtotime('+3 month', time());
+		} elseif ($_SESSION['produktID'] == 56) {
+			$zeitraumBis = strtotime('+6 month', time());
+		} elseif ($_SESSION['produktID'] == 57) {
+			$zeitraumBis = strtotime('+6 month', time());
+		} else {
+			$zeitraumBis = strtotime('+1 year', time());
+		}
+		
+		unset($_SESSION['sql_query']);
+		$_SESSION['sql_query'] = array();
+		$_SESSION['sql_query'][0] = '	INSERT INTO '.$database_comm.'.buchungen SET
+										stammid = '.intval($_SESSION['s_firmenid']).',
+										bearbeiterid = '.intval($_SESSION['s_loginid']).',
+										produktid = '.intval($_SESSION['produktID']).',
+										auftragsnummer = \''.mysql_real_escape_string($auftragsnummer).'\',
+										buchungsnummer = \''.mysql_real_escape_string($_POST["buchungsnummer"]).'\',
+										zeitraum_von = '.$_SESSION['zeitraum_von'].',
+										zeitraum_bis = '.$zeitraumBis.',
+										buchmenge = 1,
+										abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+										firma = \''.mysql_real_escape_string($_POST['firma']).'\',
+										strasse = \''.mysql_real_escape_string($_POST['strasse']).'\',
+										plz = \''.mysql_real_escape_string($_POST['plz']).'\',
+										ort = \''.mysql_real_escape_string($_POST['ort']).'\',
+										ansprechpartner = \''.mysql_real_escape_string($_POST['ansprechpartner']).'\',
+										tel = \''.mysql_real_escape_string($_POST['tel']).'\',
+										fax = \''.mysql_real_escape_string($_POST['fax']).'\',
+										email = \''.mysql_real_escape_string($_POST['email']).'\',
+										preis = \''.$row['preis'].'\',
+										waehrungsid = 1,
+										'.((isset($_POST['ZA']) && $_POST['ZA'] == 'RE') ? 'gezahlt = \'true\'' : 'gezahlt = \'false\'').',
+										'.(!isset($_POST['agbbestaetigt']) ? 'agbbestaetigt = \'false\'' : 'agbbestaetigt = \'true\'').',
+										host = \''.$host.'\',
+										ip = \''.$ip.'\',
+										datum_eintrag = '.time().',
+										modify = NOW();';
+		
+		$_SESSION['zeitraum_bis_verfall'] = date('Y-m-d', $zeitraumBis);
+
+		$_SESSION['produkt'][0]['bezeichnung'] = $row['bezeichnung'];
+		$_SESSION['produkt'][0]['beschreibung'] = $row['beschreibung'];
+		$_SESSION['produkt'][0]['preis'] = $row['preis'];
+		$_SESSION['produkt'][0]['buchmenge'] = 1;
+		
+		if (isset($_POST['leistungen']) && is_array($_POST['leistungen'])) {
+			$_SESSION['zusatzLeistungen'] = ''; //leeren, falls wieder auf zurueck-button geklickt
+			$_SESSION['zusatzLeistungen'] = $_POST['leistungen'];
+	
+			$i = 1;
+			
+			foreach ($_SESSION['zusatzLeistungen'] as $key) {
+				$allebuchungen = mysql_db_query($database_comm, 'SELECT COUNT(id) AS anzahl FROM '.$database_comm.'.buchungen', $praktdbslave);
+				$auftragsnummer = $_SESSION['s_firmenid'].'B'.(mysql_result($allebuchungen,0,'anzahl') + 1).'P'.$key;
+				
+				$preisQuery = mysql_db_query($database_comm, 'SELECT bezeichnung, beschreibung, preis FROM '.$database_comm.'.produkte WHERE id = '.$key, $praktdbslave);
+				
+				if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+					$row = mysql_fetch_array($preisQuery);
+				}
+				
+				//Test, ob Suchplatzierung noch vorhanden und laufend
+				$sqlSP = mysql_db_query($database_comm, 'SELECT id, zeitraum_bis FROM '.$database_comm.'.buchungen WHERE stammid = '.$_SESSION['s_firmenid'].' AND produktid = 6 AND zeitraum_bis > '.time(), $praktdbslave);
+				
+				if ($sqlSP != false && mysql_num_rows($sqlSP) > 0) {
+					$differenz = mysql_result($sqlSP, 0, 'zeitraum_bis') - time();
+				} else {
+					$differenz = 0;
+				}
+				
+				//Test, ob Kandidatensuche noch vorhanden und laufend
+				$sqlKS = mysql_db_query($database_comm, 'SELECT id, zeitraum_bis FROM '.$database_comm.'.buchungen WHERE stammid = '.$_SESSION['s_firmenid'].' AND produktid = 3 AND zeitraum_bis > '.time(), $praktdbslave);
+				
+				if ($sqlKS != false && mysql_num_rows($sqlKS) > 0) {
+					$differenz2 = mysql_result($sqlKS, 0, 'zeitraum_bis') - time();
+				} else {
+					$differenz2 = 0;
+				}
+				
+				$_SESSION['sql_query'][$i] = '	INSERT INTO '.$database_comm.'.buchungen SET
+												stammid = '.intval($_SESSION['s_firmenid']).',
+												bearbeiterid = '.intval($_SESSION['s_loginid']).',
+												produktid = '.$key.',
+												auftragsnummer = \''.mysql_real_escape_string($auftragsnummer).'\',
+												buchungsnummer = \''.mysql_real_escape_string($_POST["buchungsnummer"]).'\',';
+				
+				//Zeitraum fuer Suchplatzierung
+				if ($key == 6) {
+					$_SESSION['sql_query'][$i] .= '
+													zeitraum_von = '.time().',
+													zeitraum_bis = '.strtotime('+'.$_POST['months'].' month',(time() + $differenz)).',
+													buchmenge = '.$_POST['months'].',';
+				} elseif ($key == 3) { //Zeitraum fuer Kandidatensuche
+					$_SESSION['sql_query'][$i] .= '
+													zeitraum_von = '.time().',
+													zeitraum_bis = '.strtotime('+'.$_POST['months2'].' month',(time() + $differenz2)).',
+													buchmenge = '.$_POST['months2'].',';
+				} else {
+					$_SESSION['sql_query'][$i] .= '
+													buchmenge = 1,';
+				}
+				
+				$_SESSION['sql_query'][$i] .= '
+												abteilung = \''.mysql_real_escape_string($_POST['abteilung']).'\',
+												firma = \''.mysql_real_escape_string($_POST['firma']).'\',
+												strasse = \''.mysql_real_escape_string($_POST['strasse']).'\',
+												plz = \''.mysql_real_escape_string($_POST['plz']).'\',
+												ort = \''.mysql_real_escape_string($_POST['ort']).'\',
+												ansprechpartner = \''.mysql_real_escape_string($_POST['ansprechpartner']).'\',
+												tel = \''.mysql_real_escape_string($_POST['tel']).'\',
+												fax = \''.mysql_real_escape_string($_POST['fax']).'\',
+												email = \''.mysql_real_escape_string($_POST['email']).'\',
+												preis = \''.$row['preis'].'\',
+												waehrungsid = 1,
+												'.((isset($_POST['ZA']) && $_POST['ZA'] == 'RE') ? 'gezahlt = \'true\'' : 'gezahlt = \'false\'').',
+												'.(!isset($_POST['agbbestaetigt']) ? 'agbbestaetigt = \'false\'' : 'agbbestaetigt = \'true\'').',
+												host = \''.$host.'\',
+												ip = \''.$ip.'\',
+												datum_eintrag = '.time().',
+												modify = NOW();';
+
+				//vorhandene Suchplatzierung auf Enddatum JETZT setzen
+				if ($differenz != 0 && $key == 6) {
+					$_SESSION['sql_query'][$i+100] = 'UPDATE '.$database_comm.'.buchungen SET zeitraum_bis = '.time().' WHERE id = '.mysql_result($sqlSP, 0, 'id').';';
+				}
+
+				//vorhandene Kandidatensuche auf Enddatum JETZT setzen
+				if ($differenz2 != 0 && $key == 3) {
+					$_SESSION['sql_query'][$i+200] = 'UPDATE '.$database_comm.'.buchungen SET zeitraum_bis = '.time().' WHERE id = '.mysql_result($sqlKS, 0, 'id').';';
+				}
+				
+				if ($key == 6) {
+					$_SESSION['sql_query'][$i+300] = 'UPDATE '.$database_db.'.firmen SET searchtop = \'true\' WHERE id = '.intval($_SESSION['s_firmenid']).';';
+				}
+
+				if ($key == 3) {
+					$_SESSION['sql_query'][$i+400] = 'UPDATE '.$database_db.'.firmen_prop_assign SET kandidatensuche_ts = '.strtotime('+'.$_POST['months2'].' month',(time() + $differenz2)).' WHERE firmenid = '.intval($_SESSION['s_firmenid']).';';
+				}
+
+				$_SESSION['produkt'][$i]['bezeichnung'] = $row['bezeichnung'];
+				$_SESSION['produkt'][$i]['beschreibung'] = $row['beschreibung'];
+				$_SESSION['produkt'][$i]['preis'] = $row['preis'];
+				$_SESSION['produkt'][$i]['buchmenge'] = $key == 6 ? $_POST['months'] : ($key == 3 ? $_POST['months2'] : '1');
+
+				$i++;
+			}
+		}
+		
+		if (isset($_POST['kuendigung'])) {
+			$sql = 'DELETE FROM kuendigungen WHERE firmenid = '.$_SESSION['s_firmenid'];
+			mysql_db_query($database_db, $sql, $praktdbmaster);
+
+			$sql = 'UPDATE firmen_prop_assign SET kuendigung_eingang = \'0000-00-00\', kuendigung = \'0000-00-00\' WHERE firmenid = '.$_SESSION['s_firmenid'];
+			mysql_db_query($database_db, $sql, $praktdbmaster);
+		}
+	
+
+		if (isset($_POST['ZA']) && $_POST['ZA'] == 'CC') {
+			header('Location: http://'.$_SERVER['HTTP_HOST'].'/zahlung/kreditkarte/');
+			exit();
+		} elseif (isset($_POST['ZA']) && $_POST['ZA'] == 'RE') {
+			header('Location: http://'.$_SERVER['HTTP_HOST'].'/zahlung/rechnung/');
+			exit();
+		} else {
+			header('Location: http://'.$_SERVER['HTTP_HOST'].'/zahlung/rechnung/');
+			exit();
+		}
+	}
+}
+
+$arrayZusatz = array(
+						6,
+						30,
+						31,
+						3
+					);
+
+// Wenn keine Wahl getroffen wurde, dann einfach um ein Level hochsetzen
+if(empty($_SESSION['chosen_firmenlevel'])) {
+	$_SESSION['chosen_firmenlevel'] = $_SESSION['s_firmenlevel'] + 1;
+}
+					
+//Auswahl des Produktes
+if ($_SESSION['chosen_firmenlevel'] == 1) {
+	$whereClause = 'id = 18 OR id = 56 OR id = 55 OR id = 54';
+} elseif ($_SESSION['chosen_firmenlevel'] == 2) {
+	$whereClause = 'id = 15 OR id = 57';
+} elseif ($_SESSION['chosen_firmenlevel'] == 3) {
+	$whereClause = 'id = 16';
+} else {
+	if ($_SESSION['s_firmenlevel'] == 0) {
+		$whereClause = 'id = 18 OR id = 56 OR id = 55 OR id = 54';
+	} else {
+		$_SESSION['stelleSchonDa'] = true;
+		header('Location: /firmen/stelle/paket/');
+		exit();
+	}
+}
+
+if(empty($_GET["id"])) $_GET["id"] = $_SESSION["aktuelle_stelle"];
+
+pageheader(array('page_title' => 'Buchung'));
+
+Praktika_Static::__('paketwahl');
+
+echo '<form action="/firmen/stelle/buchung/" method="post" name="buchenForm">'."\n";
+echo '	<fieldset>'."\n";
+echo ' 		<p class="radios" id="laufzeit">
+			<span>Laufzeit:</span>'."\n";
+
+$preisQuery = mysql_db_query($database_comm,'SELECT id, laufzeit, bezeichnung, preis FROM produkte WHERE '.$whereClause.' ORDER BY anzeigeorder',$praktdbslave);
+
+if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+	$i = 0;
+	
+	while ($row = mysql_fetch_assoc($preisQuery)) {
+		$checked = '';
+		
+		if (isset($_POST['produkt']) && $_POST['produkt'] == $row['id']) {
+			$PackageBezeichnung = $row['bezeichnung'];
+			$PackagePreis = $row['preis'];
+			$PackageLaufzeit = $row['laufzeit'];
+			$checked = ' checked="checked"';
+		} else {
+			if ($row['id'] == 18 || $row['id'] == 15) {
+				$PackageBezeichnung = $row['bezeichnung'];
+				$PackagePreis = $row['preis'];
+				$PackageLaufzeit = $row['laufzeit'];
+				$checked = ' checked="checked"';
+			}
+		}
+		
+		echo '<label for="laufzeit'.$i.'"><input type="radio" name="produkt" id="laufzeit'.$i.'" value="'.$row['id'].'"'.$checked.' onclick="jQuery(\'#agbbestaetigt\').attr(\'checked\', false);submit();" />'.$row['laufzeit'].' ('.$row['preis'].' &euro;)</label>'."\n";
+		$i++;
+	};
+} else {
+	die('<span class="error">Es ist ein Fehler im Buchhungssystem aufgetreten. Bitte nehmen Sie Kontakt mit uns auf.</span>');
+}
+
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+
+echo '	<div id="PackageBuchung"><p>'.$PackageBezeichnung.'<br />'.$PackageLaufzeit.' / '.$PackagePreis.' &euro;</p></div>'."\n";
+
+echo '	<h4>Zusatzleistungen</h4>'."\n";
+echo '	<fieldset>'."\n";
+
+foreach ($arrayZusatz as $key) {
+	$preisQuery = mysql_db_query($database_comm,'SELECT id, bezeichnung, beschreibung, preis FROM produkte WHERE id = '.$key,$praktdbslave);
+	
+	if (($preisQuery != false) && (mysql_num_rows($preisQuery) > 0)) {
+		$row = mysql_fetch_array($preisQuery);
+		$forID = str_replace(array(' ','-'),array('',''),$row['bezeichnung']);
+		
+		echo '		<p class="zusatz"><label for="'.$forID.'" class="komplette_breite"><input type="checkbox" name="leistungen['.$row['id'].'-'.$row['preis'].']" id="'.$forID.'" value="'.$row['id'].'" onclick="$(\'#agbbestaetigt\').prop(\'checked\', false);submit();"'.((isset($_POST['leistungen'][$row['id'].'-'.$row['preis']]) && $_POST['leistungen'][$row['id'].'-'.$row['preis']] == $row['id']) ? ' checked="checked"' : '').' /> '.$row['bezeichnung'].' ('.number_format($row['preis'],2,',','.').' &euro;'.(($row['id'] == 3 || $row['id'] == 6) ? ' pro Monat' : '').')<br /><span>'.$row['beschreibung'].'</span></label></p>'."\n";
+		
+		if ($row['id'] == 6) {
+			echo '<p class="monthBuchung">Buchung f&uuml;r <select name="months" class="month" onchange="$(\'#agbbestaetigt\').prop(\'checked\', false);submit();">'."\n";
+			
+			for ($i = 1; $i < 13; $i++) {
+				echo '	<option value="'.$i.'"'.((isset($_POST['months']) && $i == $_POST['months']) ? ' selected="selected"' : '').'>'.$i.'</option>'."\n";
+			}
+			
+			echo '</select> Monat(e)</p>'."\n";
+		}
+
+		if ($row['id'] == 3) {
+			echo '<p class="monthBuchung">Buchung f&uuml;r <select name="months2" class="month" onchange="$(\'#agbbestaetigt\').prop(\'checked\', false);submit();">'."\n";
+			
+			for ($i = 1; $i < 13; $i++) {
+				echo '	<option value="'.$i.'"'.((isset($_POST['months2']) && $i == $_POST['months2']) ? ' selected="selected"' : '').'>'.$i.'</option>'."\n";
+			}
+			
+			echo '</select> Monat(e)</p>'."\n";
+		}
+	} else {
+		die();
+	}
+}
+
+echo '	</fieldset>'."\n";
+
+$PackagePreisProdukte = $PackagePreis;
+
+//Preisberechnung Zusatzprodukte
+if (isset($_POST['leistungen'])) {
+	$preisZusatz = 0;
+	
+	foreach ($_POST['leistungen'] as $key => $value) {
+		$einzelPreis = split('-', $key);
+		
+		if ($einzelPreis[0] == 6) {
+			if (isset($_POST['months'])) {
+				$einzelPreis[1] = $einzelPreis[1] * intval($_POST['months']);
+			}
+		}
+		
+		if ($einzelPreis[0] == 3) {
+			if (isset($_POST['months'])) {
+				$einzelPreis[1] = $einzelPreis[1] * intval($_POST['months2']);
+			}
+		}
+		
+		$preisZusatz += $einzelPreis[1];
+	}
+}
+
+
+$PackagePreisAlles = (19 * ($PackagePreis + $preisZusatz)) / 100 + ($PackagePreis + $preisZusatz);
+
+echo '	<p id="gesamtPreis">Gesamtpreis (inklusive 19% Mehrwertsteuer): <span id="preisLabelTop">'.number_format($PackagePreisAlles,2,',','.').'</span><span> &euro;</span></p>'."\n";
+echo '	<p id="gesamtPreisAboHint">Der Vertrag <b>verlängert sich automatisch</b> nach Ablauf der Laufzeit um den gleichen Zeitraum, wenn nicht fristgerecht gek&uuml;ndigt wurde!</p>';
+$firmenland = mysql_db_query($database_db,'SELECT land FROM firmen WHERE id = '.$_SESSION['s_firmenid'],$praktdbslave);
+if (mysql_result($firmenland,0,'land') == 68) {
+	echo '		<input type="hidden" id="RE" name="ZA" value="RE" />'."\n";
+} else {
+	echo '		<input type="hidden" id="CC" name="ZA" value="CC" checked="checked" />'."\n";
+}
+
+$firma = mysql_db_query($database_db,'SELECT firmen.firma,firmen.strasse,firmen.plz,firmen.ort,firmen.land,bearbeiter.anrede,bearbeiter.vname,bearbeiter.name,bearbeiter.abteilung,bearbeiter.tel,bearbeiter.fax,bearbeiter.email FROM firmen,bearbeiter WHERE firmen.id = '.$_SESSION['s_firmenid'].' AND bearbeiter.id = '.$_SESSION['s_loginid'],$praktdbslave);
+$eintrag = mysql_fetch_array($firma);
+
+echo '	<h4>Rechnungsadresse</h4>'."\n";
+
+if (isset($error) && $error > 0) {
+	echo '	<p class="hint error">Bitte f&uuml;llen Sie alle Pflichtfelder aus!</p>'."\n";
+}
+
+echo '	<fieldset>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="firma"'.((isset($_POST['buchen']) && isset($_POST['firma']) && empty($_POST['firma'])) ? ' class="error"' : '').'>Firma:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="firma" name="firma" value="'.((isset($_POST['buchen']) && isset($_POST['firma']) && !empty($_POST['firma'])) ? $_POST['firma'] : $eintrag['firma']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="abteilung"'.((isset($_POST['buchen']) && isset($_POST['abteilung']) && empty($_POST['abteilung'])) ? ' class="error"' : '').'>Abteilung:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="abteilung" name="abteilung" value="'.((isset($_POST['buchen']) && isset($_POST['abteilung']) && !empty($_POST['abteilung'])) ? $_POST['abteilung'] : $eintrag['abteilung']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="strasse"'.((isset($_POST['buchen']) && isset($_POST['strasse']) && empty($_POST['strasse'])) ? ' class="error"' : '').'>Stra&szlig;e:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="strasse" name="strasse" value="'.((isset($_POST['buchen']) && isset($_POST['strasse']) && !empty($_POST['strasse'])) ? $_POST['strasse'] : $eintrag['strasse']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="plz"'.((isset($_POST['buchen']) && ((isset($_POST['plz']) && empty($_POST['plz'])) || (isset($_POST['ort']) && empty($_POST['ort'])))) ? ' class="error"' : '').'>PLZ / Ort:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="plz" name="plz" value="'.((isset($_POST['buchen']) && isset($_POST['plz']) && !empty($_POST['plz'])) ? $_POST['plz'] : $eintrag['plz']).'" /><input type="text" id="ort" name="ort" value="'.((isset($_POST['buchen']) && isset($_POST['ort']) && !empty($_POST['ort'])) ? $_POST['ort'] : $eintrag['ort']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="ansprechpartner">z. Hd. von:</label>'."\n";
+echo '			<input type="text" id="ansprechpartner" name="ansprechpartner" value="'.((isset($_POST['buchen']) && isset($_POST['ansprechpartner']) && !empty($_POST['ansprechpartner'])) ? $_POST['ansprechpartner'] : $eintrag['anrede'].' '.$eintrag['vname'].' '.$eintrag['name']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="tel"'.((isset($_POST['buchen']) && isset($_POST['tel']) && empty($_POST['tel'])) ? ' class="error"' : '').'>Telefon:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="tel" name="tel" value="'.((isset($_POST['buchen']) && isset($_POST['tel']) && !empty($_POST['tel'])) ? $_POST['tel'] : $eintrag['tel']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="fax">Fax:</label>'."\n";
+echo '			<input type="text" id="fax" name="fax" value="'.((isset($_POST['buchen']) && isset($_POST['fax']) && !empty($_POST['fax'])) ? $_POST['fax'] : $eintrag['fax']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="email"'.((isset($_POST['buchen']) && isset($_POST['email']) && empty($_POST['email'])) ? ' class="error"' : '').'>eMail:<sup>*</sup></label>'."\n";
+echo '			<input type="text" id="email" name="email" value="'.((isset($_POST['buchen']) && isset($_POST['email']) && !empty($_POST['email'])) ? $_POST['email'] : $eintrag['email']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p>'."\n";
+echo '			<label for="buchungsnummer">Auftragsnummer (optional):</label>'."\n";
+echo '			<input type="text" id="buchungsnummer" name="buchungsnummer" value="'.((isset($_POST['buchen']) && isset($_POST['buchungsnummer']) && !empty($_POST['buchungsnummer'])) ? $_POST['buchungsnummer'] : $eintrag['buchungsnummer']).'" />'."\n";
+echo '		</p>'."\n";
+echo '		<p><label for="agbbestaetigt" class="komplette_breite'.((isset($_POST['buchen']) && !isset($_POST['agbbestaetigt'])) ? ' error"' : '').'"><input type="checkbox" id="agbbestaetigt" name="agbbestaetigt" value="true" />Die <a href="/cms/AGB-fuer-Unternehmen.1505.0.html" target="_blank">AGB f&uuml;r Unternehmen</a> habe ich gelesen und verstanden, hiermit erkenne ich diese an.</label></p>'."\n";
+
+$sql = 'SELECT DATE_FORMAT(kuendigungsdatum, \'%d.%m.%Y\') AS kuend_datum, gekuendigte_firmenlizenz FROM '.$database_db.'.kuendigungen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND kuendigungsdatum > NOW()';
+$result = mysql_db_query($database_db, $sql, $praktdbslave);
+
+if (mysql_num_rows($result) > 0) {
+	echo '		<p><label for="kuendigung" class="komplette_breite'.((isset($_POST['buchen']) && !isset($_POST['kuendigung'])) ? ' error"' : '').'"><input type="checkbox" id="kuendigung" name="kuendigung" value="true" /><input type="hidden" id="kuend" name="kuend" value="true" />Sie haben bereits eine K&uuml;ndigung f&uuml;r Ihr '.(mysql_result($result, 0, 'gekuendigte_firmenlizenz') == 1 ? 'BASIS' : 'KOMFORT').'-Paket vorliegen. Diese K&uuml;ndigung tritt zum '.mysql_result($result, 0, 'kuend_datum').' in Kraft. Wenn Sie dieses H&auml;kchen setzen, wird die bestehende K&uuml;ndigung widerrufen.</label></p>'."\n";
+}
+
+echo '	</fieldset>'."\n";
+
+echo '	<fieldset class="control_panel">'."\n";
+echo '		<p>'."\n";
+echo '			<input type="hidden" id="preisProdukte" name="preisProdukte" value="'.$PackagePreisProdukte.'" />'."\n";
+echo '			<input type="hidden" id="preisAlles" name="preisAlles" value="'.$PackagePreisAlles.'" />'."\n";
+echo '			<input type="hidden" id="preisAlles" name="preisAllesOhne" value="'.($PackagePreis + $preisZusatz).'" />'."\n";
+echo '			<input type="hidden" id="buchen" name="buchen" value="1" />'."\n";
+echo '			<a href="#" class="button small red" onclick="document.buchenForm.submit(); return false;">Buchung kostenpflichtig durchf&uuml;hren</a>'."\n";
+echo '		</p>'."\n";
+echo '	</fieldset>'."\n";
+
+echo '</form>'."\n";
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

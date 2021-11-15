@@ -1,0 +1,183 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+/*
+ $_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_page'] = PAGE_CAREER_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+$einruecken = "&nbsp;";
+*
+ */
+if (isset($_GET['spalte'])) $_SESSION['s_spalte'] = $_GET['spalte'];
+$firmenid = (int)$_GET['firmenid'];
+$id = (int)$_GET["id"];
+$spalte = (int)$_GET["spalte"];
+
+
+#praktikaInclude(array("db.php"));
+#$hDB = new Praktika_Db();
+
+#mysql_select_db($database_db, $praktdbslave);
+
+// datensatz abfragen //
+
+$result = $hDB->query('SELECT 
+			kontakte.id, 
+			kontakte.betreff, 
+			kontakte.nachricht, 
+			kontakte.oldnachricht, 
+			kontakte.bearbeiterid,
+			DATE_FORMAT(kontakte.datum, \'%d.%m.%Y\') AS deintrag,
+			firmen.id as firmenid,
+			firmen.firma,
+			firmen.strasse,
+			firmen.plz,
+			firmen.ort,
+			firmen.grossraum `grossraumID`,
+			firmen.land `landID`,
+			firmen.bundesland `bundeslandID`,
+			bearbeiter.anrede,
+			bearbeiter.titel,
+			bearbeiter.vname,
+			bearbeiter.name,
+			bearbeiter.abteilung,
+			bearbeiter.funktion,
+			bearbeiter.tel,
+			firmen_prop_assign.firmenlevel,
+			grossraum.grossraum `grossraum`,
+			bundesland.german `bundesland`,
+			land.german `land`
+		FROM prakt2.bewerberkontakte As kontakte
+			LEFT JOIN prakt2.firmen ON(firmen.id = kontakte.firmenid)
+			LEFT JOIN prakt2.bearbeiter ON(bearbeiter.id = kontakte.bearbeiterid)
+			LEFT JOIN prakt2.firmen_prop_assign ON(firmen_prop_assign.firmenid = kontakte.firmenid)
+			LEFT JOIN prakt2.land ON(land.id = firmen.land)
+			LEFT JOIN prakt2.bundesland ON(bundesland.id = firmen.bundesland)
+			LEFT JOIN prakt2.grossraum ON(grossraum.id = firmen.grossraum)
+		WHERE kontakte.id = '.$id.' AND kontakte.nutzerid = '.$_SESSION['s_nutzerid'].' AND kontakte.spalte = '.$spalte, 
+	$praktdbslave);
+
+$eintrag = mysql_fetch_assoc($result);
+
+#pageheader(array('page_title' => 'Nachricht der Firma \''.$eintrag["firma"].'\' an Sie'));
+
+echo "<div style='width:500px; padding:10px;'>";
+echo '<table style="width:100%; margin:0px;">'."\n";
+echo '	<colgroup>'."\n";
+echo '		<col style="width: 30% !important;" />'."\n";
+echo '		<col style="width: 70% !important;" />'."\n";
+echo '	</colgroup>'."\n";
+
+
+// Wurde evtl. kein Bearbeiter zugeteilt?
+if(empty($eintrag["vname"])) {
+	$bearbeiterSQL = "SELECT * FROM prakt2.bearbeiter WHERE firmenid = ".$firmenid;
+	$result = mysql_fetch_assoc($hDB->query($bearbeiterSQL, $praktdbslave));
+	
+	$hDB->query("UPDATE bewerberkontakte SET bearbeiterid = ".$result["id"]." WHERE id = ".$id);
+	$eintrag["anrede"] = $result["anrede"];
+	$eintrag["titel"] = $result["titel"];
+	$eintrag["vname"] = $result["vname"];
+	$eintrag["name"] = $result["name"];
+	$eintrag["abteilung"] = $result["abteilung"];
+	$eintrag["funktion"] = $result["funktion"];
+	$eintrag["tel"] = $result["tel"];
+}
+
+if($eintrag["gelesen"] != "true") {
+	$update=$hDB->query( 'UPDATE prakt2.bewerberkontakte SET gelesen = "true" WHERE id = '.$id.' AND nutzerid = '.$_SESSION['s_nutzerid'].' AND spalte = '.$spalte, $praktdbmaster);	
+}
+
+// datensatzausgabe //
+echo '	<tr>'."\n";
+echo '		<th colspan="2"><h4 style="margin:10px 0;">Firmendaten</h4></th>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Firma:</td>'."\n";
+echo '		<td><strong>'.$eintrag['firma'].'</strong></td>'."\n";
+echo '	</tr>'."\n";
+
+if ($eintrag["firmenlevel"] > 0) {
+	echo '	<tr>'."\n";
+	echo '		<td>Adresse:</td>'."\n";
+	echo '		<td>'.$eintrag['strasse'].'<br />'.$eintrag['plz'].' '.$eintrag['ort'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+echo '	<tr>'."\n";
+echo '		<td>Gebiet</td>'."\n";
+echo '		<td>'.$eintrag["land"].', ';
+
+if ($eintrag["bundeslandID"] > 0) {
+	echo $eintrag["bundesland"];
+}
+
+if ($eintrag['grossraumID'] > 0 && $eintrag['grossraumID'] != 94) {
+	echo ', '.$eintrag["grossraum"];
+}
+
+echo '</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<th colspan="2"><h4 style="margin:10px 0;">Ansprechpartner</h4></th>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Name:</td>'."\n";
+echo '		<td><strong>'.$eintrag['anrede'].(!empty($eintrag['titel']) ? ' '.$eintrag['titel'] : '').' '.$eintrag['vname'].' '.$eintrag['name'].'</strong></td>'."\n";
+echo '	</tr>'."\n";
+
+if (!empty($eintrag['abteilung'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>Abteilung:</td>'."\n";
+	echo '		<td>'.$eintrag['abteilung'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+if (!empty($eintrag['funktion'])) {
+	echo '	<tr>'."\n";
+	echo '		<td>Funktion:</td>'."\n";
+	echo '		<td>'.$eintrag['funktion'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '	<tr>'."\n";
+echo '		<th colspan="2"><h4 style="margin:10px 0;">Mitteilung</h4></th>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>vom:</td>'."\n";
+echo '		<td>'.$eintrag["deintrag"].'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Betreff:</td>'."\n";
+echo '		<td>'.stripslashes($eintrag['betreff']).'</td>'."\n";
+echo '	</tr>'."\n";
+echo '	<tr>'."\n";
+echo '		<td>Nachricht:</td>'."\n";
+echo '		<td>'.stripslashes($eintrag['nachricht']).'</td>'."\n";
+echo '	</tr>'."\n";
+
+if (!empty($eintrag2['oldnachricht'])) {
+	echo '	<tr>'."\n";
+	echo '		<th colspan="2">Mitteilung</th>'."\n";
+	echo '	</tr>'."\n";
+	echo '	<tr>'."\n";
+	echo '		<td>Ihre vorherige Nachricht:</td>'."\n";
+	echo '		<td>'.$eintrag['oldnachricht'].'</td>'."\n";
+	echo '	</tr>'."\n";
+}
+
+echo '</table>'."\n";
+
+echo '<p class="control_panel control">'."\n";
+echo '	<a class="button small" href="/karriere/firma/antworten/'.$eintrag['id'].'" onclick="smallbox.loadUrl(\'\', this.href); return false;" value="der Firma antworten">der Firma antworten</a>'."\n";
+echo '<p>'."\n";
+echo "</div>";
+# bodyoff();
+?>
+<style type="text/css">
+table tr td { width:auto !important; }
+</style>

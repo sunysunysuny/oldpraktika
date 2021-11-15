@@ -1,0 +1,25 @@
+<?php
+require("/home/praktika/etc/gb_config.inc.php");
+
+$firmenlevel = isset($_SESSION['chosen_firmenlevel']) ? $_SESSION['chosen_firmenlevel'] : intval($_SESSION['s_firmenlevel']);
+$id = $_GET['id'];
+$msg = ($firmenlevel < 2) ? 'Diese Option ist erst im Paket Komfort verf&uuml;gbar' : '';
+
+pageheader( array('page_title' => '') );
+?>
+<div style="padding: 0 10px 0 10px; text-align:center;">
+<?= $msg ?><br /><br />
+<form action="" method="post">
+  <fieldset class="control_panel">
+    <p>
+      <button type="submit" name="ok" value="ok" onclick="top.GB_hide()"><span><span><span>OK</span></span></span></button>
+	</p>
+	<p>
+      <button type="submit" name="upgrade" value="Paket upgraden" onclick="top.location.href='/firmen/stelle/paket/<?=$id?>/'"><span><span><span>PAKET UPGRADEN</span></span></span></button>
+    </p>
+  </fieldset>
+</form>
+</div>
+<?php
+bodyoff();
+?>

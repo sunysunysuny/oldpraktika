@@ -1,0 +1,38 @@
+<?php
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+
+if($_POST["act"] == "del") {
+	if(empty($_SESSION["s_nutzerid"])) {
+		$sql = "DELETE FROM prakt2.nutzerbookmark_tmp WHERE id = ".(int)$_POST["id"]." AND cookiekey = '".mysql_real_escape_string($_COOKIE["cookiekey"])."'";
+	} else {
+		$sql = "DELETE FROM prakt2.nutzerbookmark WHERE id = ".(int)$_POST["id"]." AND nutzerid = '".(int)$_SESSION["s_nutzerid"]."'";
+	}
+	
+	mysql_query($sql, $praktdbmaster);
+	exit();
+}
+
+$stellenid = intval($_POST['stellenid']);
+$firmenid = intval($_POST['firmenid']);
+
+// Wurde Stelle schon gebookmarked
+$objStelle = new Praktika_Stelle($stellenid);
+
+if($objStelle->isBookmarked()) {
+	$objStelle->removeBookmark();
+	die("true");
+}
+
+if (isset($stellenid) && !empty($stellenid)) {
+    if($objStelle->bookmark() == true) {
+        $ergebnis = 'true';
+    } else {
+        $ergebnis = 'false';
+    }
+} else {
+	$ergebnis = 'false';
+}
+
+echo $ergebnis;
+?>

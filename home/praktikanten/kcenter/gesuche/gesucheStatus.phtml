@@ -1,0 +1,35 @@
+<?
+require("/home/praktika/etc/gb_config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	exit();
+}
+
+$gesucheID = (int)$_POST["gID"];
+if($_POST["status"] == "0") $inactive = "true"; else $inactive = "false";
+
+if ($_POST["spalte"] == 1) {
+
+	mysql_query('UPDATE praktikanten SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+
+} elseif ($_POST["spalte"] == 2) {
+
+	mysql_query('UPDATE diplomgesuch SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+
+} elseif ($_POST["spalte"] == 3) {
+
+	mysql_query('UPDATE nebenjobgesuch SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);
+
+} elseif ($_POST["spalte"] == 4) {
+
+	mysql_query('UPDATE ausbildungsgesuch SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);	
+
+} elseif ($_POST["spalte"] == 5) {
+
+	mysql_query('UPDATE berufseinstieggesuch SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);	
+
+} elseif ($_POST["spalte"] == 6) {
+
+	mysql_query('UPDATE projektgesuch SET inactive = "'.$inactive.'" WHERE id = '.$gesucheID.' AND nutzerid = '.$_SESSION['s_nutzerid'], $praktdbslave);	
+
+}

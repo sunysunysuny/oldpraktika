@@ -1,0 +1,291 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['sidebar'] = 'service';
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['current_page'] = PAGE_PUBLISH_JOBS;
+
+$error = 0;
+
+if ((isset($_POST['basis']) || isset($_POST['basis_x'])) || (isset($_POST['komfort']) || isset($_POST['komfort_x'])) || isset($_POST['premium']) || isset($_POST['premium_x'])) {
+	if (isset($_SESSION['neueStelle']) && $_SESSION['neueStelle']['new'] == true) {
+		$_SESSION['neueStelle']['layout'] = false;
+		$_SESSION['neueStelle']['category'] = false;
+		$_SESSION['neueStelle']['content'] = false;
+	}
+
+	if(!empty($_SESSION['aktuelle_stelle'])) {
+		$results = mysql_db_query($database_db,'UPDATE stellen SET inactive = \'true\' WHERE firmenid = '.$_SESSION['s_firmenid'].' AND id = '.(int)$_SESSION['aktuelle_stelle'],$praktdbmaster);
+	}
+	
+	if (isset($_POST['basis']) || isset($_POST['basis_x'])) {
+		$_SESSION['chosen_firmenlevel'] = 1;
+	} elseif (isset($_POST['komfort']) || isset($_POST['komfort_x'])) {
+		$_SESSION['chosen_firmenlevel'] = 2;
+	} elseif (isset($_POST['premium']) || isset($_POST['premium_x'])) {
+		$_SESSION['chosen_firmenlevel'] = 3;
+	}
+	
+	$firmenlevel = mysql_db_query($database_db,'SELECT firmenlevel FROM firmen_prop_assign WHERE firmenid = '.$_SESSION['s_firmenid'],$praktdbmaster);
+
+	if (($firmenlevel != false) && (mysql_num_rows($firmenlevel) > 0)) {
+		$row = mysql_fetch_array($firmenlevel);
+
+		if ($row['firmenlevel'] == 0) {
+			if (isset($_SESSION['stelleSchonDa']) && $_SESSION['stelleSchonDa'] == true) {
+				header('Location: /firmen/stelle/buchung/');
+				exit();
+			} else {
+				header('Location: /firmen/stelle/layout/'.(isset($_SESSION['aktuelle_stelle']) ? $_SESSION['aktuelle_stelle'].'/':'') );
+				exit();
+			}
+		} else {
+			if (isset($_POST['hasto_firmenlevel']) && (intval($_POST['hasto_firmenlevel']) > intval($_SESSION['chosen_firmenlevel']))) {
+				header('Location: /firmen/stelle/paket/');
+				exit();
+			} elseif (isset($_POST['hasto_firmenlevel']) && (intval($_POST['hasto_firmenlevel']) <= intval($_SESSION['chosen_firmenlevel']))) {
+				header('Location: /firmen/stelle/buchung/');
+				exit();
+			} else {
+				header('Location: /firmen/stelle/layout/'.(isset($_SESSION['aktuelle_stelle']) ? $_SESSION['aktuelle_stelle'].'/':''));
+				exit();
+			}
+		}
+	}
+} else {
+	$firmenlevel = mysql_db_query($database_db,'SELECT firmenlevel FROM firmen_prop_assign WHERE firmenid = '.$_SESSION['s_firmenid'], $praktdbmaster);
+	
+	if (($firmenlevel != false) && (mysql_num_rows($firmenlevel) > 0)) {
+		$row = mysql_fetch_array($firmenlevel);
+		
+		if($row["firmenlevel"] < 3) {
+			$countStellen = mysql_db_query($database_db,'SELECT COUNT(*) as counter FROM stellen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND deleted = \'false\'', $praktdbmaster);
+		}
+		
+		// Premium-Kunden lassen wir problemlos ohne Begrenzung durch
+		if ($row['firmenlevel'] == 3) {
+			header('Location: /firmen/stelle/layout/'.(isset($_SESSION['aktuelle_stelle']) ? $_SESSION['aktuelle_stelle'].'/':''));
+		} else {
+			$countStellen = mysql_db_query($database_db,'SELECT COUNT(*) as counter FROM stellen WHERE firmenid = '.$_SESSION['s_firmenid'].' AND deleted = \'false\'', $praktdbmaster);
+			$error = 0;
+			
+			// Wenn mehr als oder 20 Stellen angelegt sind, wird Premium benötigt
+			if($countStellen >= 20) {
+				$hasto_firmenlevel = 3;				
+			// Wenn mehr als oder 3 Stellen angelegt sind, wird Komfort benötigt
+			} elseif($countStellen >= 3) {
+				$hasto_firmenlevel = 2;		
+			// Wenn mehr als oder 1 Stelle angelegt sind, wird Basis benötigt		
+			} elseif($countStellen >= 1) {
+				$hasto_firmenlevel = 1;					
+			// Es wurde noch keine
+			} else {
+				header('Location: /firmen/stelle/layout/'.(isset($_SESSION['aktuelle_stelle']) ? $_SESSION['aktuelle_stelle'].'/':''));
+			}
+			
+			// Erfülle ich diese Bedingungen?
+			if($row['firmenlevel'] >= $hasto_firmenlevel) {
+				header('Location: /firmen/stelle/layout/'.(isset($_SESSION['aktuelle_stelle']) ? $_SESSION['aktuelle_stelle'].'/':''));
+			}
+		}
+				
+	}
+}
+
+pageheader(array('page_title' => 'Produkte:', 'page_image' => true));
+
+if ($error != 0) {
+	echo '<script type="text/javascript">'."\n";
+	echo '	GB_showCenter(\'\',\'/firmen/stelle/paket_notice/'.$error.'/\',200,420);'."\n";
+	echo '</script>'."\n";
+}
+
+?>
+
+<form action="/firmen/stelle/paket/" method="post">
+	<table id="paketwahl" cellspacing="0" cellpadding="0">
+		<colgroup>
+			<col />
+			<col width="186" />
+			<col width="194" />
+			<col width="175" />
+		</colgroup>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Laufzeit.1453.0.html" onclick="return GB_showCenter('',this.href,300,540)">Laufzeit</a></td>
+			<td class="basis"><span>12 Monate</span></td>
+			<td class="komfort"><span>12 Monate</span></td>
+			<td class="premium"><span>12 Monate</span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Anzeigenstellplaetze.1454.0.html" onclick="return GB_showCenter('',this.href,160,540)">Anzeigenstellpl&auml;tze</a></td>
+			<td class="basis"><span>3</span></td>
+			<td class="komfort"><span>20</span></td>
+			<td class="premium"><span>Variabel</span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Templateauswahl.1455.0.html" onclick="return GB_showCenter('',this.href,370,560)">Templateauswahl</a></td>
+			<td class="basis"><span>1</span></td>
+			<td class="komfort"><span>8</span></td>
+			<td class="premium"><span>Eigene</span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Statistikfunktion.1456.0.html" onclick="return GB_showCenter('',this.href,155,540)">Statistikfunktion</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Firmenlogo_einstellen.1457.0.html" onclick="return GB_showCenter('',this.href,320,580)">Firmenlogo einstellen</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Weiterleitung.1458.0.html" onclick="return GB_showCenter('',this.href,165,540)">Weiterleitung</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Benachrichtigungen.1459.0.html" onclick="return GB_showCenter('',this.href,190,540)">Benachrichtigungen</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Cross-Marketing.1460.0.html" onclick="return GB_showCenter('',this.href,250,540)">Cross-Marketing</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Firmenprofil.531.0.html" onclick="return GB_showCenter('',this.href,350,540)">Firmenprofil</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Telefonberatung.1462.0.html" onclick="return GB_showCenter('',this.href,345,660)">Beratungsservice</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Clickbutton.1463.0.html" onclick="return GB_showCenter('',this.href,275,540)">ClickIn - Button</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Benutzerverwaltung.1464.0.html" onclick="return GB_showCenter('',this.href,195,540)">Benutzerverwaltung</a></td>
+			<td class="basis"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Veranstaltungen.1466.0.html" onclick="return GB_showCenter('',this.href,230,540)">Veranstaltungen</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Guetesiegel.1467.0.html" onclick="return GB_showCenter('',this.href,315,570)">G&uuml;tesiegel</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Videoeinbindung.1468.0.html" onclick="return GB_showCenter('',this.href,375,600)">Videoeinbindung</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Karrierenachrichten.1469.0.html" onclick="return GB_showCenter('',this.href,224,540)">Karrierenachrichten</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Stellen_in_Firmenlayout.1470.0.html" onclick="return GB_showCenter('',this.href,430,610)">Stellen in Firmenlayout</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Werbung_im_Newsletter.1472.0.html" onclick="return GB_showCenter('',this.href,250,540)">Werbung im Newsletter</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/ externe_Stellenanzeigen.1473.0.html" onclick="return GB_showCenter('',this.href,210,540)">externe Stellenanzeigen</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/Bewerbungsgarantie.1474.0.html" onclick="return GB_showCenter('',this.href,210,540)">Bewerbungsgarantie</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Employer_Branding.1475.0.html" onclick="return GB_showCenter('',this.href,220,540)">Employer Branding</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/HR-xml_anbindung.1506.0.html" onclick="return GB_showCenter('',this.href,300,540)">HR-XML Anbindung</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Firmenspezifische_Service.1507.0.html" onclick="return GB_showCenter('',this.href,170,540)">Firmenspezifische Service</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="even">
+			<td class="leistung"><a href="/cms/HR_Videoreportagen.1508.0.html" onclick="return GB_showCenter('',this.href,270,540)">HR Videoreportagen</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="odd">
+			<td class="leistung"><a href="/cms/Individuelle_Mailings.1509.0.html" onclick="return GB_showCenter('',this.href,300,540)">Individuelle Mailings</a></td>
+			<td class="basis"><span>&nbsp;</span></td>
+			<td class="komfort"><span>&nbsp;</span></td>
+			<td class="premium"><span><img src="/gifs/stelle/green_point.png" alt="ja" /></span></td>
+		</tr>
+		<tr class="price">
+			<td class="leistung">Jahresbeitrag</td>			
+			<td class="basis"><span>125 &euro;</span></td>
+			<td class="komfort"><span>750 &euro;</span></td>
+			<td class="premium"><span><input type="image" src="/gifs/bcenter/beratung.png" name="premium" value="Premium" onclick="return GB_showCenter('','/cms/beratung.1510.0.html',450,540)" /></span></td>
+		</tr>
+		<tr class="even price3">
+			<td class="leistung">&nbsp;</td>			
+			<td class="basis"><span><?php echo ($_SESSION["s_firmenlevel"] < 1) ? '<input type="image" src="/gifs/bcenter/paket_waehlen.png" name="basis" value="Basis" />' : '&nbsp;'; ?></span></td>
+			<td class="komfort"><span><?php echo ($_SESSION["s_firmenlevel"] < 2) ? '<input type="image" src="/gifs/bcenter/paket_waehlen.png" name="komfort" value="Komfort" />' : '&nbsp;'; ?></span></td>
+			<td class="premium">&nbsp;</td>
+		</tr>
+	</table>
+</form>
+<p style="margin-top: 10px;"><sup>*</sup>Preis zzgl. Mehrwertsteuer (19%)</p>
+<?php
+
+if (isset($_GET['id']) && !empty($_GET['id'])) {
+	$_SESSION['aktuelle_stelle'] = intval($_GET['id']);
+}
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

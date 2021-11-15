@@ -1,0 +1,367 @@
+<?
+if(!isset($praktdbslave)) {
+	require("/home/praktika/etc/gb_config.inc.php");
+}
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	echo "login"; exit();
+}
+
+
+$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "praktikum";
+
+praktikaInclude(array("listen.php","layout.php"));
+
+if (isset($_POST['senden']) &&
+	isset($_POST['beschreibungen']) &&
+	isset($_POST['taetigkeit']) &&
+	isset($_POST['verfall_tag']) &&
+	isset($_POST['verfall_monat']) &&
+	isset($_POST['verfall_jahr']) &&
+	!empty($_POST['beschreibungen']) &&
+	!empty($_POST['taetigkeit']) &&
+	!empty($_POST['verfall_tag']) &&
+	!empty($_POST['verfall_monat']) &&
+	!empty($_POST['verfall_jahr'])) {
+
+	/* datumsfelder zusammensetzen  */
+	$datum_verfall = $_POST['verfall_jahr'].'-'.$_POST['verfall_monat'].'-'.$_POST['verfall_tag'];
+	
+	$branchenselect = mysql_db_query($database_db,'SELECT * FROM branchen WHERE '.$_SESSION['s_sprache'].' <> \'\' ORDER BY '.$_SESSION['s_sprache'],$praktdbslave);
+	while ($row = mysql_fetch_array($branchenselect, MYSQL_ASSOC)) {
+	   $branchen[$row['id']] = $row[$_SESSION['s_sprache']];
+	}
+	
+	if (isset($_POST['branche']) && is_array($_POST['branche'])) {
+		$branchetext = array();
+		foreach ($_POST['branche'] as $brancheitem) {
+			$branchetext[] = $branchen[$brancheitem];
+		}
+	} else {
+		$_POST['branche'] = array();
+		$branchetext = array();
+	}
+	
+	/* einfuegestring zusammensetzen */
+	$insertstring = 'REPLACE INTO prakt2.praktikanten (
+						'.((isset($_POST['gesuch']) && !empty($_POST['gesuch'])) ? 'id,' : '').'
+						inactive,
+						nutzerid,
+						taetigkeit,
+						berufsfeld,
+						praktikumsart,
+						zeitraum_ab_m,
+						zeitraum_ab_y,
+						zeitraum,
+						beschreibung,
+						qualifikation,
+						sonst_qualifikation,
+						studienort,
+						branchen,
+						branchentext,
+						umschulung,
+						vorh_praktika,
+						sprachkenntnisse1,
+						sprachkenntnisse2,
+						sprachkenntnisse3,
+						host,
+						ip,
+						datum_eintrag,
+						datum_verfall,
+						modify
+					) VALUES (
+						'.((isset($_POST['gesuch']) && !empty($_POST['gesuch'])) ? intval($_POST['gesuch']).',' : '').'
+						\''.($_POST["inactive"]=='false'?'false':'true').'\',
+						'.intval($_SESSION['s_nutzerid']).',
+						\''.mysql_real_escape_string($_POST['taetigkeit']).'\',
+						'.intval($_POST['berufsfeld']).',
+						'.intval($_POST['praktikumsart']).',
+						'.intval($_POST['zeitraum_ab_m']).',
+						'.intval($_POST['zeitraum_ab_y']).',
+						\''.mysql_real_escape_string($_POST['zeitraum']).'\',
+						\''.mysql_real_escape_string($_POST['beschreibungen']).'\',
+						'.intval($_POST['qualifikation']).',
+						\''.mysql_real_escape_string($_POST['sonst_qualifikation']).'\',
+						\''.mysql_real_escape_string($_POST['studienort']).'\',
+						\''.implode(',',$_POST['branche']).'\',
+						\''.implode(' ',$branchetext).'\',
+						\''.mysql_real_escape_string($_POST['umschulung']).'\',
+						\''.mysql_real_escape_string($_POST['vorh_praktika']).'\',
+						'.intval($_POST['sprachkenntnisse1']).',
+						'.((isset($_POST['sprachkenntnisse2']) && !empty($_POST['sprachkenntnisse2'])) ? intval($_POST['sprachkenntnisse2']) : 'NULL').',
+						'.((isset($_POST['sprachkenntnisse3']) && !empty($_POST['sprachkenntnisse3'])) ? intval($_POST['sprachkenntnisse3']) : 'NULL').',
+						\''.$host.'\',
+						\''.$ip.'\',
+						NOW(),
+						\''.$datum_verfall.'\',
+						NOW()
+					)';
+	
+	# echo $insertstring;
+	//echo $insertstring;
+	/* datensatz einfuegen */
+	$hDB->query($insertstring,$praktdbmaster);
+	
+	/* id bestimmen */
+	$insert_id = mysql_insert_id($praktdbmaster);
+	
+	/* Logfile eintragen */
+	#$fp = fopen($logfile, 'a');
+	#fputs($fp, $insertstring);
+	#fputs($fp, "\n");
+	#fclose($fp);
+
+    Praktika_Stream::log(1, 1, Praktika_Listen::getTextById("berufsfeld", $_POST['berufsfeld']));
+    
+	/*$emailobj = new emailtemplate(33);
+	$emailobj->replace('{insert_id}',$insert_id);
+	$emailobj->replace('{taetigkeit}',$_POST['taetigkeit']);
+	$emailobj->replace('{berufsfeld}',$_POST['berufsfeld']);
+	$emailobj->replace('{praktikumsart}',$_POST['praktikumsart']);
+	$emailobj->replace('{zeitraum_von}',$_POST['zeitraum_ab_m']);
+	$emailobj->replace('{zeitraum_bis}',$_POST['zeitraum_ab_y']);
+	$emailobj->replace('{zeitraum}',$_POST['zeitraum']);
+	$emailobj->replace('{beschreibung}',$_POST['beschreibungen']);
+	$emailobj->replace('{qualifikation}',$_POST['qualifikation']);
+	$emailobj->replace('{sonst_qualifikation}', $_POST['sonst_qualifikation']);
+	$emailobj->replace('{studienort}',$_POST['studienort']);
+	$emailobj->replace('{umschulung}',$_POST['umschulung']);
+	$emailobj->replace('{vorh_praktika}',$_POST['vorh_praktika']);
+	$emailobj->replace('{sprachkenntnisse1}',$_POST['sprachkenntnisse1']);
+	$emailobj->replace('{sprachkenntnisse2}',$_POST['sprachkenntnisse2']);
+	$emailobj->replace('{sprachkenntnisse3}',$_POST['sprachkenntnisse3']);
+	$emailobj->replace('{datum_verfall}',$datum_verfall);
+	$emailobj->replace('{host}',$host);
+	$emailobj->replace('{ip}',$ip);
+	$emailobj->replace('{datum_eintrag}',date('d-m-Y'));
+	$emailobj->replace('{insertstring}',$insertstring);
+	$emailobj->send_email();
+	unset($emailobj);*/
+	/* infomail zusammenbauen */
+	$subject = 'praktika.de BEWERBER-EINTRAG BERUFSGESUCH: ID: '.$insert_id;
+	$mailstring = 'BEWERBER BERUFSGESUCH - EINTRAG'."\n\n";
+	$mailstring = $mailstring.'NUTZER-ID: '.$_SESSION['s_nutzerid']."\n\n";
+	$mailstring = $mailstring.'ID: '.$insert_id."\n\n";
+	$mailstring = $mailstring.'T&auml;tigkeit: '.$_POST['taetigkeit']."\n";
+	$mailstring = $mailstring.'Berufsfeld: '.$_POST['berufsfeld']."\n";
+	$mailstring = $mailstring.'Praktikumsart: '.$_POST['praktikumsart']."\n";
+	$mailstring = $mailstring.'ab wann: '.$_POST['zeitraum_ab_m'].' '.$_POST['zeitraum_ab_y']."\n";
+	$mailstring = $mailstring.'Zeitraum: '.$_POST['zeitraum']."\n";
+	$mailstring = $mailstring.'Beschreibung: '.$_POST['beschreibungen']."\n";
+	$mailstring = $mailstring.'Qualifikation: '.$_POST['qualifikation']."\n";
+	$mailstring = $mailstring.'sonstige Qualifikationen: '.$_POST['sonst_qualifikation']."\n";
+	$mailstring = $mailstring.'Studienort: '.$_POST['studienort']."\n";
+	$mailstring = $mailstring.'Kenntnisse: '.$_POST['umschulung']."\n";
+	$mailstring = $mailstring.'vorherige Praktika: '.$_POST['vorh_praktika']."\n";
+	$mailstring = $mailstring.'1. Sprache: '.$_POST['sprachkenntnisse1']."\n";
+	$mailstring = $mailstring.'2. Sprache: '.$_POST['sprachkenntnisse2']."\n";
+	$mailstring = $mailstring.'3. Sprache: '.$_POST['sprachkenntnisse3']."\n";
+	$mailstring = $mailstring.'Verfallsdatum: '.$datum_verfall."\n";
+	$mailstring = $mailstring.'Host: '.$host."\n";
+	$mailstring = $mailstring.'IP: '.$ip."\n";
+	$mailstring = $mailstring.'Datum Eintrag: '.date('d-m-Y')."\n";
+	$mailstring = $mailstring."\n\n".'DATENBANKSTRING:'."\n";
+	$mailstring = $mailstring.$insertstring."\n";
+	
+	/* infomail verschicken */
+	mail($infomail, $subject, $mailstring, "From: $infomail\nX-Mailer: praktika.de Mailscript PHP");	
+
+
+
+	/* ---------------------------------------------------------------------------------------------- */
+	
+	/* Praktikumsbeschreibung */
+	echo '<p class="hint success">Ihr Gesuch wurde erfolgreich gespeichert!</p>'."\n";
+	echo '<meta http-equiv="refresh" content="3; url=/Karriere_Center/gesuche">'."\n";
+	echo '<p class="hint info">Sie werden in wenigen Sekunden automatisch zur&uuml;ck zur &Uuml;bersicht weitergeleitet.</p>'."\n";
+	
+echo '<p class="control_panel"><a href="/Karriere_Center/gesuche">zur&uuml;ck zur &Uuml;bersicht</a></p>'."\n";
+} else {
+	echo '<p class="hint info">Tipp: Sie k&ouml;nnen zu Ihrem Gesuch einen <a href="/lebenslauf/">Lebenslauf</a> hinzuf&uuml;gen. Dadurch geben Sie den suchenden Untenehmen die M&ouml;glichkeit, sich ein umfassenderes Bild von Ihrem Gesuch zu verschaffen.</p>';
+	$sprachen = Praktika_Listen::getSprachen();
+	$qualifikationen = Praktika_Listen::getQualifikation();
+	$berufsfelder = Praktika_Listen::getBerufsfeld();
+	$branchen = Praktika_Listen::getBranche();
+	
+	if (isset($gesuchid)) {
+		
+		$_POST['praktikumsart'] = $gesuchData["praktikumsart"];
+		$_POST['taetigkeit'] = $gesuchData["taetigkeit"];
+		$_POST['qualifikation'] = $gesuchData["qualifikation"];
+		$_POST['sonst_qualifikation'] = $gesuchData["sonst_qualifikation"];
+		$_POST['sprachkenntnisse1'] = $gesuchData["sprachkenntnisse1"];
+		$_POST['sprachkenntnisse2'] = $gesuchData["sprachkenntnisse2"];
+		$_POST['sprachkenntnisse3'] = $gesuchData["sprachkenntnisse3"];
+		$_POST['studienort'] = $gesuchData["studienort"];
+		$_POST['umschulung'] = $gesuchData["umschulung"];
+		$_POST['vorh_praktika'] = $gesuchData["vorh_praktika"];
+		$_POST['beschreibungen'] = $gesuchData["beschreibung"];
+		$_POST['berufsfeld'] = $gesuchData["berufsfeld"];
+		$_POST['zeitraum_ab_m'] = $gesuchData["zeitraum_ab_m"];
+		$_POST['zeitraum_ab_y'] = $gesuchData["zeitraum_ab_y"];
+		$_POST['zeitraum'] = $gesuchData["zeitraum"];
+		$_POST['branche'] = explode(",",$gesuchData["branchen"]);
+		$datum_verfall = explode("-",$gesuchData["datum_verfall"]);
+		$_POST['verfall_tag'] = $datum_verfall[2];
+		$_POST['verfall_monat'] = $datum_verfall[1];
+		$_POST['verfall_jahr'] = $datum_verfall[0];
+		$_POST['gesuch'] = $gesuchid;
+	}	
+	
+	if (isset($_POST['senden'])) {
+		echo '<p class="hint error">Leider haben Sie die Felder nicht vollst&auml;ndig ausgef&uuml;llt.<br />Bitte korrigieren Sie Ihre Eingaben.</p>'."\n";
+	}
+
+	if (isset($_POST['senden']) && isset($insertstring)) {
+		if (substr_count($insertstring,'@') > 0 || substr_count($insertstring,'www') > 0) {
+			echo '<p class="hint error">Das Ver&ouml;ffentlichen von eMail- und Internetadressen ist aus Datenschutzgr&uuml;nden nicht erlaubt. Bitte entfernen Sie diese aus ihrem Text.</p>'."\n";
+		}
+	}
+
+	echo '	<form action="#" method="post">'."\n";
+	echo '		<h4>Praktikumsbeschreibung</h4>'."\n";
+	echo '		<fieldset>'."\n";
+
+	echo Praktika_Layout::formInput("taetigkeit",(isset($_POST['taetigkeit']) ? $_POST['taetigkeit'] : ""),array("label"=>"gewünschte Tätigkeit:","labelStyle"=>isset($_POST['senden']) && empty($_POST['taetigkeit'])?'color: #ff0000;':""));
+
+	echo Praktika_Layout::formSelectBox("berufsfeld", $berufsfelder,(isset($_POST['berufsfeld']) ? $_POST['berufsfeld'] :""),array("label"=>"Berufsfeld:"));
+
+	echo Praktika_Layout::formSelectBox("praktikumsart", Praktika_Listen::getPraktikumsart(),(isset($_POST['praktikumsart']) ? $_POST['praktikumsart'] :""),array("label"=>"Praktikumsart:"));
+	
+	echo '			<p>'."\n";
+	echo '				<label for="zeitraum_ab_m"';
+
+	if (isset($_POST['senden']) && isset($_POST['zeitraum_ab_m']) && isset($_POST['zeitraum_ab_y']) &&(($_POST['zeitraum_ab_m'] < 1 || $_POST['zeitraum_ab_m'] > 12 ) || ($_POST['zeitraum_ab_y'] < date('Y')) || (empty($_POST['zeitraum_ab_m']) || empty($_POST['zeitraum_ab_y'])) || $_POST['zeitraum_ab_m'] > $_POST['zeitraum_ab_y']) && empty($zeitraum)) {
+		echo ' style="color: #ff0000;"';
+	}
+	
+	echo '>Zeitraum ab:</label>'."\n";
+	echo '				<select id="zeitraum_ab_m" name="zeitraum_ab_m" class="html_controlled">'."\n";
+
+	if (!isset($_POST['zeitraum_ab_m'])) {
+		$_POST['zeitraum_ab_m'] = date('m');
+	}
+	
+	$i=1;
+	while ($i < 13) {
+		echo '						<option ';
+		if (isset($_POST['zeitraum_ab_m'])) {
+			if  ($i == $_POST['zeitraum_ab_m']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$i.'">'.sprintf("%02.0f",$i).'</option>'."\n";
+		$i++;
+	}
+
+	echo '				</select>&nbsp;/&nbsp;'."\n";
+	echo '				<select name="zeitraum_ab_y" class="html_controlled">'."\n";
+
+	$startyear = date('Y');
+	$i = $startyear;
+	while ($i < ($startyear + 4)) {
+		echo '					<option ';
+		if (isset($_POST['zeitraum_ab_y'])) {
+			if  ($i == $_POST['zeitraum_ab_y']) {
+				echo 'selected="selected" ';
+			}
+		}
+		echo 'value="'.$i.'">'.sprintf("%01.0f",$i).'</option>'."\n";
+		$i++;
+	}
+
+	echo '				</select>'."\n";
+	echo '			</p>'."\n";
+
+	echo Praktika_Layout::formInput("zeitraum",(isset($_POST['zeitraum']) ? $_POST['zeitraum'] : ""),array("label"=>"Zeitraum Dauer:"));
+		
+	if (isset($_POST['branche']) && !is_array($_POST['branche'])) {
+		$_POST['branche'] = array();
+	}
+	
+	$i = 0;
+
+	echo '			<p class="checkboxes">'."\n";
+	echo '				<label for="branche'.$i.'">Branchenauswahl:</label>'."\n";
+	echo '				<span class="checklist2 scrollable">'."\n";
+	
+	for($a = 0;$a < count($branchen);$a++) {
+		$html = $branchen[$a]["title"];
+		
+		echo '					<label for="branche'.$i.'" class="komplette_breite"><input type="checkbox" id="branche'.$i.'" name="branche[]" value="'. $branchen[$a]["id"].'"'.((isset($_POST['branche']) && in_array($branchen[$a]["id"],$_POST['branche'])) ? ' checked="checked"' : '').' /> '.$html.'</label>'."\n";
+
+		$i++;
+	}
+
+	echo '				</span>'."\n";
+	echo '			</p>'."\n";
+	
+	echo Praktika_Layout::formTextarea("beschreibungen",(isset($_POST['beschreibungen']) ? $_POST['beschreibungen'] : ''),array("label"=>"Beschreibung Ihrer Praktikumsvorstellungen:","labelStyle"=>isset($_POST['senden']) && empty($_POST['beschreibungen'])?'color: #ff0000;':"","cols"=>"20","rows"=>"6","textClass"=>"stdStyle"));	
+
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Ihre Person</h4>'."\n";
+	echo '		<fieldset>'."\n";
+
+	
+	echo Praktika_Layout::formSelectBox("qualifikation",$qualifikationen,$gesuchData["qualifikation"],array("label"=>"Qualifikation:"));
+	
+	echo Praktika_Layout::formInput("sonst_qualifikation",(isset($_POST['sonst_qualifikation']) ? $_POST['sonst_qualifikation'] : ""),array("label"=>"sonstige Qualifikation:"));
+	
+	echo Praktika_Layout::formTextarea("umschulung", (isset($_POST['umschulung']) ? $_POST['umschulung'] : ''), array("label"=>"Besondere Kenntnisse:","cols"=>"20","rows"=>"6","textClass"=>"stdStyle"));	
+	
+	echo Praktika_Layout::formTextarea("vorh_praktika",(isset($_POST['vorh_praktika']) ? $_POST['vorh_praktika'] : ''),array("label"=>"Vorherige Praktika:","cols"=>"20","rows"=>"6","textClass"=>"stdStyle"));	
+
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Regionale Einschr&auml;nkungen</h4>'."\n";
+	echo '		<fieldset>'."\n";
+
+	echo Praktika_Layout::formInput("studienort",(isset($_POST['studienort']) ? $_POST['studienort'] : ""),array("label"=>"Praktikumsort:"));
+
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Sprachen</h4>'."\n";
+	echo '		<fieldset>'."\n";
+	
+	echo Praktika_Layout::formSelectBox("sprachkenntnisse1", $sprachen, $gesuchData["sprachkenntnisse1"], array("label"=>"Sprachkenntnisse:"));
+
+	echo '			<p>'."\n";
+	echo '				<label for="sprachkenntnisse2">&nbsp;</label>'."\n";
+	
+	echo Praktika_Layout::formSelectBox("sprachkenntnisse2", $sprachen, $gesuchData["sprachkenntnisse2"]);
+		
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="sprachkenntnisse3">&nbsp;</label>'."\n";
+
+	echo Praktika_Layout::formSelectBox("sprachkenntnisse3", $sprachen, $gesuchData["sprachkenntnisse3"]);
+	
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '		<h4>Verfall des Pratikumsgesuches</h4>'."\n";
+	echo '		<fieldset>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="verfall_tag">Verfallsdatum:</label>'."\n";
+
+	if (empty($_POST['verfall_jahr'])) {
+		$endDate = time()+(86000 * 31 * 3);
+		$verfall_jahr = date("Y", $endDate);
+		$_POST['verfall_monat'] = date("m", $endDate);
+		
+	} else {
+		$verfall_jahr = $_POST['verfall_jahr'];
+	}
+	
+	echo '				<input id="verfall_tag" name="verfall_tag" maxlength="2" size="2" value="'.((isset($_POST['verfall_tag']) && !empty($_POST['verfall_tag'])) ? $_POST['verfall_tag'] : date('d')).'" class="html_controlled" />.<input name="verfall_monat" maxlength="2" size="2" value="'.((isset($_POST['verfall_monat']) && !empty($_POST['verfall_monat'])) ? $_POST['verfall_monat'] : date('m')).'" class="html_controlled" />.<input name="verfall_jahr" maxlength="4" size="4" value="'.$verfall_jahr.'" class="html_controlled" />'."\n";
+	echo '			</p>'."\n";
+	echo '			<p>'."\n";
+	echo '				<label for="inactive" class="komplette_breite"><input type="checkbox" id="inactive" name="inactive" value="false"'.(isset($_POST['inactive']) && $_POST['inactive'] == 'false' ? ' checked="checked"' : '').'/> Ihr Gesuch nach dem Speichern automatisch aktivieren?</label>'."\n";
+	echo '			</p>'."\n";	
+	echo '		</fieldset>'."\n";
+	echo '		<fieldset class="control_panel">'."\n";
+	echo '			<p class="center">'."\n";
+	echo '				<input type="hidden" id="gesuch" name="gesuch" value="'.(isset($gesuchid) ? $gesuchid : '').'" />'."\n";
+	echo '				<a class="button small alternative" href="/Karriere_Center/gesuche">Zur&uuml;ck</a>'."\n";
+	echo '				<input type="submit" class="button small" id="senden" name="senden" value="Speichern" />'."\n";
+	echo '			</p>'."\n";
+	echo '		</fieldset>'."\n";
+	echo '	</form>'."\n";
+}
+?>

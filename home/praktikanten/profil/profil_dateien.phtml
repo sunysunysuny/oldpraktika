@@ -1,0 +1,93 @@
+<?
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if($_POST['act'] == 'rename' && !empty($_POST['id'])) {
+	$sql = '	UPDATE prakt2_bprofil.profil_dateien SET
+					dateiname = \'' . mysql_real_escape_string($_POST['na']) . '\'
+				WHERE
+					nutzerid = \'' . $_SESSION['s_nutzerid'] . '\'
+					AND id = \'' . intval($_POST['id']) . '\'';
+	$hDB->query($sql, $praktdbmaster);
+	
+	Praktika_Lebenslauf::deleteCache();
+	
+	exit();
+}
+
+pageheader(array('page_title' => $language['strUeberschrift']));
+?>
+<script type='text/javascript'>
+	function umbenennen(id, filename, extension) {
+		smallbox.prompt('Bitte geben Sie einen neuen Dateinamen ein.<br /><b>Die Dateiendung (' + extension + ') wird automatisch angehangen!</b>', filename, function(e) {
+				if(this.filename == e) return;
+
+				var newFilename = e + this.extension;
+
+				xhr('/lebenslauf/dateien/', 'act=rename&id=' + this.id + '&na=' + newFilename, function(e) {
+					location.reload();
+					})
+			}.bind({id:id, extension:extension, filename:filename}));
+	}
+</script>
+<?php 
+echo '<div id="recruitingCenter">';
+
+$parts = array('lebenslauf');
+include(SERVER_ROOT . '/public_html/home/praktikanten/kcenter/navi.php');
+
+
+echo '		<p>Hier können Sie Ihre hochgeladenen Dateien, wie z.B. Zertifikate, Bilder oder Zeugnisse verwalten.</p>'."\n";
+echo '		<hr />'."\n";
+
+$rs = mysql_query('SELECT * FROM ' . $database_bprofil . '.profil_dateien WHERE nutzerid = ' . $_SESSION['s_loginid'] . ' ORDER BY id', $praktdbslave);
+
+if ($rs !== false && mysql_num_rows($rs) > 0) {
+	$num = mysql_num_rows($rs);
+	
+	echo '		<p>Es wurden '.$num.' im Profil hinterlegte Dateien gefunden.<br /><br /></p>'."\n";
+
+	$i=0;
+	echo '		<table>'."\n";
+	echo '			<colgroup>'."\n";
+	echo '				<col width="10%" />'."\n";
+	echo '				<col width="60%" />'."\n";
+	echo '				<col width="10%" />'."\n";
+	echo '				<col width="20%" />'."\n";
+	echo '			</colgroup>'."\n";
+	while ($i < $num) {
+		$resultid = mysql_result($rs, $i, 'id');
+		
+		echo '			<tr class="'.(($i%2 == 0) ? 'odd' : 'even').'">'."\n";
+		echo '				<td><img src="/styles/images/icons/'.mysql_result($rs,$i,'format').'.png" alt="" /></td>'."\n";
+		echo '				<td><a href="/lebenslauf/dateien/show/'.mysql_result($rs,$i,'id').'/" target="_blank" >'.Praktika_String::cutLength(mysql_result($rs,$i,'dateiname'),300).'</a></td>'."\n";
+		echo '				<td>'.strtoupper(mysql_result($rs,$i,'format')).'</td>'."\n";
+		echo '				<td>'."\n";
+		echo '					<a href="#" style="line-height:30px;" onclick="umbenennen('.mysql_result($rs,$i,'id').',\''.substr(mysql_result($rs,$i,'dateiname'),0,strrpos(mysql_result($rs,$i,'dateiname'),".")).'\',\''.substr(mysql_result($rs,$i,'dateiname'),strrpos(mysql_result($rs,$i,'dateiname'),".")).'\'); return false;" title="Datei umbenennen" target="_blank"><img src="/styles/images/icons/bewerbungsschreiben_aendern.png" alt="Datei umbenennen" /></a>&nbsp;&nbsp;&nbsp;'."\n";
+		echo '					<a href="/lebenslauf/dateien/save/'.mysql_result($rs,$i,'id').'/1/" title="Datei herunterladen" ><img src="/styles/images/icons/ordner_cand.gif" alt="Datei herunterladen" /></a>&nbsp;&nbsp;&nbsp;'."\n";
+		echo '					<a href="/lebenslauf/dateien/deletefile/'.mysql_result($rs,$i,'id').'/" title="Datei löschen"><img src="/styles/images/icons/papierkorb_cand.gif" alt="Datei löschen" /></a>'."\n";
+		echo '				</td>'."\n";
+		echo '			</tr>'."\n";
+		
+		$i++;
+	}
+	echo '</table>'."\n";
+} else {
+	echo '<p>'.$language['strKeineDateien'].'<br /><br /></p>'."\n";
+}
+
+echo '		<p class="control"><a onmouseover="window.status=\'zur Anfrage\'; return true;" href="/lebenslauf/dateien/upload/" class="button">Neue Datei hochladen</a></p>'."\n";
+echo '		<p class="control">'."\n";
+echo '			<a href="/lebenslauf/" class="button small alternative">Zurück zur Lebenslaufübersicht</a>'."\n";
+echo '		</p>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

@@ -1,0 +1,1534 @@
+<?php
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_COMPANY;
+$_SESSION['current_page'] = PAGE_RECRUITING_CENTER;
+$_SESSION['current_user_group'] = USER_GROUP_COMPANIES;
+$_SESSION['sidebar'] = 'centers';
+
+praktikaInclude(array("db.php"));
+$hDB = new Praktika_Db();
+
+$logoFilename = 'resultlogo.gif';
+$logoPath = '/home/praktika/public_html/user/'.$_SESSION['s_firmenid']."/";
+
+if (isset($_GET['bereich'])) {
+	$bereich = intval($_GET['bereich']);
+}
+
+if (isset($_GET['subbereich'])) {
+	$subbereich = intval($_GET['subbereich']);
+}
+
+// Check ob einer aus nem Onlinebewerbungslink kommt
+if (isset($_SESSION['s_bewerbungsanzeige'][0]) && $_SESSION['s_bewerbungsanzeige'][0] == 1) {
+	$bereich = 1;
+	$_SESSION['s_bereich'] = 1;
+}
+
+if (!isset($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'])) {
+	$_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] = '%';
+} elseif (isset($_REQUEST["bearbeiterfilter"])) {
+	$_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] = $_REQUEST["bearbeiterfilter"];
+}
+
+if (isset($bereich) && isset($subbereich) && $bereich == 5 && $subbereich == 0) {
+	header('Location: /home/firmen/suchen/mailing.phtml');
+	exit;
+}
+
+if (isset($_GET['ds_count']) && !empty($_GET['ds_count'])) {
+	$ds_value = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_count'] = $_GET['ds_value'];
+	$ds_count = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_value'] = $_GET['ds_count'];
+} else {
+	$ds_value = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_count'] = 1;
+	$ds_count = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_value'] = 0;
+}
+
+if (isset($_GET['ds_pro_seite']) && !empty($_GET['ds_pro_seite'])) {
+	$ds_pro_seite = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_pro_seite'] = $_GET['ds_pro_seite'];
+} else {
+	$ds_pro_seite = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ds_pro_seite'] = 10;
+}
+
+if (isset($_GET['ordnerid']) && (!empty($_GET['ordnerid']) || $_GET['ordnerid'] == 0)) {
+	$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'] = $_GET['ordnerid'];
+} else {
+	if (!isset($_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'])) {
+		$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'] = 0;
+	}
+}
+
+if (isset($subbereich) && !empty($subbereich)) {
+	$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['subbereich'] = $subbereich;
+} else {
+	$subbereich = $_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['subbereich'] = 0;
+}
+
+if (isset($_GET['sort']) && !empty($_GET['sort'])) {
+	$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'] = $_GET['sort'];
+} else {
+	if (!isset($_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'])) {
+		$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'] = 'datum-desc';
+	}
+}
+
+mysql_select_db($database_db, $praktdbmaster);
+
+// Funktion ausschlie&szlig;lich f&uuml;r Firmenbookmarks
+function sortierung_bookmark($firmenarray,$sort,$ordnername) {
+	global $database_db,$praktdbslave,$subbereich,$ds_count;
+	
+	$esortiert = 'Merkzettel';
+	
+	if ($ordnername > 0) {
+		$ordner = mysql_db_query($database_db,'SELECT name FROM firmenordner WHERE id = '.intval($ordnername),$praktdbslave);
+		$esortiert = mysql_result($ordner,0,'name');
+	}
+	
+	$content = '';
+	
+	$content .= '<p><strong>'.$esortiert.'</strong> sortiert nach:';
+
+	$sortsplit = explode('-',$sort);
+	
+	//Sortierungsregel 1= Alter desc, 2 = Alter asc
+	if ($sortsplit[0] == 'alter' && $sortsplit[1] == 'asc')  {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="j&uuml;ngere Kandidaten zuerst ausgeben" title="j&uuml;ngere Kandidaten zuerst ausgeben" />';
+	}
+	if ($sortsplit[0] == 'alter' && $sortsplit[1] == 'desc') {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="&auml;ltere Kandidaten zuletzt ausgeben" title="&auml;ltere Kandidaten zuletzt ausgeben" />';
+	}
+	if ($sortsplit[0] == 'alter') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'desc';
+	}
+	
+//	$content .= '&nbsp;<a href="/recruiting/?sort=alter-'.$aufab.'&bereich='.$_SESSION['s_bereich'].'&subbereich='.$subbereich.'&ordnerid='.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'&ds_count='.$ds_count.'">Alter'.$bildbereich.'</a>';
+	$content .= '&nbsp;<a href="/recruiting/sort_alter/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">Alter'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	//sortierungsregel 5= Karrierestatus desc, 6 = Karrierestatus asc
+	if ($sortsplit[0] == 'karrierestatus' && $sortsplit[1] == 'asc')  {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="Karrierestatus alphabetisch sortiert" title="Karrierestatus alphabetisch sortiert" />';
+	}
+	if ($sortsplit[0] == 'karrierestatus' && $sortsplit[1] == 'desc') {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="Karrierestatus alphabetisch sortiert" title="Karrierestatus alphabetisch sortiert" />';
+	}
+	if ($sortsplit[0] == 'karrierestatus') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'asc';
+	}
+	$content .= '&nbsp;<a href="/recruiting/sort_karrierestatus/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">Karrierestatus'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	//sortierungsregel 1= Ort desc, 2 = Ort asc
+	if ($sortsplit[0] == 'ort' && $sortsplit[1] == 'asc')  $bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="Ort alphabetisch aufsteigend ausgeben" title="Ort alphabetisch aufsteigend ausgeben" />';
+	if ($sortsplit[0] == 'ort' && $sortsplit[1] == 'desc') $bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="Ort alphabetisch absteigend ausgeben" title="Ort alphabetisch absteigend ausgeben" />';
+	if ($sortsplit[0] == 'ort') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'desc';
+	}
+	
+	$content .= '&nbsp;<a href="/recruiting/sort_ort/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">Ort'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	//sortierungsregel 7= Plz desc, 8 = Plz asc
+	if ($sortsplit[0] == 'plz' && $sortsplit[1] == 'asc')  {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="PLZ Bereich 9 zuerst" title="PLZ Bereich 9 zuerst" />';
+	}
+	if ($sortsplit[0] == 'plz' && $sortsplit[1] == 'desc') {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="PLZ Bereich 0 zuerst" title="PLZ Bereich 0 zuerst" />';
+	}
+	if ($sortsplit[0] == 'plz') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'desc';
+	}
+	
+	$content .= '&nbsp;<a href="/recruiting/sort_plz/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">PLZ'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	$content .= '<p>Aktionen:'."\n";
+	
+	//sortierungsregel 1= bezeichnung desc, 2 = bezeichnung asc
+	if ($sortsplit[0] == 'bezeichnung' && $sortsplit[1] == 'asc') {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="Bezeichnung alphabetisch aufsteigend ausgeben" title="Bezeichnung alphabetisch aufsteigend ausgeben" />';
+	}
+	if ($sortsplit[0] == 'bezeichnung' && $sortsplit[1] == 'desc'){
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="Bezeichnung alphabetisch absteigend ausgeben" title="Bezeichnung alphabetisch absteigend ausgeben" />';
+	}
+	if ($sortsplit[0] == 'bezeichnung') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'desc';
+	}
+	
+	$content .= '&nbsp;<a href="/recruiting/sort_bezeichnung/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">Bezeichnung'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	//sortierungsregel 1= bezeichnung desc, 2 = bezeichnung asc
+	if ($sortsplit[0] == 'bewerbersort' && $sortsplit[1] == 'asc')  {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_unten.png" alt="Bezeichnung alphabetisch aufsteigend ausgeben" title="Bezeichnung alphabetisch aufsteigend ausgeben" />';
+	}
+	if ($sortsplit[0] == 'bewerbersort' && $sortsplit[1] == 'desc') {
+		$bildbereich = '&nbsp;<img src="/styles/images/icons/pfeil_oben.png" alt="Bezeichnung alphabetisch absteigend ausgeben" title="Bezeichnung alphabetisch absteigend ausgeben" />';
+	}
+	if ($sortsplit[0] == 'bewerbersort') {
+		if($sortsplit[1] == 'asc') {
+			$aufab = 'desc';
+		} else {
+			$aufab = 'asc';
+		}
+	} else {
+		$aufab = 'desc';
+	}
+	
+	$content .= '&nbsp;<a href="/recruiting/?sort_bewerbersort/'.($aufab == 'desc' ? 'absteigend' : 'aufsteigend').'/'.$_SESSION['s_bereich'].'/'.$subbereich.'/'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'/'.$ds_count.'/">Name'.$bildbereich.'</a>';
+	$bildbereich = '';
+	
+	if ($sortsplit[0] == 'karrierestatus') {
+		$bereichsortierung = 'karrierestatus';
+	}
+	if ($sortsplit[0] == 'alter') {
+		$bereichsortierung = 'alter';
+	}
+	if ($sortsplit[0] == 'ort') {
+		$bereichsortierung = 'ort';
+	}
+	if ($sortsplit[0] == 'plz') {
+		$bereichsortierung = 'plz';
+	}
+	if ($sortsplit[0] == 'bewerbersort') {
+		$bereichsortierung = 'bewerber';
+	}
+	
+	if ($sortsplit[0] != 'karrierestatus' && $sortsplit[0] != 'alter' && $sortsplit[0] != 'ort' && $sortsplit[0] != 'plz' && $sortsplit[0] != 'bewerbersort') {
+		$bereichsortierung = 'nutzerid';
+	}
+	
+	if ($sortsplit[1] == 'asc') {
+		$firmenarray  = array_csort($firmenarray,$bereichsortierung,SORT_ASC);
+	} else {
+		$firmenarray  = array_csort($firmenarray,$bereichsortierung,SORT_DESC);
+	}
+	
+	return $rueckgabe = array(0 => $firmenarray, 1 => $content);
+}
+
+pageheader(array('page_title' => 'Recruiting Center'));
+echo '<link type="text/css" media="screen,print" rel="stylesheet" href="/styles/v2/screen/bcenter.css" />';
+$aktPage = $_SESSION["s_firmenproparray"]["lastPage"];
+?>
+<script type='text/javascript' src='/scripts/microajax.js'></script>
+<script type='text/javascript' src='/scripts/ajax/bcenter.js'></script>
+
+<div id="recruitingCenter">
+	<div id="recr_navi">
+		<ol style="list-style-type:none; padding:0px;margin:0px;">
+			<li id="tab_1" style="margin:0px;"class="naviButton rightBorder <?=$aktPage=="messaging/index"?"active":"" ?>" onclick='setActiveTab($("tab_1"));loadContent("messaging/index");'>
+				<img src='/gifs/bcenter/account_mail.gif' alt="Firmendaten" title="Firmendaten"  />	
+				<div class="naviLabel">Bewerbungen</div>
+				
+			</li>
+			<li id="tab_2" style="margin:0px;" class="naviButton rightBorder leftBorder <?=$aktPage=="firmendaten/index"?"active":"" ?>" onclick='setActiveTab($("tab_2")); loadContent("firmendaten/index");'>
+				
+				<img src='/gifs/bcenter/account_daten.gif' alt="Firmendaten" title="Firmendaten" /><div class="naviLabel">Firmendaten</div>
+			</li>
+			<li id="tab_3" style="margin:0px;"class="naviButton rightBorder leftBorder <?=$aktPage=="firmenprofil/index"?"active":"" ?>" onclick='setActiveTab($("tab_3"));loadContent("firmenprofil/index");'>
+				
+				<img src='/gifs/bcenter/account_profil.gif' alt="Firmenprofil" title="Firmenprofil" /><div class="naviLabel">Firmenprofil</div>
+			</li>
+			<li id="tab_4" style="margin:0px;"class="naviButton rightBorder leftBorder <?=$aktPage=="bearbeiter/index"?"active":"" ?>" onclick='setActiveTab($("tab_4"));loadContent("bearbeiter/index");'>
+				
+				<img src='/gifs/bcenter/account_bearbeiter.gif' alt="Bearbeiterübersicht" title="Bearbeiterübersicht" /><div class="naviLabel">Bearbeiter</div>
+			</li>
+			<li  id="tab_5"style="margin:0px;" class="naviButton leftBorder <?=$aktPage=="logo/index"?"active":"" ?>" onclick='setActiveTab($("tab_5"));loadContent("logo/index");'>
+				
+				<img src='/gifs/bcenter/account_logo.gif' alt="Logo" title="Logo" />
+			<div class="naviLabel">Logo einstellen</div>	
+			</li>			
+		</ol>
+				
+	</div>
+	<div id="hinweis_arrow"  class="notiz_arrow" style="padding-left:10px;display:none;"><img src="/gifs/bcenter/hinweis_arrow.gif" alt="Hinweismarker" title="Hinweismarker" /></div>
+	<div id="hinweis"style="display:none;"  class="hinweis">Achtung: Sie müssen das und das noch erledigen</div>
+	<div id="recr_container" style="margin-top:20px;">
+	<?
+	
+		if(!empty($_SESSION["s_firmenproparray"]["lastPage"])) {
+			
+			eval("include '/home/praktika/public_html/home/firmen/bcenter/".$_SESSION["s_firmenproparray"]["lastPage"].".phtml';");
+		}
+		if(empty($_SESSION["s_firmenproparray"]["lastPage"])) {
+			eval("include '/home/praktika/public_html/home/firmen/bcenter/messaging/index.phtml';");
+		}
+	?>
+	</div>
+</div>
+
+<script type="text/javascript">
+	<? 
+		$hinweis = array();
+		if(!is_dir($logoPath) || !file_exists($logoPath.'/'.$logoFilename)) { 
+				$hinweis[] = array("logo",'Achtung: Sie haben noch kein Logo hochgeladen. Ihre Anzeigen wirken seriöser und vollständiger, wenn ein Logo vorhanden ist.');
+		} 
+		
+		if(count($hinweis) > 0) {
+			echo "setHinweis('logo','Achtung: Sie haben noch kein Logo hochgeladen. Ihre Anzeigen wirken seriöser und vollständiger, wenn ein Logo vorhanden ist.');";
+		} else {
+			echo "setHinweisHide();";
+		}
+	
+	switch($_SESSION["s_firmenproparray"]["lastPage"])	 {
+		case "messaging/index":
+			$tab = 1;
+			break;
+		case "firmendaten/index":
+			$tab = 2;
+			break;
+		case "firmenprofil/index":
+			$tab = 3;
+			break;
+		case "bearbeiter/index":
+			$tab = 4;
+			break;
+		case "logo/index":
+			$tab = 5;
+			break;
+	}
+	
+	?>
+	oldActiveTab = "tab_<?=$tab ?>";
+</script>
+<?
+bodyoff();
+exit();
+if (isset($_GET['delete'])) {
+	/* einfuegestring zusammensetzen */
+	if ($_GET['bereich'] == 1) {
+		$dbstring = 'UPDATE bewerbung SET inactive=\'true\' WHERE id='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+	} elseif ($_GET['bereich'] == 2) {
+		$dbstring = 'UPDATE firmenkontakte SET inactive=\'true\' WHERE id='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+	} elseif ($_GET['bereich'] == 3) {
+		if (isset($_GET['nicht_da'])) {
+			$dbstring = 'UPDATE bewerberkontakte SET inactive=\'true\' WHERE nutzerid='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+		} else {
+			$dbstring = 'UPDATE bewerberkontakte SET inactive=\'true\' WHERE id='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+		}
+	} elseif ($_GET['bereich'] == 4) {
+		if (isset($_GET['nicht_da'])) {
+			$dbstring = 'DELETE FROM firmenbookmark WHERE nutzerid='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+		} else {
+			$dbstring = 'DELETE FROM firmenbookmark WHERE id='.intval($_GET['id']).' AND firmenid = '.intval($_SESSION['s_firmenid']);
+		}
+	}
+	// datensatz loeschen
+	mysql_db_query($database_db,$dbstring,$praktdbmaster);
+
+	echo '<p class="success">Der Eintrag wurde erfolgreich gel&ouml;scht!</p>'."\n";
+} // sorting_bookmark
+
+
+$ordnerquery = ' AND ordner = '.intval($_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+$ordnerqueryf = ' AND fordner = '.intval($_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+
+
+switch ($_SESSION['s_bereich']) {
+    case 1:
+    	$sql = '
+					SELECT
+						bewerbung.nutzerid,
+						bewerbung.bewerber_lesebestaetigt AS gelesen,
+						bewerbung.spalte,
+						bewerbung.prakstellenid,
+						nutzer.plz,
+						nutzer.ort,
+						bewerbung.bearbeiterid,
+						bewerbung.id AS bewerbid,
+						unix_timestamp(bewerbung.modify) AS datum
+					FROM
+						bewerbung,
+						nutzer
+					WHERE
+						bewerbung.firmenid = '.intval($_SESSION['s_firmenid']).'
+						AND bewerbung.preview = \'false\'
+						AND bewerbung.inactive = \'false\'
+						AND nutzer.inactive = \'false\'
+						'.$ordnerqueryf.'
+						AND nutzer.id = bewerbung.nutzerid
+						AND bewerbung.bearbeiterid LIKE \''.mysql_real_escape_string($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val']).'\'
+					ORDER BY
+						bewerbung.modify DESC
+    			';
+
+		$results3 = $hDB->query($sql, $praktdbslave);
+    break;
+    case 2:
+    	$sql = '
+					SELECT
+						id AS mitteilungsid,
+						inactive,
+						nutzerid,
+						bearbeiterid,
+						gelesen,
+						betreff,
+						UNIX_TIMESTAMP(datum) AS datum,
+						spalte
+					FROM
+						firmenkontakte
+					WHERE
+						firmenid = '.intval($_SESSION['s_firmenid']).'
+						'.$ordnerquery.'
+						AND inactive = \'false\'
+						AND bearbeiterid LIKE \''.mysql_real_escape_string($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val']).'\'
+					ORDER BY
+						id DESC
+				';
+    	
+		$results1 = $hDB->query($sql, $praktdbslave);
+    break;
+    case 3:
+    	$sql = '
+					SELECT
+						id,
+						nutzerid,
+						firmenid,
+						bearbeiterid,
+						betreff,
+						gelesen,
+						spalte,
+						UNIX_TIMESTAMP(datum) AS datum,
+						id AS mitteilungsid
+					FROM
+						bewerberkontakte
+					WHERE
+						firmenid = '.intval($_SESSION['s_firmenid']).'
+						'.$ordnerqueryf.'
+						AND inactive = \'false\'
+						AND bearbeiterid LIKE \''.mysql_real_escape_string($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val']).'\'
+					ORDER BY
+						id DESC
+				';
+    	
+		$results2 = $hDB->query($sql, $praktdbslave);
+    break;
+    case 4:
+    	$sql = '
+					SELECT
+						id AS bookmarkid,
+						nutzerid,
+						art,
+						UNIX_TIMESTAMP(datum_eintrag) AS datum,
+						mzbezeichnung AS bezeichnung,
+						stellenid,
+						spalte
+					FROM
+						firmenbookmark
+					WHERE
+						firmenid = '.intval($_SESSION['s_firmenid']).' '.$ordnerquery.'
+					ORDER BY
+						nutzerid DESC
+				';
+
+		$results4 = $hDB->query($sql, $praktdbslave);
+    break;
+}
+
+$profileresult = mysql_db_query($database_db,'SELECT count(id) AS anzahl FROM firmenprofil WHERE inactive=\'false\' AND firmenid = '.intval($_SESSION['s_firmenid']),$praktdbmaster);
+
+if ($profileresult == true && mysql_result($profileresult,0,'anzahl') == 0 ) {
+	echo '<p><span class="error">Achtung:</span> Sie haben noch kein <a href="/firmen/profil/">Unternehmensprofil</a> in Ihrem Account freigeschaltet. Damit sich Bewerber intensiv mit den ausgeschriebenen Stellen besch&auml;ftigen k&ouml;nnen, ist es notwendig dieses Unternehmensprofil vollst&auml;ndig auszuf&uuml;llen und freizuschalten: <a href="/firmen/profil/">Zum Unternehmensprofil</a></p>'."\n";
+}
+
+include '/home/praktika/etc/navibaumfirmen.inc.php';
+if (isset($_GET)) {
+	if (isset($_GET['z']) && !empty($_GET['z'])) {
+		$z = $_GET['z'];
+	}
+	if (isset($_GET['seitenzaehler']) && !empty($_GET['seitenzaehler'])) {
+		$seitenzaehler = $_GET['seitenzaehler'];
+	}
+}
+echo '	<div id="bcenter">'."\n";
+
+// Ab hier beginnt die Ausgabe
+switch ($_SESSION['s_bereich']) {
+	// BEGINN BEWERBUNGSAUSGABE
+    case 1:
+		$num_rows = 0;
+
+		// abfrage ausfuehren  //
+		$results = $results3;
+
+		if ($results == true) {
+			$num_rows = mysql_num_rows($results);
+			
+			if ($num_rows > $ds_pro_seite) {
+				$pages = intval($num_rows / $ds_pro_seite);
+				if ($num_rows % $ds_pro_seite) {
+					$pages++;
+				}
+			}			
+			if (!isset($z) && !isset($seitenzaehler)) {
+				$seitenzaehler = 10;
+				$z = 1;
+			}
+			if (!isset($seitenzaehler) && $pages >= 10) {
+				$seitenzaehler = 10;
+				$z = 1;
+			}
+			if ($seitenzaehler > $pages) {
+				$seitenzaehler = $pages;
+			}
+
+			$i = 0;
+			while ($result_row = mysql_fetch_array($results)) {
+				$firmenkontaktarray[$i] = $result_row;
+				$nutzerid = $firmenkontaktarray[$i]['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM nutzer WHERE id='.intval($nutzerid).' AND inactive=\'false\'',$praktdbslave);
+				$nutzerarray = mysql_fetch_array($nutzer);
+				$firmenkontaktarray[$i][8] = $nutzerarray['name'];
+				$firmenkontaktarray[$i]['bewerber'] = $nutzerarray['name'];
+				$bearbeiterid = $firmenkontaktarray[$i]['bearbeiterid'];
+				$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id='.intval($bearbeiterid),$praktdbslave);
+				
+				if (mysql_numrows($bearbeiter) == 0) {
+					$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id='.intval($_SESSION['s_loginid']),$praktdbslave);
+				}
+				
+				$bearbeiterarray = mysql_fetch_array($bearbeiter);
+				$firmenkontaktarray[$i][9] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				$firmenkontaktarray[$i]['bearbeiter'] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				
+				$i++;
+			}
+		}
+		
+		if ($num_rows > 0) {
+			// erste seite? //
+			if (!isset($ds_count)) {
+				$ds_count = 0;
+			}
+			$ds_value = $ds_count;
+	
+			// datensaetze pro seite ueberpruefen und setzen //
+			if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20))) {
+				$ds_pro_seite = 10;
+			}
+	
+			if ($num_rows == $ds_count) {
+				$ds_count = $ds_count - $ds_pro_seite;
+				$ds_value = $ds_value - $ds_pro_seite;
+			}
+	
+			$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE firmenid='.intval($_SESSION['s_firmenid']),$praktdbslave);
+	
+			echo '		<form name="bearbeiterfilterwahl" method="post" action="/recruiting/">'."\n";
+			echo '			<fieldset>'."\n";
+			echo '				<p>'."\n";
+			echo '					<label for="bearbeiterfilter">Anzahl der Bewerbungen: '.$num_rows.'</label>'."\n";
+			echo '					<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="this.form.submit();">'."\n";
+			echo '						<option value="%">alle</option>'."\n";
+			
+			while ($bearbeiter_row = mysql_fetch_array($bearbeiter)) {
+				echo '						<option value="'.$bearbeiter_row['id'].'"';
+				
+				if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiter_row['id']) {
+					echo ' selected="selected"';
+				}
+				
+				echo '>'.$bearbeiter_row['anrede'].' '.$bearbeiter_row['vname'].' '.$bearbeiter_row['name'].'</option>'."\n";
+			}
+			
+			echo '					</select>'."\n";
+			
+			echo '				</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+			echo '				<input type="hidden" name="ds_count" value="0" />'."\n";
+			echo '			</fieldset>'."\n";
+			echo '		</form>'."\n";
+
+			$ds_fest = $ds_count;
+	
+			$rueckgabe = sortierung($firmenkontaktarray,$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'],$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+			
+			echo $rueckgabe[1];
+			
+			$firmenkontaktarray = $rueckgabe[0];
+
+			/* Datensaetze anzeigen */
+			$end_ds = min(($ds_count + $ds_pro_seite), ($num_rows));
+	
+			echo '		<table>'."\n";
+			echo '			<colgroup>'."\n";
+			echo '				<col width="5%" />'."\n";
+			echo '				<col width="90%" />'."\n";
+			echo '				<col width="5%" />'."\n";
+			echo '			</colgroup>'."\n";
+			echo '			<tr>'."\n";
+			echo '				<th>Status</th>'."\n";
+			echo '				<th>Bewerberinformation</th>'."\n";
+			echo '				<th>&nbsp;</th>'."\n";
+			echo '			</tr>'."\n";
+
+			for ($i = $ds_count; $i < $end_ds; $i++) {
+				$result_row = $firmenkontaktarray[$i];
+				$stellenid = $result_row['prakstellenid'];
+
+				/* Nutzer herausbekommen */
+				$nutzerid = $result_row['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT anrede,name,vname FROM nutzer WHERE id='.intval($nutzerid).' AND inactive=\'false\'',$praktdbslave);
+
+				/* Stellentitel herausbekommen */
+				$stelle = mysql_db_query($database_db,'SELECT jobcode, taetigkeit FROM stellen WHERE id='.intval($stellenid).' AND inactive=\'false\' AND spalte ='.$result_row['spalte'],$praktdbslave);
+
+				$result_stelle = mysql_fetch_array($stelle);
+
+				$lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($nutzerid).' AND sprachid=2',$praktdbslave);
+				if (mysql_num_rows($lebenslauf) > 0) {
+					$row = mysql_fetch_array($lebenslauf);
+					$lebenslauftemplate = $row['lebenslauftemplate'];
+				} else {
+					$lebenslauftemplate = '01';
+				}
+				
+				echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even' : ' class="odd').'">'."\n";
+				echo '				<td style="text-align: center;">'.($result_row['gelesen'] == 'false' ? '<img src="/styles/images/icons/neu1.png" alt="neu" title="neu" width="16" height="16" />' : '').'</td>'."\n";
+				echo '				<td>Bewerbung von: <a href="/bewerbungsmappe_ansehen/'.$nutzerid.'/'.$result_row['bewerbid'].'/'.$lebenslauftemplate.'/" onclick="return PB_showFullScreen(\'\', this.href)">'.mysql_result($nutzer,0,'anrede').' '.mysql_result($nutzer,0,'vname').' '.mysql_result($nutzer,0,'name').'</a><br />'.$language['strOrt'].': '.$result_row['plz'].' '.$result_row['ort'];
+				echo '<br />'.$language['strBewerbungvom'].': '.strftime('%x',$result_row['datum']);
+
+				// Ausgabe des Bereichs
+				if ($result_row['spalte'] == SECTION_PRAKTIKUM) {
+					$bereichsname = SECTION_PRAKTIKUM_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_DIPLOM) {
+					$bereichsname = SECTION_DIPLOM_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_NEBENJOB) {
+					$bereichsname = SECTION_NEBENJOB_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_AUSBILDUNG) {
+					$bereichsname = SECTION_AUSBILDUNG_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_BERUFSEINSTIEG) {
+					$bereichsname = SECTION_BERUFSEINSTIEG_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_PROJEKT) {
+					$bereichsname = SECTION_PROJEKT_ALPHA;
+				} elseif ($result_row['spalte'] == SECTION_TRAINEE) {
+					$bereichsname = SECTION_TRAINEE_ALPHA;
+				}
+				
+				echo '<br />Bereich: '.$bereichsname;
+			    
+				if ($result_row['bearbeiterid'] != 0) {
+					$bearbeiteridval = $result_row['bearbeiterid'];
+					$bearbeitersel = mysql_db_query($database_db,'SELECT vname,name FROM bearbeiter WHERE id='.intval($bearbeiteridval).' AND firmenid='.intval($_SESSION['s_firmenid']).' AND inactive=\'false\'',$praktdbslave);
+					$vorname = mysql_result($bearbeitersel,0,'vname');
+					
+					if (($bearbeitersel != false) && mysql_num_rows($bearbeitersel) > 0) {
+						if (($bearbeitersel != false) && mysql_num_rows($bearbeitersel) > 0 && !empty($vorname)) {
+							echo '<br />betreut von: '.mysql_result($bearbeitersel,0,'vname').' '.mysql_result($bearbeitersel,0,'name')."\n";
+						}
+					}
+				}
+
+				echo '</td>'."\n";
+				echo '				<td rowspan="2">'."\n";
+				echo '					<p class="icons_vertical">'."\n";
+				echo '						<span><a href="/bewerbungsmappe_ansehen/'.$nutzerid.'/'.$result_row['bewerbid'].'/'.$lebenslauftemplate.'/" onclick="return PB_showFullScreen(\'\', this.href)"><img src="/styles/images/icons/lupe.png" alt="'.$language['strBewerbungansehen'].'" title="'.$language['strBewerbungansehen'].'" /></a><br /></span>'."\n";
+				echo '						<span><a href="/recruiting/antwort/'.$nutzerid.'/'.$result_row['bewerbid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/mail.png" alt="Antworten" title="Antworten" /></a><br /></span>'."\n";
+		    	echo '						<span><a href="/recruiting/weiterleitung/'.$result_row['bewerbid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/weiterleiten.png" alt="'.$language['strBewerbungweiterleiten'].'" title="'.$language['strBewerbungweiterleiten'].'" /></a><br /></span>'."\n";
+		    	echo '						<span><a href="/recruiting/verschieben/'.$result_row['bewerbid'].'/'.$_SESSION['s_bereich'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/ordner.png" alt="Diese Bewerbung verschieben" title="Diese Bewerbung verschieben" /></a><br /></span>'."\n";
+			    echo '						<span><a href="/recruiting/loeschen/'.$result_row['bewerbid'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Bewerbung wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strBewerbungloeschen'].'" title="'.$language['strBewerbungloeschen'].'" /></a></span>'."\n";
+				echo '					</p>'."\n";
+				echo '				</td>'."\n";
+				echo '			</tr>'."\n";
+				echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even"' : ' class="odd"').'>'."\n";
+				echo '				<td>&nbsp;</td>'."\n";
+				echo '				<td><strong>Stelle: '.$result_stelle['taetigkeit'].'</strong><br />Stellencode: '.$result_stelle['jobcode'].'</td>'."\n";
+				echo '			</tr>'."\n";
+				echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even bewerber' : ' class="odd bewerber').'">'."\n";
+				echo '				<td>&nbsp;</td>'."\n";
+				echo '				<td colspan="2">'."\n";
+				require("/home/praktika/etc/bearbeitungsstatus.inc.php");
+				echo '				</td>'."\n";
+				echo '			</tr>'."\n";
+				$ds_count += 1;
+			}
+
+			echo '		</table>'."\n";
+			if (isset($_SESSION['s_bewerbungsanzeige'][1])) {
+				//Popup der einzelnen Bewerbungsanzeige
+				$sql = 'SELECT id AS bewerbid, nutzerid, spalte, lebenslauflayout FROM bewerbung WHERE OLD_PASSWORD(concat(id,\''.$cryptbasis.'\')) = \''.mysql_real_escape_string($_SESSION['s_bewerbungsanzeige'][1]).'\' AND firmenid = '.intval($_SESSION['s_firmenid']).' AND inactive = \'false\' AND preview = \'false\'';
+				$checkbewerbung = mysql_db_query($database_db,$sql,$praktdbslave);
+	
+				if ($checkbewerbung == true && mysql_numrows($checkbewerbung) > 0) {
+					echo '		<script>'."\n";
+					echo '		     PB_showFullScreen(\'\', \'/bewerbungsmappe_ansehen/'.mysql_result($checkbewerbung,0,'nutzerid').'/'.mysql_result($checkbewerbung,0,'bewerbid').'/'.mysql_result($checkbewerbung,0,'lebenslauflayout').'\');'."\n";
+					echo '		</script>'."\n";
+					
+					//Wegl&ouml;schen der einzelnen Bewerbungsanzeige
+					if ($_SESSION['s_bewerbungsanzeige'][0] == 1) {
+						unset($_SESSION['s_bewerbungsanzeige']);
+					}
+				}
+			}
+
+			mysql_free_result($results); 
+
+			unset($_SESSION['s_bewerbungsanzeige'][1]);
+			
+			if ($ds_count > $ds_pro_seite) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.($ds_value - $ds_pro_seite).'" />'."\n";
+//				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+//				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strZurueck'].'"><span><span><span>'.$language['strZurueck'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+			if ($ds_count < $num_rows) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="bereich" value="'.$_SESSION['s_bereich'].'" />'."\n";
+				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.$ds_count.'" />'."\n";
+				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'"><span><span><span>'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+		} else {
+			echo '		<p>'.$language['strKeine'].'</p>'."\n";
+		
+			$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE firmenid='.intval($_SESSION['s_firmenid']),$praktdbslave);
+			echo '		<form name="bearbeiterfilterwahl" method="post" action="/recruiting/">'."\n";
+			echo '			<fieldset>'."\n";
+			echo '				<p>'."\n";
+			echo '					<label for="bearbeiterfilter">Auswahl des Bearbeiters:</label>'."\n";
+			echo '					<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="this.form.submit();">'."\n";
+			echo '						<option value="%">alle</option>'."\n";
+			
+			while ($bearbeiter_row = mysql_fetch_array($bearbeiter)) {
+				echo '						<option value="'.$bearbeiter_row['id'].'"';
+				
+				if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiter_row['id']) {
+					echo ' selected="selected"'."\n";
+				}
+				
+				echo '>'.$bearbeiter_row['anrede'].' '.$bearbeiter_row['vname'].' '.$bearbeiter_row['name'].'</option>'."\n";
+			}
+			
+			echo '					</select>'."\n";
+			echo '				</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+			echo '			</fieldset>'."\n";
+			echo '		</form>'."\n";
+		}
+		
+	break;
+
+	// BEGINN POSTEINGANG - KURZMITTEILUNGSEINGANG
+	case 2:
+		$num_rows = 0;
+		
+		// uebergabevariablen konvertieren //		
+		$ds_count = intval($ds_count);
+		$ds_pro_seite = intval($ds_pro_seite);
+				
+		// abfrage ausfuehren  //
+		$results = $results1;
+		
+		// datensaetze gefunden ? //
+		if ($results == true) {
+			$num_rows = mysql_num_rows($results);
+			
+			$i = 0;
+			while ($result_row = mysql_fetch_array($results)) {
+				$firmenkontaktarray[$i] = $result_row;
+				$nutzerid = $firmenkontaktarray[$i]['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM nutzer WHERE id = '.$nutzerid.' AND inactive = \'false\'',$praktdbslave);
+				$nutzerarray = mysql_fetch_array($nutzer);
+				$firmenkontaktarray[$i][8] = $nutzerarray['name'];
+				$firmenkontaktarray[$i]['bewerber'] = $nutzerarray['name'];
+				$bearbeiterid = $firmenkontaktarray[$i]['bearbeiterid'];
+				$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id='.intval($bearbeiterid),$praktdbslave);
+				
+				if (mysql_num_rows($bearbeiter) == 0) {
+					$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id='.intval($_SESSION['s_loginid']),$praktdbslave);
+				}
+				
+				$bearbeiterarray = mysql_fetch_array($bearbeiter);
+				$firmenkontaktarray[$i][9] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				$firmenkontaktarray[$i]['bearbeiter'] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				
+				$i++;
+			}
+		}
+
+		if ($num_rows > 0) {
+			// erste seite? //
+			if (!isset($ds_count)) {
+				$ds_count = 0;
+			}
+			$ds_value = $ds_count;
+	
+			// datensaetze pro seite ueberpruefen und setzen //
+			if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20))) {
+				$ds_pro_seite = 10;
+			}
+	
+			if ($num_rows == $ds_count) {
+				$ds_count = $ds_count - $ds_pro_seite;
+				$ds_value = $ds_value - $ds_pro_seite;
+			}
+	
+			$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE firmenid='.intval($_SESSION['s_firmenid']),$praktdbslave);
+			echo '		<form name="bearbeiterfilterwahl" method="post" action="/recruiting/">'."\n";
+			echo '			<fieldset>'."\n";
+			echo '				<p>'."\n";
+			echo '					<label for="bearbeiterfilter">Auswahl des Bearbeiters:</label>'."\n";
+			echo '					<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="this.form.submit();">'."\n";
+			echo '						<option value="%">alle</option>'."\n";
+			
+			while ($bearbeiter_row = mysql_fetch_array($bearbeiter)) {
+				echo '						<option value="'.$bearbeiter_row['id'].'"';
+				
+				if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiter_row['id']) {
+					echo ' selected="selected"'."\n";
+				}
+				
+				echo '>'.$bearbeiter_row['anrede'].' '.$bearbeiter_row['vname'].' '.$bearbeiter_row['name'].'</option>'."\n";
+			}
+
+			echo '					</select>'."\n";
+			echo '				</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+			echo '			</fieldset>'."\n";
+			echo '		</form>'."\n";
+	
+			$ds_fest = $ds_count;
+	
+			$rueckgabe = sortierung($firmenkontaktarray,$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'],$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+			
+			echo $rueckgabe[1];
+
+			echo '		<table>'."\n";
+			echo '			<colgroup>'."\n";
+			echo '				<col width="5%" />'."\n";
+			echo '				<col width="50%" />'."\n";
+			echo '				<col width="45%" />'."\n";
+			echo '			</colgroup>'."\n";
+			echo '			<tr>'."\n";
+			echo '				<th>Status</th>'."\n";
+			echo '				<th>Bewerberinformationen</th>'."\n";
+			echo '				<th>&nbsp;</th>'."\n";
+			echo '			</tr>'."\n";
+
+			$firmenkontaktarray = $rueckgabe[0];
+	
+			/* Datensaetze anzeigen */
+			$end_ds = min(($ds_count + $ds_pro_seite), ($num_rows));
+	
+			for ($i = $ds_count; $i < $end_ds; $i++) {
+				$result_row = $firmenkontaktarray[$i];
+	
+				$lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($nutzerid).' AND sprachid=2',$praktdbslave);
+				if (mysql_num_rows($lebenslauf) > 0) {
+					$row = mysql_fetch_array($lebenslauf);
+					$lebenslauftemplate = $row['lebenslauftemplate'];
+				} else {
+					$lebenslauftemplate = '01';
+				}
+
+				/* Nutzer herausbekommen */
+				$nutzerid = $result_row['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT anrede,name,vname,ort FROM nutzer WHERE id='.intval($nutzerid).' and inactive=\'false\'',$praktdbslave);
+				
+				/* zust&auml;ndigen bearbeiter herausbekommen */
+				$bearbeiterid = $result_row['bearbeiterid'];
+				if ($bearbeiterid > 0) {
+					$bearbeitersearch = mysql_db_query($database_db,'SELECT id,anrede,vname,name FROM bearbeiter WHERE id='.intval($bearbeiterid),$praktdbslave);
+					
+					if ((!$bearbeitersearch) || mysql_num_rows($bearbeitersearch) < 1) {
+						$bearbeiterupdate = mysql_db_query($database_db,'UPDATE firmenkontakte SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($bearbeiterid).' AND firmenid='.intval($_SESSION['s_firmenid']),$praktdbmaster);
+						$bearbeiterupdate = mysql_db_query($database_db,'UPDATE bewerbungen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($bearbeiterid).' AND firmenid='.intval($_SESSION['s_firmenid']),$praktdbmaster);
+						$bearbeiterupdate = mysql_db_query($database_db,'UPDATE praktikumsstellen SET bearbeiterid='.intval($_SESSION['s_loginid']).' WHERE bearbeiterid='.intval($bearbeiterid).' AND firmenid='.intval($_SESSION['s_firmenid']),$praktdbmaster);
+						$bearbeitersearch = mysql_db_query($database_db,'SELECT id,anrede,vname,name FROM bearbeiter WHERE id='.intval($_SESSION['s_loginid']),$praktdbslave);
+					}
+					
+					$bearbeitername = '<br />f&uuml;r Bearbeiter:<br /> '.mysql_result($bearbeitersearch,0,'anrede').' '.mysql_result($bearbeitersearch,0,'vname').' '.mysql_result($bearbeitersearch,0,'name');
+				} else {
+					$bearbeitername = '';
+				}
+
+				echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even"' : ' class="odd"').'>'."\n";
+				echo '				<td style="text-align: center;">'.($result_row['gelesen'] == 'false' ? '<img src="/styles/images/icons/neu1.png" alt="neu" title="neu" />' : '').'</td>'."\n";
+				
+				if (($nutzer != false) && mysql_num_rows($nutzer) > 0) {
+					echo '				<td><strong>'.$result_row['betreff'].'</strong><br /><a href="/recruiting/kontaktdetails/'.$nutzerid.'/'.$result_row['mitteilungsid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)">'.mysql_result($nutzer,0,'anrede').' '.mysql_result($nutzer,0,'vname').' '.mysql_result($nutzer,0,'name').'</a><br />'.$language['strOrt'].': '.$result_row['plz'].' '.$result_row['ort'].'</td>'."\n";
+					echo '				<td rowspan="3">'."\n";
+					echo '					<p class="icons_horizontal">'."\n";
+					echo '						<a href="/recruiting/kontaktdetails/'.$nutzerid.'/'.$result_row['mitteilungsid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/lupe.png" alt="Kurznachricht lesen" title="Kurznachricht lesen" /></a>&nbsp;&nbsp;'."\n";
+					echo '						<a href="/recruiting/email_antwort/'.$nutzerid.'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/mail.png" alt="dem Bewerber antworten" title="dem Bewerber antworten" /></a>&nbsp;&nbsp;'."\n";
+			    	echo '						<a href="/recruiting/weiterleitung_kurzmitteilung/'.$result_row['mitteilungsid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/weiterleiten.png" alt="'.$language['strWeiterleiten'].'" title="'.$language['strWeiterleiten'].'" /></a>&nbsp;&nbsp;'."\n";
+			    	echo '						<a href="/recruiting/verschieben/'.$result_row['mitteilungsid'].'/'.$_SESSION['s_bereich'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/ordner.png" alt="Nachricht verschieben" title="Nachricht verschieben" /></a>&nbsp;&nbsp;'."\n";
+				    echo '						<a href="/recruiting/loeschen/'.$result_row['mitteilungsid'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Mitteilung wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strLoeschen'].'" title="'.$language['strLoeschen'].'" /></a>'."\n";
+					echo '					</p>'."\n";
+
+					echo '					<p class="icons_horizontal"><a href="/kandidatenprofil/'.$lebenslauftemplate.'/'.$nutzerid.'/" onclick="return PB_showFullScreen(\'\', this.href)">Kanditatenprofil anzeigen</a></p>'."\n";
+					echo '					<p class="icons_horizontal">'.$bearbeitername.'</p>'."\n";
+					
+					$ds_count += 1;
+	
+					echo '				</td>'."\n";
+					echo '			</tr>'."\n";
+					echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even"' : ' class="odd"').'>'."\n";
+					echo '				<td>&nbsp;</td>'."\n";
+					echo '				<td>Mitteilung vom: '.strftime('%x',$result_row['datum']).'</td>'."\n";
+					echo '			</tr>'."\n";
+					echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even bewerber"' : ' class="odd bewerber"').'>'."\n";
+					echo '				<td>&nbsp;</td>'."\n";
+
+					// Ausgabe des Bereichs
+					if ($result_row['spalte'] == SECTION_PRAKTIKUM) {
+						$bereichsname = SECTION_PRAKTIKUM_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_DIPLOM) {
+						$bereichsname = SECTION_DIPLOM_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_NEBENJOB) {
+						$bereichsname = SECTION_NEBENJOB_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_AUSBILDUNG) {
+						$bereichsname = SECTION_AUSBILDUNG_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_BERUFSEINSTIEG) {
+						$bereichsname = SECTION_BERUFSEINSTIEG_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_PROJEKT) {
+						$bereichsname = SECTION_PROJEKT_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_TRAINEE) {
+						$bereichsname = SECTION_TRAINEE_ALPHA;
+					}
+					
+					echo '				<td>Bereich: '.$bereichsname.'</td>'."\n";
+				} else {
+					echo '				<td>&nbsp;</td>'."\n";
+					echo '				<td class="error" colspan="3"><strong>Bewerber gel&ouml;scht!</strong></td>'."\n";
+					echo '				<td>'."\n";
+					echo '					<p>'."\n";
+				    echo '						<a href="/recruiting/loeschen/'.$result_row['mitteilungsid'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Mitteilung wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strLoeschen'].'" title="'.$language['strLoeschen'].'" /></a>'."\n";
+					echo '					</p>'."\n";
+					echo '				</td>'."\n";
+				}
+				
+				echo '			</tr>'."\n";				
+			}
+			
+			echo '		</table>'."\n";
+			
+			mysql_free_result($results);
+	
+			if ($ds_count > $ds_pro_seite) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.($ds_value-$ds_pro_seite).'" />'."\n";
+//				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+//				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strZurueck'].'"><span><span><span>'.$language['strZurueck'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+			if ($ds_count < $num_rows) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.$ds_count.'" />'."\n";
+				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'"><span><span><span>'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}			
+		} else {
+			echo '		<p>'.$language['strKeine'].'</p>'."\n";
+		}
+	break;
+
+
+
+	// BEGINN KURZMITTEILUNGSAUSGANG
+	case 3:
+		$num_rows = 0;
+		
+		// uebergabevariablen konvertieren //		
+		$ds_count = intval($ds_count);
+		$ds_pro_seite = intval($ds_pro_seite);
+		
+		// abfrage ausfuehren  //
+		$results = $results2;
+		
+		if ($results == true) {
+			$num_rows = mysql_num_rows($results);
+			
+			$i = 0;
+			while ($result_row = mysql_fetch_array($results)) {
+				$firmenkontaktarray[$i] = $result_row;
+				$nutzerid1 = $firmenkontaktarray[$i]['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM nutzer WHERE id = '.intval($nutzerid1).' AND inactive = \'false\'',$praktdbslave);
+				$nutzerarray = mysql_fetch_array($nutzer);
+				$firmenkontaktarray[$i][8] = $nutzerarray['name'];
+				$firmenkontaktarray[$i]['bewerber'] = $nutzerarray['name'];
+				$bearbeiterid = $firmenkontaktarray[$i]['bearbeiterid'];
+				$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id = '.intval($bearbeiterid),$praktdbslave);
+				
+				if (mysql_num_rows($bearbeiter) == 0) {
+					$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE id = '.intval($_SESSION['s_loginid']),$praktdbslave);
+				}
+				
+				$bearbeiterarray = mysql_fetch_array($bearbeiter);
+				$firmenkontaktarray[$i][9] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				$firmenkontaktarray[$i]['bearbeiter'] = $bearbeiterarray['anrede'].' '.$bearbeiterarray['vname'].' '.$bearbeiterarray['name'];
+				
+				$i++;
+			}
+		}
+
+		if ($num_rows > 0) {
+			// erste seite? //
+			if (!isset($ds_count)) {
+				$ds_count = 0;
+			}
+			$ds_value = $ds_count;
+	
+			// datensaetze pro seite ueberpruefen und setzen //
+			if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20))) {
+				$ds_pro_seite = 10;
+			}
+	
+			if ($num_rows == $ds_count) {
+				$ds_count = $ds_count - $ds_pro_seite;
+				$ds_value = $ds_value - $ds_pro_seite;
+			}
+	
+			$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE firmenid = '.intval($_SESSION['s_firmenid']),$praktdbslave);
+	
+			echo '		<form name="bearbeiterfilterwahl" method="post" action="/recruiting/">'."\n";
+			echo '			<fieldset>'."\n";
+			echo '				<p>'."\n";
+			echo '					<label for="bearbeiterfilter">Anzahl der gesendeten Nachrichten: '.$num_rows.'</label>'."\n";
+			echo '					<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="this.form.submit();">'."\n";
+			echo '						<option value="%">alle</option>'."\n";
+			
+			while ($bearbeiter_row = mysql_fetch_array($bearbeiter)) {
+				echo '						<option value="'.$bearbeiter_row['id'].'"';
+				
+				if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiter_row['id']) {
+					echo ' selected="selected"'."\n";
+				}
+				
+				echo '>'.$bearbeiter_row['anrede'].' '.$bearbeiter_row['vname'].' '.$bearbeiter_row['name'].'</option>'."\n";
+			}
+			
+			echo '					</select>'."\n";
+			
+			echo '				</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+			echo '				<input type="hidden" name="ds_count" value="0" />'."\n";
+			echo '			</fieldset>'."\n";
+			echo '		</form>'."\n";
+
+			$ds_fest = $ds_count;
+	
+			$rueckgabe = sortierung($firmenkontaktarray,$s_firmenproparray[bcenter][$_SESSION['s_bereich']]['sort'],$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+			
+			echo $rueckgabe[1];
+			
+			echo '		<table>'."\n";
+			echo '			<colgroup>'."\n";
+			echo '				<col width="5%" />'."\n";
+			echo '				<col width="55%" />'."\n";
+			echo '				<col width="40%" />'."\n";
+			echo '			</colgroup>'."\n";
+			echo '			<tr>'."\n";
+			echo '				<th>Status</th>'."\n";
+			echo '				<th>Bewerberinformationen</th>'."\n";
+			echo '				<th>&nbsp;</th>'."\n";
+			echo '			</tr>'."\n";
+			
+			$firmenkontaktarray = $rueckgabe[0];
+
+			/* Datensaetze anzeigen */
+			$end_ds = min(($ds_count + $ds_pro_seite), $num_rows);
+	
+			for ($i = $ds_count; $i < $end_ds; $i++) {
+				$result_row = $firmenkontaktarray[$i];
+	
+				/* Nutzer herausbekommen */
+				$nutzerid = $result_row['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT anrede,name,vname,ort FROM nutzer WHERE id='.intval($nutzerid).' and inactive=\'false\'',$praktdbslave);
+				
+				/* zust&auml;ndigen bearbeiter herausbekommen */
+				$bearbeiterid = $result_row['bearbeiterid'];
+				if ($bearbeiterid > 0) {
+					$bearbeitersearch = mysql_db_query($database_db,'SELECT id,anrede,vname,name FROM bearbeiter WHERE id='.intval($bearbeiterid),$praktdbslave);
+					
+					if (($bearbeitersearch === false) || mysql_num_rows($bearbeitersearch) < 1) {
+						$bearbeitersearch = mysql_db_query($database_db,'SELECT id,anrede,vname,name FROM bearbeiter WHERE id='.intval($_SESSION['s_loginid']),$praktdbslave);
+					}
+					
+					$bearbeitername = '<br />gesendet von:<br /> '.mysql_result($bearbeitersearch,0,'anrede').' '.mysql_result($bearbeitersearch,0,'vname').' '.mysql_result($bearbeitersearch,0,'name');
+				} else {
+					$bearbeitername = '';
+				}
+				
+				echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even"' : ' class="odd"').'>'."\n";
+				echo '				<td style="text-align: center;">'.($result_row['gelesen'] == 'false' ? '<img src="/styles/images/icons/neu1.png" alt="Ihre Nachricht wurde vom Bewerber noch nicht gesehen." title="Ihre Nachricht wurde vom Bewerber noch nicht gesehen." width="16" height="16" />' : '<img src="/styles/images/icons/bestaetigen.png" align="center" alt="Ihre Nachricht wurde bereits von dem Bewerber gesehen." title="Ihre Nachricht wurde bereits von dem Bewerber gesehen." />').'</td>'."\n";
+
+				// Bewerber + Nachricht + Datum
+				if (($nutzer != false) && mysql_num_rows($nutzer) > 0) {
+					echo '				<td><strong>'.$result_row['betreff'].'</strong><br />'.mysql_result($nutzer,0,'anrede').' '.mysql_result($nutzer,0,'vname').' '.mysql_result($nutzer,0,'name').'</td>'."\n";
+					echo '				<td rowspan="3">'."\n";
+					echo '					<p class="icons_horizontal">'."\n";
+					echo '						<a href="/recruiting/nachrichtendetails/'.$result_row['mitteilungsid'].'/'.$result_row['spalte'].'" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/lupe.png" alt="einsehen" title="einsehen" /></a>&nbsp;&nbsp;'."\n";
+			    	echo '						<a href="/recruiting/verschieben/'.$result_row['mitteilungsid'].'/'.$_SESSION['s_bereich'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/ordner.png" alt="Nachricht verschieben" title="Nachricht verschieben" /></a>&nbsp;&nbsp;'."\n";
+				    echo '						<a href="/recruiting/loeschen/'.$result_row['id'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Mitteilung wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strLoeschen'].'" title="'.$language['strLoeschen'].'" /></a>'."\n";
+					echo '					</p>'."\n";
+					echo '					<p class="icons_horizontal">'.$bearbeitername.'</p>'."\n";
+					echo '				</td>'."\n";
+					echo '			</tr>'."\n";
+					echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even"' : ' class="odd"').'>'."\n";	
+					echo '				<td>&nbsp;</td>'."\n";
+					echo '				<td>Mitteilung vom: '.strftime('%x',$result_row['datum']).'</td>'."\n";
+					echo '			</tr>'."\n";
+					echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even bewerber"' : ' class="odd bewerber"').'>'."\n";					
+					echo '				<td>&nbsp;</td>'."\n";
+
+					// Ausgabe des Bereichs
+					if ($result_row['spalte'] == SECTION_PRAKTIKUM) {
+						$bereichsname = SECTION_PRAKTIKUM_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_DIPLOM) {
+						$bereichsname = SECTION_DIPLOM_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_NEBENJOB) {
+						$bereichsname = SECTION_NEBENJOB_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_AUSBILDUNG) {
+						$bereichsname = SECTION_AUSBILDUNG_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_BERUFSEINSTIEG) {
+						$bereichsname = SECTION_BERUFSEINSTIEG_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_PROJEKT) {
+						$bereichsname = SECTION_PROJEKT_ALPHA;
+					} elseif ($result_row['spalte'] == SECTION_TRAINEE) {
+						$bereichsname = SECTION_TRAINEE_ALPHA;
+					}
+					
+					echo '				<td>Bereich: '.$bereichsname.'</td>'."\n";
+				} else {
+					echo '				<td class="error"><strong>Bewerber gel&ouml;scht!</strong></td>'."\n";
+					echo '				<td>'."\n";
+					echo '					<p>'."\n";
+				    echo '						<a href="/recruiting/loeschen/'.$result_row['id'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Mitteilung wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strLoeschen'].'" title="'.$language['strLoeschen'].'" /></a>'."\n";
+					echo '					</p>'."\n";
+					echo '				</td>'."\n";
+				}
+				
+				echo '			</tr>'."\n";
+				
+				$ds_count += 1;
+			}
+
+			echo '		</table>'."\n";
+			
+			mysql_free_result($results);
+	
+			if ($ds_count > $ds_pro_seite) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.($ds_value-$ds_pro_seite).'" />'."\n";
+//				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+//				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strZurueck'].'"><span><span><span>'.$language['strZurueck'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+			if ($ds_count < $num_rows) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.$ds_count.'" />'."\n";
+				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'"><span><span><span>'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+		} else {
+			echo '<p>'.$language['strKeine'].'</p>'."\n";
+
+			$bearbeiter = mysql_db_query($database_db,'SELECT id,name,vname,anrede FROM bearbeiter WHERE firmenid='.intval($_SESSION['s_firmenid']),$praktdbslave);
+			echo '		<form name="bearbeiterfilterwahl" method="post" action="/recruiting/">'."\n";
+			echo '			<fieldset>'."\n";
+			echo '				<p>'."\n";
+			echo '					<label for="bearbeiterfilter">Auswahl des Bearbeiters:</label>'."\n";
+			echo '					<select id="bearbeiterfilter" name="bearbeiterfilter" onchange="this.form.submit();">'."\n";
+			echo '						<option value="%">alle</option>'."\n";
+			
+			while ($bearbeiter_row = mysql_fetch_array($bearbeiter)) {
+				echo '				<option value="'.$bearbeiter_row['id'].'"';
+				
+				if ($_SESSION['s_firmenproparray']['bcenter']['aktbearbeiter']['val'] == $bearbeiter_row['id']) {
+					echo ' selected="selected"'."\n";
+				}
+				
+				echo '>'.$bearbeiter_row['anrede'].' '.$bearbeiter_row['vname'].' '.$bearbeiter_row['name'].'</option>'."\n";
+			}
+			
+			echo '					</select>'."\n";
+			echo '				</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+			echo '			</fieldset>'."\n";
+			echo '		</form>'."\n";
+		}
+
+	break;
+
+	// BEGINN MERKZETTEL FIRMENBOOKMARK
+    case 4:
+		$num_rows = 0;
+		
+		// uebergabevariablen konvertieren //		
+		$ds_count = intval($ds_count);
+		$ds_pro_seite = intval($ds_pro_seite);
+		
+		// abfrage ausfuehren  //
+		$results = $results4;
+		
+		if ($results == true) {
+			$num_rows = mysql_num_rows($results);
+			
+			$i = 0;
+			while ($result_row = mysql_fetch_array($results)) {
+				$firmenkontaktarray[$i] = $result_row;
+				$nutzerid1 = $firmenkontaktarray[$i]['nutzerid'];
+				$nutzer = mysql_db_query($database_db,'SELECT id,name,vname,anrede,plz,ort,strasse,geburtsdatum,karierrestatus,hochschule,hochschuletext,tel,unix_timestamp(datum_eintrag) AS datumeintrag FROM nutzer WHERE id = '.intval($nutzerid1).' AND inactive=\'false\'',$praktdbslave);
+				$nutzerarray = mysql_fetch_array($nutzer);
+				$firmenkontaktarray[$i]['anrede'] = $nutzerarray['anrede'];
+				$firmenkontaktarray[$i]['bewerber'] = $nutzerarray['vname'].' '.$nutzerarray['name'];
+				$firmenkontaktarray[$i]['bewerbersort'] = $nutzerarray['name'].' '.$nutzerarray['vname'];
+				$firmenkontaktarray[$i]['strasse'] = $nutzerarray['strasse'];
+				$firmenkontaktarray[$i]['plz'] = $nutzerarray['plz'];
+				$firmenkontaktarray[$i]['ort'] = $nutzerarray['ort'];
+				$firmenkontaktarray[$i]['tel'] = $nutzerarray['tel'];
+				$firmenkontaktarray[$i]['hochschule'] = $nutzerarray['hochschule'];
+				$firmenkontaktarray[$i]['hochschuletext'] = $nutzerarray['hochschuletext'];
+				$firmenkontaktarray[$i]['datumeintrag'] = $nutzerarray['datumeintrag'];
+				$firmenkontaktarray[$i]['geburtsdatum'] = $nutzerarray['geburtsdatum'];
+
+				if ($nutzerarray['geburtsdatum']) {
+					$firmenkontaktarray[$i]['alter'] = strtotime($nutzerarray['geburtsdatum']);
+				}
+				
+				$karrierestatusid = $nutzerarray['karierrestatus'];
+
+				if ($karrierestatusid > 0) {
+					$karrierestatussel = mysql_db_query($database_db,'SELECT '.$_SESSION['s_sprache'].' FROM karierrestatus WHERE id = '.intval($karrierestatusid),$praktdbslave);
+					$firmenkontaktarray[$i]['karrierestatus'] = mysql_result($karrierestatussel, 0, $_SESSION['s_sprache']);
+				} else {
+					$firmenkontaktarray[$i]['karrierestatus'] = 'Student';
+				}
+				
+				$i++;
+			}
+		}
+
+		if ($num_rows > 0) {
+			// erste seite? //
+			if (!isset($ds_count)) {
+				$ds_count = 0;
+			}
+			$ds_value = $ds_count;
+	
+			// datensaetze pro seite ueberpruefen und setzen //
+			if (!(($ds_pro_seite == 5) || ($ds_pro_seite == 10) || ($ds_pro_seite == 20))) {
+				$ds_pro_seite = 10;
+			}
+	
+			if ($num_rows == $ds_count) {
+				$ds_count = $ds_count - $ds_pro_seite;
+				$ds_value = $ds_value - $ds_pro_seite;
+			}
+	
+			echo '		<p style="clear: both;">Anzahl der Merkzetteleintr&auml;ge: '.$num_rows.'</p>'."\n";
+			echo seitenausgabe($num_rows,$ds_pro_seite,$_SESSION['s_bereich'],$ds_count);
+
+			$ds_fest = $ds_count;
+	
+			$rueckgabe = sortierung_bookmark($firmenkontaktarray,$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['sort'],$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid']);
+			
+			echo $rueckgabe[1];
+
+			$firmenkontaktarray = $rueckgabe[0];
+
+			$end_ds = min(($ds_count + $ds_pro_seite), $num_rows);
+
+			for ($i = $ds_count; $i < $end_ds; $i++) {
+				$result_row = $firmenkontaktarray[$i];
+				$nutzerid = $result_row['nutzerid'];
+
+				// Nutzer herausbekommen
+				$nutzer = mysql_db_query($database_db,'SELECT anrede, name, vname FROM nutzer WHERE id = '.intval($nutzerid).' AND inactive = \'false\'',$praktdbslave);
+				$nutzer_noch_da = ($nutzer != false) ? mysql_num_rows($nutzer) : 0;
+				
+				if ($nutzer_noch_da > 0) {
+					echo '		<table>'."\n";
+					echo '			<colgroup>'."\n";
+					echo '				<col width="50%" />'."\n";
+					echo '				<col width="50%" />'."\n";
+					echo '			</colgroup>'."\n";
+					echo '			<tr>'."\n";
+					echo '				<th>Bewerberdaten</th>'."\n";
+					echo '				<th>Info</th>'."\n";
+					echo '			</tr>'."\n";
+					
+					// Alter berechnen
+					if ($result_row['geburtsdatum'] > 0) {
+						$zeit = time();
+						$geburtstag = strtotime($result_row['geburtsdatum']);
+						$alterdiff = $zeit - $geburtstag;
+						$diff = 31560000; // 365 Tage
+						$alter = $alterdiff / $diff;
+					} else {
+						$alter = 0;
+					}
+
+					// Stellen finden
+					if ($firmenkontaktarray[$i]['art'] > 1) {
+						$stellenmenge = 0;
+//						$stelle = mysql_db_query($database_db,'SELECT id FROM stellen WHERE nutzerid = '.intval($nutzerid).' AND inactive = \'false\' ORDER BY id DESC LIMIT 1',$praktdbslave);
+						$stelle = mysql_db_query($database_db,'SELECT id FROM stellen WHERE firmenid = '.intval($_SESSION['s_firmenid']).' AND inactive = \'false\' ORDER BY id DESC LIMIT 1',$praktdbslave);
+
+						if (mysql_num_rows($stelle) > 0) {
+							$stellenmenge++;
+						}					
+					}
+
+					// Bewerbungsbild
+					$fotoschonda = mysql_db_query($database_db,'SELECT nutzerid, url, height, width FROM bewerbungsfoto WHERE nutzerid = '.intval($nutzerid),$praktdbslave);
+					$eintraege = mysql_num_rows($fotoschonda);
+					if ($eintraege > 0) {
+						$url = mysql_result($fotoschonda,0,'url');
+						$width = mysql_result($fotoschonda,0,'width');
+						$height = mysql_result($fotoschonda,0,'height');
+				
+						if ($width > 0) {
+							$CWidth = 80;
+							$picture_src = $url;
+							$pic = explode('.',$picture_src);
+							$thumb_image = '/webtemp/80'.mysql_result($fotoschonda,0,'nutzerid').'.'.end($pic);
+							$thumb_dest = '/home/praktika/public_html'.$thumb_image;
+							$picture_src = '/home/praktika/public_html'.$picture_src;
+							exec('/usr/local/bin/convert -geometry '.$CWidth.' '.$picture_src.' '.$thumb_dest);
+							$photo = '<img src="'.$thumb_image.'" width="'.$CWidth.'" align="right" />'."\n";
+						}
+					} else {
+						$photo = '';
+					}
+
+					$lebenslauf = mysql_db_query($database_bprofil,'SELECT lebenslauftemplate FROM einstellungen WHERE nutzerid = '.intval($nutzerid),$praktdbslave);
+					if (mysql_num_rows($lebenslauf) > 0) {
+						$row = mysql_fetch_array($lebenslauf);
+						$lebenslauftemplate = $row['lebenslauftemplate'];
+					} else {
+						$lebenslauftemplate = '01';
+					}
+
+					echo '			<tr'.((($end_ds - $i) % 2 == 0) ? ' class="even bewerber"' : ' class="odd bewerber"').'>'."\n";
+					echo '				<td class="borderright">'."\n";
+					
+					if (!empty($result_row['stellenid'])) {
+						echo '<a href='.$pfad.'.phtml?id='.$result_row['stellenid'].'&gelesen=yes">'.$result_row['anrede'] .' '.$result_row['bewerber'].'</a>'."\n";
+					} else {
+						echo $photo;
+						
+						if ($result_row['art'] > 2) {
+							echo '<a href="/kandidatenprofil/'.$lebenslauftemplate.'/'.$result_row['nutzerid'].'/" onclick="return PB_showFullScreen(\'\', this.href)">'.$result_row['anrede'] .' '.$result_row['bewerber'].'</a>'."\n";
+			        	} else {
+				        	echo $result_row['anrede'].' '.$result_row['bewerber'];
+						}
+					}
+
+					echo '<br />'.$result_row['strasse'];
+					echo '<br />'.$result_row['plz'] .' '.$result_row['ort'];
+
+					if (!empty($result_row['tel'])) {
+						if (strlen($result_row['tel']) > 25) {
+							$telefonnummer = substr($result_row['tel'],0,25);
+						} else {
+							$telefonnummer = $result_row['tel'];
+						}
+					}
+					
+					echo '<br /><br /><strong>Telefon-Nr.</strong>: '.$telefonnummer;
+
+					if ($alter > 0)	{
+						echo '<br /><br /><strong>Alter:</strong> '.sprintf('%01.0u',$alter).' Jahre'."\n";
+					}
+
+					if ($result_row['art'] > 1) {
+						echo '<br /><br /><strong>Karrierestatus:</strong> '.$result_row['karrierestatus'];
+	
+						$studienrichtung = mysql_db_query($database_bprofil,'SELECT studiengang FROM profil_studium WHERE nutzerid = '.intval($nutzerid).' AND studiengang > 0',$praktdbslave);
+						
+						if (mysql_numrows($studienrichtung) > 0) {
+							$studienrichtungid = mysql_result($studienrichtung,0,'studiengang');
+							$studienrichtungsel = mysql_db_query($database_db,'SELECT studiengang FROM studiengaenge WHERE id = '.intval($studienrichtungid),$praktdbslave);
+							echo '<br /><strong>Studium:</strong> '.mysql_result($studienrichtungsel,0,'studiengang');
+	
+							if (!empty($result_row['hochschule'])) {
+								echo '<br /><strong>Hochschule:</strong> '.$result_row['hochschule'];
+							}
+		
+							if (!empty($result_row['hochschule'])) {
+								echo '<br /><strong>andere Bildungseinrichtung:</strong> '.$result_row['hochschuletext'];
+							}
+						}
+					}
+					echo '				</td>'."\n";
+	
+					echo '				<td class="borderleft">'."\n";
+					echo '<strong>Mitglied seit:</strong> '.strftime('%x',$result_row['datumeintrag'])."\n";
+					echo '<br /><strong>Chiffre:</strong> '.$result_row['nutzerid'];
+					echo '<br /><strong>Bezeichnung:</strong> <i>'.$result_row['bezeichnung'].'</i>'."\n";
+	
+					if ($result_row['art'] == 1) {
+						echo '<br />Ergebnisse: aus der Standardsuche'."\n";
+					}
+	
+					if ($result_row['art'] == 2) {
+						echo '<br />Ergebnisse: aus der Statussuche'."\n";
+					}
+	
+					if ($result_row['art'] == 3) {
+						echo '<br />Ergebnisse: aus der Profilsuche'."\n";
+					}
+					
+					echo '					<p><br />'."\n";
+	
+					// Aktionsbuttons
+			        if ($result_row['art'] > 2) {
+					   	echo '						<a href="/kandidatenprofil/'.$lebenslauftemplate.'/'.$result_row['nutzerid'].'/" onclick="return PB_showFullScreen(\'\', this.href)"><img src="/styles/images/icons/lupe.png" alt="'.$language['strBewerberprofilEinsehen'].'" title="'.$language['strBewerberprofilEinsehen'].'" /></a>&nbsp;&nbsp;'."\n";
+			        }
+					echo '						<a href="/recruiting/kontakt_nutzer/'.$nutzerid.'/'.$result_row['stellenid'].'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/mail.png" alt="'.$language['strKurzmitteilungSchreiben'].'" title="'.$language['strKurzmitteilungSchreiben'].'" /></a>&nbsp;&nbsp;'."\n";
+			    	echo '						<a href="/recruiting/email_nutzer/'.$nutzerid.'/'.$result_row['spalte'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/weiterleiten.png" alt="Email schreiben" title="Email schreiben" /></a>&nbsp;&nbsp;'."\n";
+			    	echo '						<a href="/recruiting/verschieben/'.$result_row['bookmarkid'].'/'.$_SESSION['s_bereich'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)"><img src="/styles/images/icons/ordner.png" alt="Nachricht verschieben" title="Nachricht verschieben" /></a>&nbsp;&nbsp;'."\n";
+				    echo '						<a href="/recruiting/loeschen/'.$result_row['bookmarkid'].'/'.$_SESSION['s_bereich'].'/'.$ds_fest.'/'.$ds_pro_seite.'/" onclick="return confirm(\'Wollen Sie diese Eintrag wirklich l&ouml;schen?\');"><img src="/styles/images/icons/papierkorb.png" alt="'.$language['strMerkzetteleintragLoeschen'].'" title="'.$language['strMerkzetteleintragLoeschen'].'" /></a>'."\n";
+					echo '					</p>'."\n";
+					
+					if ($result_row['art'] > 2 && $stellenmenge > 0) {
+						echo '					<p><a href="/recruiting/kandidatendetail/'.$result_row['nutzerid'].'/" onclick="return GB_showCenter(\'\',this.href,700,700)">Gesuche ansehen</a></p>'."\n";
+					}
+
+					echo '				</td>'."\n";
+					echo '			</tr>'."\n";
+				} else {
+					echo '			<tr>'."\n";
+					echo '				<td>'."\n";
+					echo '					<p>Der Bewerber hat seine Mitgliedschaft beendet. <a href="http://'.$_SERVER['HTTP_HOST'].'/home/firmen/bcenter/?id='.$nutzerid1.'&amp;nicht_da=1&amp;delete=1&amp;bereich='.$_SESSION['s_bereich'].'&amp;ds_count='.$ds_fest.'&amp;ds_pro_seite='.$ds_pro_seite.'" onclick="return confirm(\'Wollen Sie diese Merkzetteleintrag wirklich l&ouml;schen?\');">'.$language['strLoeschen'].'</a></p>'."\n";
+					echo '				</td>'."\n";
+					echo '			</tr>'."\n";
+				}
+			
+				$ds_count += 1;
+			}
+
+			echo '		</table>'."\n";
+			
+			mysql_free_result($results);
+	
+			if ($ds_count > $ds_pro_seite) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.($ds_value-$ds_pro_seite).'" />'."\n";
+//				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+//				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<input type="hidden" name="subbereich" value="'.$subbereich.'" />'."\n";
+				echo '					<input type="hidden" name="ordnerid" value="'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strZurueck'].'"><span><span><span>'.$language['strZurueck'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+			if ($ds_count < $num_rows) {
+				echo '		<form action="/recruiting/" method="get">'."\n";
+				echo '			<fieldset class="control_panel">'."\n";
+				echo '				<p>'."\n";
+				echo '					<input type="hidden" name="ds_value" value="'.$ds_value.'" />'."\n";
+				echo '					<input type="hidden" name="ds_count" value="'.$ds_count.'" />'."\n";
+				echo '					<input type="hidden" name="ds_pro_seite" value="'.$ds_pro_seite.'" />'."\n";
+				echo '					<input type="hidden" name="seitenzaehler" value="'.$seitenzaehler.'" />'."\n";
+				echo '					<input type="hidden" name="z" value="'.$z.'" />'."\n";
+				echo '					<input type="hidden" name="subbereich" value="'.$subbereich.'" />'."\n";
+				echo '					<input type="hidden" name="ordnerid" value="'.$_SESSION['s_firmenproparray']['bcenter'][$_SESSION['s_bereich']]['ordnerid'].'" />'."\n";
+				echo '					<button type="submit" value="'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'"><span><span><span>'.$language['strWeitere'].' '.min($ds_pro_seite, ($num_rows - $ds_count)).' '.$language['strAnfragen'].'</span></span></span></button>'."\n";
+				echo '				</p>'."\n";
+				echo '			</fieldset>'."\n";
+				echo '		</form>'."\n";
+			}
+		} else {
+			echo '<p>Sie haben bisher keine Kandidaten auf Ihren Merkzettel. Nutzen Sie hierf&uuml;r unsere <a href="/kandidatensuche/">Kandidatensuche</a>, um einen geeigneten Bewerber zu finden.</p>'."\n";
+		}
+
+	break;
+}
+
+echo '	</div>'."\n";
+echo '</div>'."\n";
+
+$_SESSION['sidebar'] = '';
+bodyoff();
+?>

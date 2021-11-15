@@ -1,0 +1,235 @@
+<?
+require("/home/praktika/etc/config.inc.php");
+
+// Log bodies?
+$logbodies = 1;
+
+// MySQL table name
+$db_table = "maillog";
+
+pageheader(array('page_title' => 'eMail verfassen'));
+
+function dbquery() {
+	switch($_SESSION['current_page']) {
+		case 2:
+			$nutzetable = 'diplomgesuch';
+			//$firmentable = 'fdiplomausschreibung';
+		break;
+		case 3:
+			$nutzetable = 'nebenjobgesuch';
+			//$firmentable = 'fnebenjobangebot';
+		break;
+		case 4:
+			$nutzetable = 'ausbildungsgesuch';
+			//$firmentable = 'fausbildungsangebot';
+		break;
+		case 5:
+			$nutzetable = 'berufseinstieggesuch';
+			//$firmentable = 'fausbildungsangebot';
+		break;
+		default:
+			$nutzetable = 'praktikanten';
+			//$firmentable = 'praktikumsstellen';
+		break;
+	}
+
+	if (isset($_GET['prakt']) || isset($_POST['prakt'])) {
+		$querystring = 'SELECT nutzer.name,nutzer.vname,nutzer.email FROM nutzer,'.$nutzetable.' WHERE '.$nutzetable.'.id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']).' AND '.$nutzetable.'.nutzerid = nutzer.id';
+	} elseif (isset($_GET['kandidat']) || isset($_POST['kandidat'])) {
+		$querystring = 'SELECT name,vname,email FROM nutzer WHERE id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']);
+	} elseif (isset($_GET['firma']) || isset($_POST['firma'])) {
+		$querystring = 'SELECT firma,email FROM firmen WHERE id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']);
+	} elseif (isset($_GET['extern']) || isset($_POST['extern'])) {
+		$querystring = 'SELECT firma,email FROM ext_firmen WHERE id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']);
+	} elseif (isset($_GET['stelle']) || isset($_POST['stelle'])) {
+		$querystring = 'SELECT bearbeiter.name,bearbeiter.vname,bearbeiter.email FROM stellen, bearbeiter WHERE stellen.id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']).' AND stellen.bearbeiterid = bearbeiter.id';
+	} else {
+		$querystring = 'SELECT bearbeiter.name,bearbeiter.vname,bearbeiter.email FROM stellen, bearbeiter WHERE stellen.id = '.(isset($_GET['id']) ? $_GET['id'] : $_POST['id']).' AND stellen.bearbeiterid = bearbeiter.id';		
+	}
+	
+	return $querystring;
+}
+
+if (isset($_POST['sendmailout'])) {
+	$img = 'html-32.gif';
+	$title = 'MIME Mail 1.4';
+	$lang = 'de';
+
+	if (isset($_POST['from']) && empty($_POST['from'])) {
+		$_POST['from'] = 'defaultmail@praktika.de';
+	}
+	if (isset($_POST['subject']) && empty($_POST['subject'])) {
+		$_POST['subject'] = 'praktika.de Online Mailformular';
+	}
+
+	$querystring = dbquery();
+
+	// datensatz abfragen //
+	$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+	// array erzeugen //
+	$queryresult = mysql_fetch_array($result);
+
+	if (!isset($_GET['firma']) && !isset($_GET['extern'])) {
+		$to_name = $queryresult['vname'].' '.$queryresult['name'];
+	} else {
+		$to_name = $queryresult['firma'];
+	}
+
+	$to_name = ereg_replace (',', ' ', $to_name);
+	$to_name = ereg_replace (';', ' ', $to_name);
+
+
+	$to = $queryresult['email'];
+
+	include "Mail.php";
+	include "Mail/mime.php";
+
+	$mimeobj = new Mail_Mime("\n");
+	$mimeobj->setTxtBody($_POST['message']."\n\n-----------------------------------------------------------\n
+Diese Mail wurde gesendet von praktika.de (https://www.praktika.de/)\nMessage sent from ".gethostbyaddr($host)." (".$ip.") to ".$to_name." <".$to.">\n\n");
+// Dateianh&auml;nge verwalten
+	$modify = date("YmdHis");
+	if($_SESSION['s_loggedin'] == true) {
+		$istnutzer = "n";
+	}
+	if(isset($_FILES['userfile']['file1'])) {
+	   $mimeobj->addAttachment($_FILES['userfile']['file1'],$_FILES['userfile']['file1']['type'],$_FILES['userfile']['file1']['name']);
+	   $filename1 = $istnutzer.$_SESSION['s_loginid']."_".$modify."_01_".$_FILES['userfile']['file1']['name'];
+	   @copy($_FILES['userfile']['file1'], "/home/praktika/maillog/".$filename1);
+	}
+	if(isset($_FILES['userfile']['file2'])) {
+	   $mimeobj->addAttachment($_FILES['userfile']['file2'],$_FILES['userfile']['file2']['type'],$_FILES['userfile']['file2']['name']);
+	   $filename2 = $istnutzer.$_SESSION['s_loginid']."_".$modify."_02_".$_FILES['userfile']['file2']['name'];
+	   @copy($_FILES['userfile']['file2'], "/home/praktika/maillog/".$filename2);
+	}
+	if(isset($_FILES['userfile']['file3'])) {
+	   $mimeobj->addAttachment($_FILES['userfile']['file3'],$_FILES['userfile']['file3']['type'],$_FILES['userfile']['file3']['name']);
+	   $filename3 = $istnutzer.$_SESSION['s_loginid']."_".$modify."_03_".$_FILES['userfile']['file3']['name'];
+	   @copy($_FILES['userfile']['file3'], "/home/praktika/maillog/".$filename3);
+	}
+
+	// Email-Header
+	$hdr = array(
+		"From" => $_POST['from'],
+		"Subject" => $_POST['subject'],
+		"Reply-To" => $_POST['from'],
+		"Return-Path" => $_POST['from']
+	);
+	$params = array("text_encoding" => "7bit",
+					"html_encoding" => "quoted-printable",
+					"7bit_wrap" => "998",
+					"html_charset" => "iso-8859-1",
+					"text_charset" => "iso-8859-1",
+					"head_charset" => "iso-8859-1");
+
+	$body = $mimeobj->get($params);
+	$hdr = $mimeobj->headers($hdr);
+
+	/**
+	* Instanz von Mail_mail erzeugen
+	*/
+	$mail =& Mail::factory("mail");
+
+	/**
+	* Mail verschicken
+	*/
+	$mail->send($to, $hdr, $body);
+
+    $host ? '' : $host = gethostbyaddr(getenv($REMOTE_ADDR));
+
+    if ($logbodies == 1) {
+       $db_query = 'INSERT INTO '.$db_table.' (t_stamp,nutzerid,firmenid,spalte,host,sender,recipient,subject,body) VALUES (NOW(),'.$_SESSION['s_nutzerid'].','.(isset($_SESSION['firmen_id']) ? $_SESSION['firmen_id'] : '\'\'').','.$_SESSION['s_spalte'].',\''.$host.'\',\''.$_POST['from'].'\',\''.$to.'\',\''.$_POST['subject'].'\',\''.$_POST['message'].'\')';
+    } else {
+       $db_query = 'INSERT INTO '.$db_table.' (t_stamp,nutzerid,firmenid,spalte,host,sender,recipient,subject) VALUES (NOW(),'.$_SESSION['s_nutzerid'].'\','.(isset($_SESSION['firmen_id']) ? $_SESSION['firmen_id'] : '\'\'').','.$_SESSION['s_spalte'].',\''.$host.'\',\''.$_POST['from'].'\',\''.$to.'\',\''.$_POST['subject'].'\')';
+    }   // endif
+    $result = mysql_db_query($database_db,$db_query,$praktdbmaster);
+
+    echo $language["strErfolgreichGsendet"];
+
+	echo '<p class="cc_alone">'."\n";
+	echo '	<a href="/karriere/gesuche/firmen_detail/'.$_POST['id'].'/'.$_POST['stellenid'].'/'.$_POST['bereich'].'/" class="cc"><span>Zur&uuml;ck zur &Uuml;bersicht</span></a>'."\n";
+	echo '</p>'."\n";
+} else {
+	echo '<form action="karriere/gesuche/firma/email/" method="post">'."\n";
+
+	if (isset($_SESSION['s_nutzerid']) && !empty($_SESSION['s_nutzerid'])) {
+		$emailcheck = mysql_db_query($database_db,'SELECT *, email AS sendemail FROM nutzer WHERE id = '.$_SESSION['s_nutzerid'],$praktdbslave);
+	} else {
+		$emailcheck = mysql_db_query($database_db,'SELECT *, bearbeiter. email AS sendemail FROM firmen, bearbeiter WHERE bearbeiter.id = '.$_SESSION['s_loginid'].' AND firmen.id = '.$_SESSION['s_firmenid'],$praktdbslave);
+	}
+
+	// Neu f&uuml;r das "AN:" Feld
+	$querystring = dbquery();
+
+	// datensatz abfragen //
+	$result = mysql_db_query($database_db,$querystring,$praktdbslave);
+
+	// array erzeugen //
+	$queryresult = mysql_fetch_array($result);
+
+	if (!isset($_GET['firma']) && !isset($_GET['extern'])) {
+		$to_name = $queryresult['vname'].' '.$queryresult['name'];
+	} else {
+		$to_name = $queryresult['firma'];
+	}
+
+	$to_name = ereg_replace (',', ' ', $to_name);
+	$to_name = ereg_replace (';', ' ', $to_name);
+	// Ende von "AN:" Feld
+
+	echo '	<p>An: '.$to_name.'</p>'."\n";
+	echo '	<p>Ihr Name: '.$_SESSION['s_vname'].' '.$_SESSION['s_name'].'</p>'."\n";
+
+	if (!isset($_SESSION['s_nutzerid'])) {
+		echo '<br />';
+		echo mysql_result($emailcheck,0,'strasse');
+		echo '<br />';
+		echo mysql_result($emailcheck,0,'plz').' '.mysql_result($emailcheck,0,'ort');
+	}
+
+	echo '	<p>Ihre eMail-Adresse: '.mysql_result($emailcheck,0,'sendemail').'</p>'."\n";
+	echo '	<fieldset>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="subject">'.$language["strBetreff"].'</label>'."\n";
+	echo '			<input type="text" id="subject" name="subject" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="message">'.$language["strNachricht"].'</label>'."\n";
+	echo '			<textarea id="message" name="message" cols="40" rows="18"></textarea>'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="file1">'.$language["strDateianhang"].'</label>'."\n";
+	echo '			<input type="file" id="file1" name="file1" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="file2">'.$language["strDateianhang"].'</label>'."\n";
+	echo '			<input type="file" id="file2" name="file2" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<label for="file3">'.$language["strDateianhang"].'</label>'."\n";
+	echo '			<input type="file" id="file3" name="file3" />'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '	<fieldset class="control_panel">'."\n";
+	echo '		<p>'."\n";
+	echo '			<input type="submit" name="sendmailout" value="'.$language["strSenden"].'" />'."\n";
+	echo '			<input type="hidden" name="prakt" value="'.((isset($_GET['prakt']) && !empty($_GET['prakt'])) ? $_GET['prakt'] : '').'" />'."\n";
+	echo '			<input type="hidden" name="kandidat" value="'.((isset($_GET['kandidat']) && !empty($_GET['kandidat'])) ? $_GET['kandidat'] : '').'" />'."\n";
+	echo '			<input type="hidden" name="firma" value="'.((isset($_GET['firma']) && !empty($_GET['firma'])) ? $_GET['firma'] : '').'" />'."\n";
+	echo '			<input type="hidden" name="extern" value="'.((isset($_GET['extern']) && !empty($_GET['extern'])) ? $_GET['extern'] : '').'" />'."\n";
+	echo '			<input type="hidden" name="id" value="'.$_GET['id'].'" />'."\n";
+	echo '			<input type="hidden" name="stellenid" value="'.$_GET['stellenid'].'" />'."\n";
+	echo '			<input type="hidden" name="bereich" value="'.$_GET['bereich'].'" />'."\n";
+	echo '			<input type="hidden" name="from" value="'.mysql_result($emailcheck,0,"sendemail").'" />'."\n";
+	echo '		</p>'."\n";
+	echo '		<p>'."\n";
+	echo '			<a href="/karriere/gesuche/firmen_detail/'.$_GET['id'].'/'.$_GET['stellenid'].'/'.$_GET['bereich'].'/" class="cc"><span>'.$language["strZurueck"].'</span></a>'."\n";
+	echo '		</p>'."\n";
+	echo '	</fieldset>'."\n";
+	echo '</form>'."\n";
+	echo '<p>(Info: Die Dateianh&auml;nge sind keine Pflichtfelder, Sie m&uuml;ssen somit nicht zwingend ausgef&uuml;llt werden.)<br /><br />Die Bewerbung von Waren oder Dienstleistungen ist laut unseren AGB nicht gestattet. Ein Versto&szlig; f&uuml;hrt zur Deaktivierung des Profils oder zum Ausschluss.<br />Rechtliche Schritte behalten wir uns entsprechend vor.</p>'."\n";
+}
+
+bodyoff();
+?>

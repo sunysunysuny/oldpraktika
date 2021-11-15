@@ -1,0 +1,91 @@
+/* Login Form - Begin */
+
+div#main div#content div#mainlogin {
+	margin-top: 15px;	
+}
+div#main div#content div#mainlogin form {
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 10px;
+}
+div#main div#content div#mainlogin form fieldset {
+	margin-top: 0;
+}
+div#main div#content div#mainlogin form label {
+	width: 66px;	
+}
+div#main div#content div#mainlogin form input {
+	width: 180px;	
+}
+div#main div#content div#mainlogin form fieldset.control_panel p {
+	line-height: 32px;
+}
+div#main div#content div#mainlogin form fieldset.control_panel p a.pwd {
+	float: right;
+	font-size: 11px;
+	margin-right: 8px;
+	margin-top: 4px;
+}
+div#main div#content div#mainlogin form fieldset.control_panel p input.button {
+	margin-left: 95px;
+	width: auto;
+}
+div#main div#content div#mainlogin p.control {
+	overflow: visible;
+	margin: 20px 0;
+}
+/* Login Form - End */
+
+
+/* Advantages - Begin */
+
+div#advantages {
+	margin-top: 20px;
+}
+div#advantages h3 {
+	font-size: 16px;
+	padding-left: 30px;
+}
+div#advantages p {
+	font-size: 14px;
+	line-height: 21px;
+	padding-left: 30px;
+}
+
+/* Advantages - End */
+
+
+/* andere Styles - Begin */
+
+p.control {
+	margin-top: 20px;
+	margin-bottom: 40px;
+}
+div.csc-textpic-imagewrap {
+	float: left;
+}
+div.csc-textpic-imagewrap img {
+	margin-top: 0;
+}
+div.csc-textpic-text {
+	padding-top: 1px;	
+}
+
+/* andere Styles - End */
+
+
+/* Sidebar - Begin */
+
+div#sidebar div.premium {
+	margin-bottom: 15px;
+}
+#meinungen p {
+	border-bottom: 1px dotted #ddd;
+}
+#meinungen p.last {
+	border-bottom: 0;
+}
+#meinungen p img {
+	margin-top: 0;
+}
+
+/* Sidebar - End */

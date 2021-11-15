@@ -1,0 +1,29 @@
+<?
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php");
+praktikaInclude(array("db.php"));
+$hDB = new Praktika_Db();
+
+$ordnerquery = 'AND nutzerbookmark.ordner = '.$_SESSION['s_nutzerproparray']['kcenter']['ordnerid'];		
+
+$merkzettelFirmen = array();
+$sql = "SELECT firmen.firma, nutzerbookmark.firmenid `id`, COUNT(nutzerbookmark.firmenid) `num`
+		FROM nutzerbookmark
+				LEFT JOIN firmen ON (firmen.id = nutzerbookmark.firmenid)
+		WHERE nutzerbookmark.nutzerid = ".$_SESSION["s_nutzerid"]." $ordnerquery AND firmen.firma != ''
+		GROUP BY nutzerbookmark.firmenid
+		ORDER BY firmen.firma";
+$firmen = $hDB->query($sql, $praktdbslave);
+
+echo "<h4>Folgende Firmen in der &Uuml;bersicht zeigen:</h4>";
+$half = (int)(mysql_num_rows($firmen) / 2);
+echo "<form name='filterForm'><div style='float:left;width:340px;'>";
+$counter = 0;
+while($firma = mysql_fetch_assoc($firmen)) {
+	$counter++;
+	if($counter == $half+2) echo "</div><div style='margin-left:350px; width:260px;' >";
+	
+	echo "<input type='checkbox' name='firma_".$firma["id"]."' id='firma_".$firma["id"]."' value='".$firma["id"]."' style='float:left;' /> <label for='firma_".$firma["id"]."' style='display:block; margin-left:20px;'>".htmlentities(stripslashes($firma["firma"]))." <span class='numEntries'>(".$firma["num"].")</label>";
+}
+echo "</div></form>";
+echo '<div style="clear:left; text-align:center;"><button type="button" name="antworten" onclick="top.kc_setFilter(\'firmenid\',kc.getFilterOptions());" value="der Firma antworten"><span><span><span>&Uuml;bersicht anzeigen</span></span></span></button></div>'."\n";

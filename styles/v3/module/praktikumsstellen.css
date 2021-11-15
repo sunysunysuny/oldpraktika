@@ -1,0 +1,63 @@
+div#main div#content .praktikum_html .box_blue {
+	width: 630px;
+	margin: 20px 57px 25px 0;
+	height: 200px;
+	float: left;
+}
+div#main div#content .praktikum_html .box_blue form fieldset {
+	float: left;
+}
+div#main div#content .praktikum_html .box_blue form fieldset input#suchstring {
+	margin-left: 120px;
+}
+div#main div#content .praktikum_html .box_blue form fieldset.control_panel input {
+	margin-left: 10px;
+}
+div#main div#content .praktikum_html .header {
+	color: #333;	
+	font-weight: bold;
+	line-height: 18px;
+	padding-bottom:8px;
+}
+div#main div#content .praktikum_html .branchenListe {
+	float: left;
+	font-size: 11px;	
+	padding: 10px 0 0 20px;
+
+}
+div#main div#content .praktikum_html .branchenListe a {
+	font-size: 11px;
+	line-height: 14px;
+}
+div#main div#content .praktikum_html .first {
+	width: 36%;
+}
+div#main div#content .praktikum_html .middle {
+	width: 30%;
+}
+div#main div#content .praktikum_html .last {
+	width: 24%;
+}
+
+div#main div#content .praktikum_html ul li {
+	font-size: 11px;
+	margin-bottom: 20px;
+	
+}
+div#main div#content .praktikum_html ul li a {
+	font-size: 14px;
+	text-decoration: none;
+
+}
+div#main div#content .praktikum_html ul li span.linklist a {
+	font-size: 11px;
+	text-decoration: underline;
+	line-height: 25px;
+}
+div#main div#content .praktikum_html ul li span.time {
+	line-height: 25px;
+	color: #888;
+	font-size: 11px;
+
+	
+}

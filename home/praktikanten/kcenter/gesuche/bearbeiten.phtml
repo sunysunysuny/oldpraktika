@@ -1,0 +1,71 @@
+<?
+// Kein Gesuch wurde ausgewählt
+if(!empty($_GET["gesucheid"])) $_POST["gesucheid"] = $_GET["gesucheid"];
+
+if(!empty($_POST["gesucheid"])) {
+	$parts = explode("-",$_POST["gesucheid"]);
+	$gesuchid = $parts[0];
+	
+	switch($parts[1]) {
+		case '1':
+			$tbl = "praktikanten";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "praktikum";
+			break;
+		case '2':
+			$tbl = "diplomgesuch";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "bachelor_master";
+			break;
+		case '3':
+			$tbl = "nebenjobgesuch";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "nebenjob";
+			break;				
+		case '4':
+			$tbl = "ausbildungsgesuch";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "ausbildung";
+			break;
+		case '5':
+			$tbl = "berufseinstieggesuch";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "berufseinstieg";
+			break;
+		case '6':
+			$tbl = "projektgesuch";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "projekt";
+			break;			
+		default:
+			$tbl = "praktikanten";
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] = "praktikum";
+			break;	
+	}
+	
+	$sql = "SELECT * FROM prakt2.".$tbl." WHERE id = '".(int)$parts[0]."' AND nutzerid=".$_SESSION["s_loginid"];
+	$gesuchData = $hDB->query($sql, $praktdbslave);
+	$gesuchData = mysql_fetch_assoc($gesuchData);
+}
+
+praktikaInclude(array("layout.php"));
+?>
+<h3 style='margin-top:5px;'>Gesuch bearbeiten</h3>
+<form method="POST" action="#">
+	<? if(!isset($_POST['senden'])) { ?><p> 
+	 <label for="auswahl">Art des Gesuches:</label> 
+	 <select id="auswahl" name="auswahl" <? if(!empty($gesuchid)) echo 'DISABLED="DISABLED"'; ?> onchange="GoGesuchTyp(this.form.auswahl.options[this.form.auswahl.options.selectedIndex].value);"> 
+	 	<option value="praktikum" <? if(empty($parts[1]) || $parts[1] == "1" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "praktikum") echo "selected='selected'" ?> >Praktikum</option> 
+	 	<option value="bachelor_master" <? if($parts[1] == "2" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "bachelor_master") echo "selected='selected'" ?>>Bachelor-/Masterarbeit</option> 
+	 	<option value="berufseinstieg" <? if($parts[1] == "5" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "berufseinstieg") echo "selected='selected'" ?>>Berufseinstieg</option> 
+	 	<option value="nebenjob" <? if($parts[1] == "3" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "nebenjob") echo "selected='selected'" ?>>Nebenjob</option> 
+	 	<option value="ausbildung" <? if($parts[1] == "4" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "ausbildung") echo "selected='selected'" ?>>Ausbildung</option> 
+		<option value="projekt" <? if($parts[1] == "4" || $_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"] == "projekt") echo "selected='selected'" ?>>Projekt</option>
+	 </select> 
+	</p> <? } ?>
+	<br />
+</form>
+<div id='gesuch_container'>
+	<? 
+		if(empty($_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"])) {
+			$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"]="praktikum";
+		}
+		
+		include(dirname(__FILE__)."/form/".$_SESSION["s_nutzerproparray"]["kcenter"]["lastGesuchType"].".phtml");
+
+	?>
+</div>

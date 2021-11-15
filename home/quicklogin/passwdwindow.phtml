@@ -1,0 +1,107 @@
+<?php
+$sprachbasisdatei = "/home/firmen/firmencheck.phtml";
+$sprachbasisdatei2 = "/home/praktikanten/praktikantencheck.phtml";
+
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+pageheader(array('page_title' => 'Passwort vergessen?'));
+
+//var_dump($language);
+
+if ( isset($_POST['search']) ) {
+	if ( isset($_POST['email']) && empty($_POST['email']) ) {
+		echo '<p class="hint error">'.$language["strKeineeingabe"].'!</p>'."\n";
+		echo '<p class="control">'."\n";
+		echo '	<a href="/passwort/" class="button small alternative">zur&uuml;ck zur Auswahlseite</a>'."\n";
+		echo '</p>'."\n";
+	} else {
+		$sql = sprintf("SELECT 
+							id, 
+							vname, 
+							name, 
+							email 
+						FROM 
+							bearbeiter 
+						WHERE 
+							(id='%1\$d' OR email='%1\$s') AND
+							inactive='false' 
+						ORDER BY 
+							id",
+						$_POST['email']);
+		//echo $sql."<hr>";
+		$rs = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num = mysql_num_rows($rs);
+		
+		$sql = sprintf("SELECT 
+							id, 
+							vname, 
+							name, 
+							email 
+						FROM 
+							nutzer 
+						WHERE 
+							email='%1\$s' AND
+							inactive='false' 
+						ORDER BY 
+							id",
+						$_POST['email']);
+		//echo $sql."<hr>";
+		$rs2 = mysql_db_query($database_db, $sql, $praktdbslave);
+		$num2 = mysql_num_rows($rs2);
+		
+		// Firmen ?
+		if ($num != 0) {
+			echo '<p>'.$language["strEswurden"].$num.' '.$language["strUebereinstimmen"].'</p><p>'.$language["strFirmawaehlen"].'</p>'."\n";
+			echo '<hr />'."\n";
+			
+			$i = 0;
+			while ($i < $num) { 
+				$resultid = mysql_result($rs, $i, 'id');
+				echo '<p>Bearbeiter:</p>'."\n";
+				echo '<p><a href="/company/passwort_vergessen/'.mysql_result($rs, $i, 'id').'/'.time().'/">'.mysql_result($rs, $i, 'vname').' '.mysql_result($rs, $i, 'name').'</a>&nbsp; ID:'.mysql_result($rs, $i, 'id').'</p>'."\n";
+				echo '<hr />'."\n";
+				$i++;
+			}
+		// Bewerber ?
+		} elseif ($num2 != 0) {
+			echo '<p>'.$language["strEs"].' '.$num2.$language["strNutzerAnz"].'</p>'."\n";
+			echo '<hr />'."\n";
+			
+			$i = 0;
+			while ($i < $num2) { 
+				$resultid = mysql_result($rs2, $i, 'id');
+				echo '<p>Bearbeiter:</p>'."\n";
+				echo '<p><a href="/candidate/passwort_vergessen/'.mysql_result($rs2, $i, 'id').'/'.time().'/">'.mysql_result($rs2, $i, 'vname').' '.mysql_result($rs2, $i, 'name').'</a>&nbsp; ID:'.mysql_result($rs2, $i, 'id').'</p>'."\n";
+				echo '<hr />'."\n";
+				$i++;
+			}
+		} else {
+?>
+    <p>
+      Es wurde kein Eintrag gefunden, der mit der von Ihnen eingegebenen eMail-Adresse <b><?php echo $_POST['email'] ?></b> &uuml;bereinstimmt. Bitte versuchen Sie es erneut.
+    </p>
+<?php
+		}
+?>
+	<p class="control"><a href="/passwort/">neue Suche</a></p>
+<?php
+	}
+} else {
+?>
+	<form action="/passwort/" method="post" name="passwortVergessenForm">
+		<fieldset>
+			<p>
+				<label for="email">Ihre eMail-Adresse:</label>
+				<input type="text" id="email" name="email" />
+			</p>
+		</fieldset>
+		<fieldset class="control_panel">
+			<p>
+				<input type="submit" class="button small" name="search" value="WEITER" />
+			</p>
+		</fieldset>
+	</form>
+<?php
+}
+bodyoff();
+?>

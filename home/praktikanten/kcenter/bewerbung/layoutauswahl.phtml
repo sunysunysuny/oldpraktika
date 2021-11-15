@@ -1,0 +1,155 @@
+<?
+ob_start();
+require('/home/praktika/etc/gb_config.inc.php');
+
+if (isset($_POST['save']) && $_POST['save'] == '1') {
+	if ($_POST['bID'] != '0') {
+		if ($_POST['clear'] == '0') {
+			$sql = 'UPDATE ' . $database_db . '.bewerbung SET
+						lebenslauflayout = \'' . mysql_real_escape_string($_POST['layoutID']) . '\'
+					WHERE
+						id = \'' . intval($_POST['bID']) . '\'
+						AND nutzerid = \'' . $_SESSION['s_nutzerid'] . '\'';
+			mysql_query($sql);
+		} else {
+			$sql = 'UPDATE ' . $database_db . '.bewerbung SET
+						betreff = \'\',
+						b_schreiben = \'\'
+					WHERE
+						id = \'' . intval($_POST['bID']) . '\'
+						AND nutzerid = \'' . $_SESSION['s_nutzerid'] . '\'';
+			mysql_query($sql);
+
+			echo 'reload';
+		}
+	}
+	
+	if ($_POST['aID'] != '0') {
+		if ($_POST['clear'] == '0') {
+			$sql = 'UPDATE ' . $database_bprofil . '.anschreiben SET
+						lebenslauflayout = \'' . mysql_real_escape_string($_POST['layoutID']) . '\'
+					WHERE
+						id = \'' . intval($_POST['aID']) . '\'
+						AND nutzerid = \'' . $_SESSION['s_nutzerid'] . '\'';
+			mysql_query($sql);
+		} else {
+			$sql = 'UPDATE ' . $database_bprofil . '.anschreiben SET
+						lebenslauflayout = \'' . mysql_real_escape_string($_POST['layoutID']) . '\',
+						anschreiben = \'\',
+						betreff = \'\',
+						sprachid = ' . (substr($_POST['layoutID'], 0, 1) == '0' ? 2 : 1) . '
+					WHERE
+						id = \'' . intval($_POST['aID']) . '\'
+						AND nutzerid = \'' . $_SESSION['s_nutzerid'] . '\'';
+			mysql_query($sql);
+			
+		}
+	}
+
+	exit();
+}
+
+$sql = '	SELECT
+				lebenslauflayout
+			FROM
+				' . $database_bprofil . '.anschreiben
+			WHERE
+				id = ' . intval($_POST['aID']) . '
+				AND nutzerid = ' . $_SESSION['s_nutzerid'];
+$result = mysql_fetch_assoc(mysql_query($sql, $praktdbslave));
+
+$langNumber = intval(substr($result['lebenslauflayout'], 0, 1));
+$layoutNumber = intval(substr($result['lebenslauflayout'], 1, 1));
+?>
+
+<script type="text/javascript">
+	var langNumber = "<?= $langNumber; ?>";
+	var layoutNumber = <?= $layoutNumber; ?>;
+	var startLang = <?= $langNumber; ?>;
+
+	function layout_changeLanguage(value) {
+		$('#lang_0').css('display', 'none');
+		$('#lang_1').css('display', 'none');
+		$('#lang_2').css('display', 'none');
+		
+		$('#flag_0').attr('src', '/styles/images/ausland/flag_de' + (value != 0 ? '_grau' : '') + '.gif');
+		$('#flag_1').attr('src', '/styles/images/ausland/flag_uk' + (value != 1 ? '_grau' : '') + '.gif');
+		$('#flag_2').attr('src', '/styles/images/ausland/flag_us' + (value != 2 ? '_grau' : '') + '.gif');
+		
+		$('#lang_' + value).css('display', 'block');
+		langNumber = value; 
+	}
+	
+	function getLayoutName() {
+		switch (parseInt(layoutNumber)) {
+			case 1:
+				return 'Layoutvorlage 1';
+				break;
+			case 2:
+				return 'Layoutvorlage 2';
+				break;
+			case 3:
+				return 'Layoutvorlage 3';
+				break;
+		}
+		
+		return '';
+	}
+	
+	function setLayoutName() { alert(unescape(layoutNumber));
+		//return langNumber + layoutNumber;
+	}
+</script>
+
+<div class="smallbox_layoutauswahl_header">
+	<span>Sprache der Bewerbung:</span>
+	<img id="flag_0" src="/styles/images/ausland/flag_de<?= $langNumber != 0 ? '_grau' : ''; ?>.gif" style="cursor:pointer;" onclick="layout_changeLanguage(0);" />&nbsp;
+	<img id="flag_1" src="/styles/images/ausland/flag_uk<?= $langNumber != 1 ? '_grau' : ''; ?>.gif" style="cursor:pointer;" onclick="layout_changeLanguage(1);" />&nbsp;
+	<img id="flag_2" src="/styles/images/ausland/flag_us<?= $langNumber != 2 ? '_grau' : ''; ?>.gif" style="cursor:pointer;" onclick="layout_changeLanguage(2);" />
+</div>
+<br /><br />
+<form action="" method="post">
+	<fieldset>
+		<ul class="smallbox_layoutauswahl" id="lang_0" style="display: <?= $langNumber != 0 ? 'none' : 'block'; ?>;">
+			<li>Layout 1<br />
+				<img onclick="layoutNumber = 1; $('#layout_01').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_einfach.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 1;" name="layout" id="layout_01" value="" <?= ($layoutNumber == 1 && $langNumber == 0) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 2<br />
+				<img onclick="layoutNumber = 2; $('#layout_02').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_erweitert.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 2;" name="layout" id="layout_02" value="" <?= ($layoutNumber == 2 && $langNumber == 0) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 3<br />
+				<img onclick="layoutNumber = 3; $('#layout_03').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_profi.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 3;" name="layout" id="layout_03" value="" <?= ($layoutNumber == 3 && $langNumber == 0) ? ' checked="checked"' : ''; ?> /></li>
+		</ul>
+		<ul class="smallbox_layoutauswahl" id="lang_1" style="display: <?= $langNumber != 1 ? 'none' : 'block'; ?>;">
+			<li>Layout 1<br />
+				<img onclick="layoutNumber = 1; $('#layout_11').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_einfach_uk.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 1;" name="layout" id="layout_11" value="" <?= ($layoutNumber == 1 && $langNumber == 1) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 2<br />
+				<img onclick="layoutNumber = 2; $('#layout_12').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_erweitert_uk.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 2;" name="layout" id="layout_12" value="" <?= ($layoutNumber == 2 && $langNumber == 1) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 3<br />
+				<img onclick="layoutNumber = 3; $('#layout_13').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_profi_uk.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 3;" name="layout" id="layout_13" value="" <?= ($layoutNumber == 3 && $langNumber == 1) ? ' checked="checked"' : ''; ?> /></li>
+		</ul>
+		<ul class="smallbox_layoutauswahl" id="lang_2" style="display: <?= $langNumber != 2 ? 'none' : 'block'; ?>;">
+			<li>Layout 1<br />
+				<img onclick="layoutNumber = 1; $('#layout_21').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_einfach_us.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 1;" name="layout" id="layout_21" value="" <?= ($layoutNumber == 1 && $langNumber == 2) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 2<br />
+				<img onclick="layoutNumber = 2; $('#layout_22').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_erweitert_us.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 2;" name="layout" id="layout_22" value="" <?= ($layoutNumber == 2 && $langNumber == 2) ? ' checked="checked"' : ''; ?> /></li>
+			<li>Layout 3<br />
+				<img onclick="layoutNumber = 3; $('#layout_23').attr('checked', true);" src="/styles/images/smallbox/lebenslauf_profi_us.gif" /><br />
+				<input type="radio" onclick="layoutNumber = 3;" name="layout" id="layout_23" value="" <?= ($layoutNumber == 3 && $langNumber == 2) ? ' checked="checked"' : ''; ?> /></li>
+		</ul>
+	</fieldset>
+	<fieldset class="control_panel">
+		<p>
+			<a class="button alternative small" href="#" class="stdStyle" onclick="window.open('/lebenslauf/layout/preview/' + langNumber + layoutNumber + '/<?= $_SESSION['s_nutzerid']; ?>', 'Vorschau Lebenslauf', 'width=800, scrollbars=1'); return false;">Meinen Lebenslauf ansehen</a>
+			<input class="button small button2" type="submit" onclick="kc.saveLayout(<?= intval($_POST['bookID']); ?>, <?= intval($_POST['bID']); ?>, <?= intval($_POST['aID']); ?>, getLayoutName(), langNumber.toString() + layoutNumber.toString(), startLang); return false;" id="save" name="save" value="Speichern" />
+		</p>
+	</fieldset>
+</form>
+<br />
+

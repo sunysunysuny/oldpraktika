@@ -1,0 +1,106 @@
+<?
+require("/home/praktika/etc/config.inc.php");
+
+if (!isset($_SESSION['s_loggedin']) || $_SESSION['s_loggedin'] == false) {
+	header('Location: http://'.$_SERVER['HTTP_HOST'].'/login');
+}
+
+$_SESSION['restricted'] = RESTRICTED_CANDIDATE;
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+$_SESSION['current_page'] = PAGE_CV;
+
+if ($_SESSION['s_sprachid'] == 2) {
+	$headline = 'Profil zu Hobbys / Interessen ';
+	$variable1 = 'Ihre pers&ouml;nlichen Hobbys und Interessen';
+	$variable3 = 'Hobbys';
+	$variable4 = '(z.B. besondere Freizeitbesch&auml;ftigungen, Hobbys, Interessengebiete)';
+	$variableb1 = 'Speichern';
+	$variableb2 = 'Vorschau';
+	$variableb3 = 'zur&uuml;cksetzen';
+	$variableb4 = 'zur &Uuml;bersicht';
+	$text1 = 'Bewerberprofil in';
+	$text2 = 'Anzahl der Eintr&auml;ge';
+	$text3 = 'Was sind Ihre Hobbies, Interessen und speziellen F&auml;higkeiten? Erfassen Sie bitte alles Interessante in diesem Men&uuml;punkt. ';
+	$text4 = 'Ihr Eintrag wurde gespeichert und steht nun im Onlinebewerbungstool zur Verf&uuml;gung !';
+	$text5 = 'Baustein';
+	$text6 = 'von';
+	$giftext = 'Vorschau Lebenslauf!';
+	$myaccount = 'Mein Account';
+	$lebenslaufprofil = 'zum Profil';
+} elseif ($_SESSION['s_sprachid'] == 1) {
+	$headline = 'Hobbies / Interests';
+	$variable1 = 'Your personal interests';
+	$variable2 = 'Education';
+	$variable3 = 'Special skills';
+	$variable4 = '( i.e. hobbies, interests )';
+	$variableb1 = 'Speichern';
+	$variableb2 = 'Preview';
+	$variableb3 = 'Reset';
+	$variableb4 = 'Main Menu';
+	$text1 = 'Profile in';
+	$text2 = 'choose number of forms below';
+	$text3 = 'What are your hobbies, interests and special talents? Please insert anything of interest here.';
+	$text4 = 'Your entry has been saved and may be accessed from the career center !';
+	$text5 = 'Part';
+	$text6 = 'of';
+	$giftext = 'preview resume!';
+	$myaccount = 'my account';
+	$lebenslaufprofil = 'profile';
+}
+
+if (isset($_POST['save'])) {
+	$select = mysql_db_query($database_bprofil, 'SELECT * FROM profil_hobby WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+	$test = mysql_num_rows($select);
+
+	if ($test < 1) {
+		$insertstring = 'INSERT INTO profil_hobby (nutzerid, sprachid, datum_eintrag, modify) VALUES (\''.$_SESSION['s_loginid'].'\', \''.$_SESSION['s_sprachid'].'\', NOW(), NOW())';
+		mysql_db_query($database_bprofil,$insertstring,$praktdbmaster);
+	}
+
+	$updatestring = 'UPDATE profil_hobby SET sprachid=\''.$_SESSION['s_sprachid'].'\', hobby=\''.mysql_real_escape_string($_POST['hobby']).'\', modify=NOW() WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'];
+
+	mysql_db_query($database_bprofil,$updatestring,$praktdbmaster);
+	
+	Praktika_Lebenslauf::deleteCache();	
+	recalc_profilquali();
+	Praktika_Lebenslauf::deleteCache();	
+	
+	if($_POST["backToStart"] == "1") {
+		header("Location: /lebenslauf/ok/");
+	}		
+}
+
+pageheader(array('page_title' => $headline));
+
+$select = mysql_db_query($database_bprofil,'SELECT * FROM profil_hobby WHERE nutzerid='.$_SESSION['s_loginid'].' AND sprachid='.$_SESSION['s_sprachid'],$praktdbmaster);
+$profil = mysql_fetch_array($select);
+
+echo '<div id="recruitingCenter">';
+
+$parts = array("lebenslauf");
+include(SERVER_ROOT."/public_html/home/praktikanten/kcenter/navi.php");
+
+
+# language_select($text1);
+echo '		<br /><form id="contentform" action="http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'" method="post">'."\n";
+# echo '			<p>'.$text3.'</p>'."\n";
+
+if (isset($_POST['save'])) {
+	echo '			<p class="hint success">'.$text4.'</p>'."\n";
+}
+
+echo '			<h4>'.$variable1.'</h4>'."\n";
+echo '			<fieldset>'."\n";
+echo '				<p>'."\n";
+echo '					<label for="hobby">'.$variable3.'<br /><span class="hint">'.$variable4.'</span></label><textarea id="hobby" name="hobby" rows="10" cols="16">'.(isset($profil['hobby']) ? stripslashes($profil['hobby']) : '').'</textarea>'."\n";
+echo '				</p>'."\n";
+echo '			</fieldset>'."\n";
+echo '			<fieldset class="control_panel">'."\n";
+echo '				<p class="center"><input class="button small" type="submit" value="&Auml;nderungen speichern" name="save" /></p>'."\n";
+echo '				<p><label for="backToStart" class="komplette_breite"><input type="checkbox" class="html_controlled" name="backToStart" id="backToStart" value="1" '.(!isset($_SESSION["backToStart"]) || (isset($_SESSION["backToStart"]) && $_SESSION["backToStart"] != "1")?'':'checked="checked"').' /> Nach dem Speichern zur&uuml;ck zur Lebenslauf&uuml;bersicht</label></p>';
+echo '			</fieldset>'."\n";
+echo '		</form>'."\n";
+echo '	</div>'."\n";
+
+bodyoff();
+?>

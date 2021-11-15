@@ -1,0 +1,324 @@
+<?
+ $gruppe = "unternehmen";
+ $sprachbasisdatei = "/home/firmen/studiengang.phtml";
+ $profil="yes";
+ require("/home/praktika/etc/config.inc.php"); 
+ require("/home/praktika/etc/kandidatensuche.inc.php"); 
+
+if (!$s_kandidatentable)  require("/home/praktika/etc/kandidatensuchecache.inc.php"); 
+
+pageheader(session_id(), session_name()); 
+
+?>
+      <table width="90%">
+        <tr> 
+          <td><h1 class="layout1">Suchergebnis: Kandidaten Profilsuche</h1>
+            <table width="100%">
+<? 
+$updatestring = "UPDATE statseinblick SET modify='$modify',counter=counter+1 WHERE id=18";
+mysql_db_query($database_db,$updatestring,$praktdbmaster);
+
+//echo $s_kandidatentable;
+
+// Suchwerte dem Array hinzuf&uuml;gen
+$s_ergebnisarry[sucheingabe][suchart]=3;
+
+// uebergabevariablen konvertieren //
+$ds_count = intval( $ds_count);
+$ds_pro_seite = intval( $ds_pro_seite);
+
+if (count($bereiche)==0 || count($s_ergebnisarry[bereiche])==0) {
+	$bereiche[0]=1;
+	$bereiche[1]=2;
+	$bereiche[2]=3;
+	$bereiche[3]=4;
+	$bereiche[4]=5;
+}	
+if (!$bereiche) $bereiche=$s_ergebnisarry[bereiche];
+
+// uebergabevariablen konvertieren //
+$ds_count = intval( $ds_count);
+$ds_pro_seite = intval( $ds_pro_seite);
+
+
+$check=mysql_db_query($database_temp,"SELECT id from $s_kandidatentable",$praktdbmaster);
+if (mysql_numrows($check) == 0) {
+
+// Land Multiple auswerten und zum Query zusammenbasteln
+if ($land[0] == 0) {
+	$landquery = "AND t1.land like '%'";
+
+} else {
+   $landquery="AND (";
+while (list($key, $val) = each($land)) {
+   $landquery.="t1.land=".$val." OR ";
+}
+	$landquery= substr ($landquery,0 , (strlen($landquery)-4)).")"; 
+}
+
+/* Karierrestatus Multiple auswerten und zum Query zusammenbasteln */
+if ($karierrestatus[0] == 0) {
+	$karierrestatusquery = "AND t1.karierrestatus like '%'";
+
+} else {
+   $karierrestatusquery="AND (";
+while (list($key, $val) = each($karierrestatus)) {
+   $karierrestatusquery.="t1.karierrestatus=".$val." OR ";
+}
+	$karierrestatusquery= substr ($karierrestatusquery,0 , (strlen($karierrestatusquery)-4)).")"; 
+
+}
+
+// Studienrichtung Multiple auswerten und zum Query zusammenbasteln
+if ($studienrichtung[0] != 0) {
+	$sql = 'SELECT id FROM studiengaenge WHERE richtungid IN ( '.implode(",",$studienrichtung).' )';
+	$studiengaengequery=mysql_db_query($database_db,$sql,$praktdbslave);
+	$studienrichtungquery="AND (";
+	$first = 'true';
+	while (list($studiengaengeid) = mysql_fetch_array($studiengaengequery)) {
+		if ($first != 'true') $studienrichtungquery.=" OR ";
+		$studienrichtungquery.="t1.studiengang='".$studiengaengeid."'";
+		$first = 'false';
+	}
+	$studienrichtungquery.=") ";
+}
+
+/* Schulabschluss - Qualifikation Multiple auswerten und zum Query zusammenbasteln 
+if ($abschluss != 0 ) {
+   $abschlussquery="AND (";
+while (list($key, $val) = each($abschluss)) {
+   $abschlussquery.="t2.abschluss=".$val." OR t2.abschluss2=".$val." OR t2.abschluss3=".$val." OR ";
+   $abschlussdb="$database_bprofil.profil_schule as t2,";
+   $abschlussdbnutzer="AND t1.id=t2.nutzerid";
+}
+if ($bewerbungssprache[0] != 0 ) $bewerbungsspracheschule="AND t2.sprachid=".$bewerbungssprache[0];
+	$abschlussquery= substr ($abschlussquery,0 , (strlen($abschlussquery)-4)).")"; 
+}
+
+
+// Berufsabschlu&szlig; Multiple auswerten und zum Query zusammenbasteln
+if ($lehre[0] != 0) {
+   $lehrequery="AND (";
+while (list($key, $val) = each($lehre)) {
+   $lehrequery.="t3.b_beruf=".$val." OR t3.b_beruf2=".$val." OR t3.b_beruf3=".$val." OR ";
+   $lehredb="$database_bprofil.profil_berufsausbildung as t3,";
+   $lehredbnutzer="AND t1.id=t3.nutzerid";
+}
+if ($bewerbungssprache[0] != 0 ) $bewerbungssprachelehre="AND t3.sprachid=".$bewerbungssprache[0];
+	$lehrequery= substr ($lehrequery,0 , (strlen($lehrequery)-4)).")"; 
+}
+
+// Hochschule Multiple auswerten und zum Query zusammenbasteln
+if ($universitaet[0] != 0) {
+   $universitaetquery="AND (";
+while (list($key, $val) = each($universitaet)) {
+   $universitaetquery.="t4.hochschule=".$val." OR t4.hochschule2=".$val." OR t4.hochschule3=".$val." OR ";
+   $studiumdb="$database_bprofil.profil_studium as t4,";
+   $studiumdbnutzer="AND t1.id=t4.nutzerid";
+}
+if ($bewerbungssprache[0] != 0 ) $bewerbungssprachestudium="AND t4.sprachid=".$bewerbungssprache[0];
+	$universitaetquery= substr ($universitaetquery,0 , (strlen($universitaetquery)-4)).")"; 
+}
+*/
+
+// Sprachen Multiple auswerten und zum Query zusammenbasteln
+if ($sprache[0] != 0) {
+   $universitaetquery="AND (";
+while (list($key, $val) = each($sprache)) {
+   $sprachequery.="t5.sprachkenntnisse1=".$val." OR t5.sprachkenntnisse2=".$val." OR t5.sprachkenntnisse3=".$val." OR ";
+   $sprachdbnutzer="AND t1.id=t5.nutzerid";
+}
+	$sprachequery= substr ($sprachequery,0 , (strlen($sprachequery)-4)).")"; 
+}
+
+if ($studiengang != "") $studiengangquery.="AND t1.studiengang='$studiengang'";
+
+if ($berufserfahrung == "true") $berufserfahrungquery.="AND t5.berufserfahrung=1";
+if ($projekterfahrung == "true") $projekterfahrungquery.="AND t5.projekterfahrung=1";
+if ($fuehrungserfahrung == "true") $fuehrungserfahrungquery.="AND t5.fuehrungserfahrung=1";
+if ($interkerfahrung == "true") $interkerfahrungquery.="AND t5.interkerfahrung=1";
+
+if ($sozial1 == "true") $sozial1query.="AND t5.sozial1='true'";
+if ($sozial2 == "true") $sozial2query.="AND t5.sozial2='true'";
+if ($sozial3 == "true") $sozial3query.="AND t5.sozial3='true'";
+if ($sozial4 == "true") $sozial4query.="AND t5.sozial4='true'";
+if ($sozial5 == "true") $sozial5query.="AND t5.sozial5='true'";
+if ($sozial6 == "true") $sozial6query.="AND t5.sozial6='true'";
+if ($sozial7 == "true") $sozial7query.="AND t5.sozial7='true'";
+$sozialquery=$sozial1query." ".$sozial2query." ".$sozial3query." ".$sozial4query." ".$sozial5query." ".$sozial6query." ".$sozial7query;
+
+if ($methode1 == "true") $methode1query.="AND t5.methode1='true'";
+if ($methode2 == "true") $methode2query.="AND t5.methode2='true'";
+if ($methode3 == "true") $methode3query.="AND t5.methode3='true'";
+if ($methode4 == "true") $methode4query.="AND t5.methode4='true'";
+if ($methode5 == "true") $methode5query.="AND t5.methode5='true'";
+if ($methode6 == "true") $methode6query.="AND t5.methode6='true'";
+$methodequery=$methode1query." ".$methode2query." ".$methode3query." ".$methode4query." ".$methode5query." ".$methode6query;
+
+if ($faehigkeit1 == "true") $faehigkeit1query.="AND t5.faehigkeit1='true'";
+if ($faehigkeit2 == "true") $faehigkeit2query.="AND t5.faehigkeit2='true'";
+if ($faehigkeit3 == "true") $faehigkeit3query.="AND t5.faehigkeit3='true'";
+if ($faehigkeit4 == "true") $faehigkeit4query.="AND t5.faehigkeit4='true'";
+if ($faehigkeit5 == "true") $faehigkeit5query.="AND t5.faehigkeit5='true'";
+if ($faehigkeit6 == "true") $faehigkeit6query.="AND t5.faehigkeit6='true'";
+if ($faehigkeit7 == "true") $faehigkeit7query.="AND t5.faehigkeit7='true'";
+if ($faehigkeit8 == "true") $faehigkeit8query.="AND t5.faehigkeit8='true'";
+$faehigkeitquery=$faehigkeit1query." ".$faehigkeit2query." ".$faehigkeit3query." ".$faehigkeit4query." ".$faehigkeit5query." ".$faehigkeit6query." ".$faehigkeit7query." ".$faehigkeit8query;
+
+if ($arbeitsverhalten1 == "true") $arbeitsverhalten1query.="AND t5.arbeitsverhalten1='true'";
+if ($arbeitsverhalten2 == "true") $arbeitsverhalten2query.="AND t5.arbeitsverhalten2='true'";
+if ($arbeitsverhalten3 == "true") $arbeitsverhalten3query.="AND t5.arbeitsverhalten3='true'";
+if ($arbeitsverhalten4 == "true") $arbeitsverhalten4query.="AND t5.arbeitsverhalten4='true'";
+if ($arbeitsverhalten5 == "true") $arbeitsverhalten5query.="AND t5.arbeitsverhalten5='true'";
+if ($arbeitsverhalten6 == "true") $arbeitsverhalten6query.="AND t5.arbeitsverhalten6='true'";
+if ($arbeitsverhalten7 == "true") $arbeitsverhalten7query.="AND t5.arbeitsverhalten7='true'";
+$arbeitsverhaltenquery=$arbeitsverhalten1query." ".$arbeitsverhalten2query." ".$arbeitsverhalten3query." ".$arbeitsverhalten4query." ".$arbeitsverhalten5query." ".$arbeitsverhalten6query." ".$arbeitsverhalten7query;
+
+
+// Testen ob Tabelle Leistungsprofil von N&ouml;ten ist
+$leistungsdb=$berufserfahrungquery." ".$projekterfahrungquery." ".$fuehrungserfahrungquery." ".$interkerfahrungquery." ".$sozialquery." ".$methodequery." ".$faehigkeitquery." ".$arbeitsverhaltenquery ." ".$sprachequery;
+//if (trim($leistungsdb)!="") { $leistungsdb="$database_bprofil.profil_leistung as t5,"; $leistungsnutzer="AND t1.id=t5.nutzerid"; }
+$leistungsdb="$database_bprofil.profil_leistung as t5,"; $leistungsnutzer="AND t1.id=t5.nutzerid";
+
+if ($bewerbungssprache[0] != 0 && trim($leistungsdb)!="") $bewerbungsspracheleistung="AND t5.sprachid=".$bewerbungssprache[0];
+
+/*
+if ($verfuegbaregal[0] =="false") {
+$monat=$von_monat[0];
+$jahr=$von_jahr[0];
+$zeitraum="AND t6.ausbildungsende_monat <= '$monat' AND t6.ausbildungsende_jahr <='$jahr'";
+$zukunftdb="$database_bprofil.profil_zukunft as t6,"; 
+$zukunftnutzer="AND t1.id=t6.nutzerid"; 
+if ($bewerbungssprache[0] != 0) $bewerbungssprachezukunft="AND t6.sprachid=".$bewerbungssprache[0];
+}
+*/
+$bewerbungssprache=$bewerbungssprache[0];
+
+// abfrage ausfuehren
+$querystring = "INSERT INTO $database_temp.$s_kandidatentable (nutzerid,geburtsdatum,karierrestatus,sprachkenntnisse1,sprachkenntnisse2,sprachkenntnisse3,land,bundesland,grossraum) SELECT t1.id as nutzerid,t1.geburtsdatum,t1.karierrestatus,t5.sprachkenntnisse1,t5.sprachkenntnisse2,t5.sprachkenntnisse3,t1.land,t1.bundesland,t1.grossraum FROM $database_db.nutzer AS t1, $abschlussdb $lehredb $studiumdb $leistungsdb $zukunftdb prakt2.land AS t7 
+                 WHERE t1.inactive <> 'true' $studiengangquery $landquery $karierrestatusquery $abschlussquery $lehrequery $studienrichtungquery $universitaetquery $sprachequery $berufserfahrungquery $zeitraum
+                 $projekterfahrungquery $fuehrungserfahrungquery $interkerfahrungquery $sozialquery $methodequery $faehigkeitquery $arbeitsverhaltenquery
+                 $abschlussdbnutzer $bewerbungsspracheschule $lehredbnutzer $bewerbungssprachelehre $studiumdbnutzer $bewerbungssprachestudium $sprachdbnutzer $leistungsnutzer $bewerbungsspracheleistung $zukunftnutzer $bewerbungssprachezukunft AND t1.land=t7.id group by t1.id ORDER BY t1.modify desc limit 5000";
+
+if ($s_debug=="yes") echo $querystring;
+
+$results = mysql_db_query($database_temp,$querystring,$praktdbmaster);
+}
+
+
+if ($wkvalue) inbasket($wknutzerid,$wkvalue);
+
+if ($finesearch) {
+	if ($berufsfeld != "") {
+		$s_ergebnisarry[sucheingabe][berufsfeld]=array($berufsfeld);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE berufsfeld <> $berufsfeld",$praktdbmaster);
+	}
+	if ($spalte != "") {
+		$s_ergebnisarry[bereiche]=array($spalte);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE spalte <> $spalte",$praktdbmaster);
+	}
+	if ($bundesland != "") {
+		$s_ergebnisarry[sucheingabe][bundesland]=array($bundesland);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE bundesland <> $bundesland",$praktdbmaster);
+	}
+	if ($sprache != "") {
+		$s_ergebnisarry[sucheingabe][sprache]=array($sprache);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE (sprachkenntnisse1 <> $sprache AND sprachkenntnisse2 <> $sprache AND sprachkenntnisse3 <> $sprache )",$praktdbmaster);
+	}
+	if ($grossraum != "") {
+		$s_ergebnisarry[sucheingabe][grossraum]=array($grossraum);
+		mysql_db_query($database_temp,"DELETE FROM $s_kandidatentable WHERE grossraum <> $grossraum",$praktdbmaster);
+	}
+}
+
+
+// Arrays zusammenfassen
+$s_ergebnisarry[bereiche]=$bereiche;
+
+
+$query="SELECT * FROM $s_kandidatentable order by nutzerid desc";
+//echo $query."<br>";
+
+$results=mysql_db_query($database_temp,$query,$praktdbmaster);
+
+//echo $results;
+
+// datensaetze gefunden ? //
+$num_rows = mysql_num_rows( $results );
+
+if ( $num_rows  > 0) {
+
+$rueckgabe = suchergebnis($ds_count,$ds_pro_seite,$num_rows);
+
+$ds_value=($ds_count);
+$ds_count = $rueckgabe[0];
+$ds_pro_seite = $rueckgabe[1];
+?> 
+              <hr>
+              <table width="100%">
+                <tr> 
+                  <td align="left"> 
+                 <? if ($ds_count > $ds_pro_seite) { ?> 
+                    <form action="profilsuche.phtml" method="POST">
+                      	<input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+			<input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      	<input type="HIDDEN" name="ds_count" value=<? echo ($ds_value-$ds_pro_seite); ?>>
+                      	<input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      	<input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      	<input type="HIDDEN" name="z" value="<? echo $z ?>">
+                        <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      	<input type="SUBMIT" value="zur&uuml;ck">
+                    </form><? } else {?>
+
+                    <form>
+                     <input type="BUTTON" value="<? echo $language ["strSuchseite"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=profil&<?=session_name()."=".session_id()?>')>
+                    </form> <? } ?>
+                  </td>
+                  <? if ($ds_count < $num_rows) { ?> 
+                  <td align="right"> 
+                    <form action="profilsuche.phtml" method="POST">
+                      <input type="hidden" name="<? echo session_name() ?>" value="<? echo session_id() ?>">
+                      <input type="HIDDEN" name="suchstring" value="<? echo $suchstring ?>">
+                      <input type="HIDDEN" name="ds_value" value=<? echo $ds_value ?>>
+                      <input type="HIDDEN" name="ds_count" value=<? echo $ds_count ?>>
+                      <input type="HIDDEN" name="ds_pro_seite" value=<? echo $ds_pro_seite ?>>
+                      <input type="HIDDEN" name="z" value="<? echo $z ?>">
+                      <input type="HIDDEN" name="seitenzaehler" value="<? echo $seitenzaehler ?>">
+                      <input type="SUBMIT" value="<? echo $language["strNaechsten"]; ?> <? echo min( $ds_pro_seite, ($num_rows - $ds_count) ) ?> <? echo $language["strErgebnisse"]; ?>" style="width:185px">
+                    </form>
+                  </td>
+                  <? }
+                  if ($ds_count == $num_rows && $ds_count > 5) { ?>
+                  <td align="right"> 
+                  <form>
+                      <input type="BUTTON" name="y" value="<? echo $language["strSuchseite"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=profil&<?=session_name()."=".session_id(); ?>')>
+                  </form>
+                  </td> <? } ?> </tr>
+
+                  <? if ($ds_count > $ds_pro_seite && $ds_count != $num_rows) { ?> 
+	        <tr><td colspan=2><form><input type="BUTTON" value="<? echo $language ["strSuchseite"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=profil&<?=session_name()."=".session_id()?>')></form></td></tR>
+                  <? } ?>
+<? unterelinks() ?>
+              </table>
+              <hr>
+              <? } else { ?> 
+              <tr> 
+                <td> <font color="#000000"><? echo $language["strNix"]; ?></font> 
+                  <p>&nbsp;</p>
+                  <form>
+                    <hr>
+                    <input type="BUTTON" value="<? echo $language["strZurueck"]; ?>" onClick=location.replace('/home/firmen/einblick.phtml?suchwahl=<? echo $suchwahl; ?>&<?=session_name()."=".session_id()?>')>
+                    <hr>
+                  </form>
+                </td>
+              </tr>
+            </table>
+            <? } 
+echo "<br><br><br>";
+require("/home/praktika/public_html/cms/fileadmin/php_scripts/boldchat_firmen.inc");  
+echo $content;
+            
+            ?> </td>
+        </tr>
+      </table>
+<? bodyoff(session_id(), session_name()); ?>

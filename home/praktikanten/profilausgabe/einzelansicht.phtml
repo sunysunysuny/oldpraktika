@@ -1,0 +1,82 @@
+<?php
+$sprachbasisdatei = "/home/praktikanten/previewlebenslauf.phtml";
+$sprachbasisdatei2 = "/home/praktikanten/anmeldung.phtml";
+
+require_once("/home/praktika/etc/gb_config.inc.php");
+
+$_SESSION['current_user_group'] = USER_GROUP_CANDIDATES;
+
+// GET-Variablen
+$einstellungen = isset($_GET['einstellungen']) ? 'einstellungen = '.$_GET['einstellungen'] : -1;
+$gesuche = isset($_GET['gesuche']) ? 'gesuche = '.$_GET['gesuche'] : -1;
+$id = isset($_GET['id']) ? $_GET['id'] : -1;
+
+if (isset($_REQUEST['gelesen']) && $_REQUEST['gelesen'] == 'false') {
+	$sql = sprintf("UPDATE 
+						firmenbookmark 
+					SET 
+						gelesen = 'true' 
+					WHERE 
+						nutzerid = %1\$d AND 
+						firmenid = %2\$d AND 
+						profil = 'true'",
+					$id,
+					$_SESSION['s_firmenid']);
+	$update = mysql_db_query($database_db, $sql, $praktdbmaster);
+}
+
+$sql = sprintf("SELECT 
+					lebenslauftemplate 
+				FROM 
+					einstellungen 
+				WHERE 
+					nutzerid = %1\$d",
+				$id);
+$select = mysql_db_query($database_bprofil, $sql, $praktdbslave);
+
+if (mysql_num_rows($select) > 0) {
+	$lebenlaufwahl = mysql_result($select, 0, 'lebenslauftemplate');
+} else {
+	$lebenlaufwahl = '01';
+}
+
+switch ($lebenlaufwahl) {
+	case '':
+	case '10':
+	case '20':
+		$lebenlaufwahl = '01';
+	case '01':
+	case '02':
+	case '03':
+		$bewerbsprache = 2;
+		break;
+	default:
+		$bewerbsprache = 1;
+		break;
+}
+/*if ($lebenlaufwahl=="01" || $lebenlaufwahl=="02" || $lebenlaufwahl=="03") { $bewerbsprache="2"; }else {$bewerbsprache="1";}
+if ($lebenlaufwahl=="20" || $lebenlaufwahl=="10") $lebenlaufwahl="01";
+if (empty($lebenlaufwahl)) $lebenlaufwahl="01";
+if (empty($bewerbsprache)) $bewerbsprache=2;*/
+
+//metatags ($_SESSION['s_sprache']);
+//pageheader();
+?> 
+
+<div>
+<?php
+$mappe = 1;
+//require_once('profiltop.phtml?id='.$id.'&nutzerid='.$id.'&bewerbsprache='.$bewerbsprache.'&mappe=1&'.$einstellungen.'&'.$gesuche);
+require('profiltop.phtml');
+?>
+</div>
+<div>
+<?php
+echo '../profil/previewlebenslauf'.$lebenlaufwahl.'.phtml';
+//require_once('/home/praktikanten/profil/previewlebenslauf'.$lebenlaufwahl.'.phtml?id='.$id.'&sprachid='.$_SESSION['s_sprachid']);
+require('../profil/previewlebenslauf'.$lebenlaufwahl.'.phtml');
+?>
+</div>
+<?php
+//bodyoff();
+?>

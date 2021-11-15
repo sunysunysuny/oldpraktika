@@ -1,0 +1,187 @@
+<?
+ $miniwindow = true;
+ $noadvertise = "yes";
+ $sprachbasisdatei="/home/praktikanten/previewlebenslauf.phtml";
+ $sprachbasisdatei2="/home/praktikanten/profil/profil_zukunft.phtml";
+ require("/home/praktika/etc/config.inc.php"); 
+ if ($nid>0) $_GET['id']=$nid;
+
+?> 
+
+<HTML>
+<HEAD>
+<? metatags ($s_sprache); ?>
+<TITLE><? echo $language ["strTitel"]; ?></TITLE>
+<LINK REL="SHORTCUT ICON" HREF="/favicon.ico">
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+</HEAD>
+ 
+ 
+<? bodyon(session_id(), $s_sprache); 
+
+/* Check, ob berechtigt */
+if (($s_firmenlevel <2 && $s_loggedin<>"yes") && ($s_loggedinnutzer<>"yes" && $_GET['id'] <>$s_nutzerid)) {
+?>
+<script language="JavaScript">
+<!--
+window.close();
+//-->
+</script>
+<?
+	
+}	
+/* Check, ob berechtigt ENDE */
+
+?>
+<CENTER>
+  <BR>
+<H2><i><? echo strtoupper($language ["strZukuft"]); ?></i></H2>
+<? 
+if ($_GET['id'] != "") {
+$result = mysql_db_query($database_db,"select *,date_format(geburtsdatum, '%d') as tag, date_format(geburtsdatum, '%m') as monat, date_format(geburtsdatum, '%Y') as jahr, date_format(modify, '%d.%m.%Y') as datum from nutzer where id=$_GET['id']",$praktdbslave);
+$fetch = mysql_fetch_array($result);
+$sprachid=$bewerbsprache;
+if ($sprachid==0) $sprachid=$s_sprachid;
+echo '<script language="JavaScript">
+<!--
+	window.focus();
+//-->
+</script>
+';
+} 
+
+if (($s_firmenlevel <2 && $s_loggedin<>"yes") && ($s_loggedinnutzer<>"yes" && $_GET['id'] <>$s_nutzerid)) {
+    echo "<CENTER><b>Ihre Abfrage ist ung&uuml;ltig !</b></CENTER>";
+
+} else {
+
+
+$landid=$fetch["land"];
+$land=mysql_db_query($database_db,"select german from land where id=$landid",$praktdbslave);
+echo mysql_error();
+?>
+  <TABLE WIDTH="650" BORDER="0" cellspacing="0" cellpadding="0">
+    <TR> 
+      <TD COLSPAN="3" ALIGN="LEFT" HEIGHT="35"><B><? echo $language ["strDaten"]; ?></B></TD>
+    </TR>
+    <TR> 
+      <TD colspan="2"><? echo $language ["strName"]; ?> 
+<? if ($_GET['einstellungen']=="false") { ?>
+      Chiffre Nummer: #<? echo $_GET['id']; ?></TD>
+<? } else { ?>
+          <?if (!$fetch["titel"] == "") echo $fetch["titel"] . " "; echo $fetch["vname"] . " " . $fetch["name"] ?>
+<? } ?>
+    </TR>
+<? if ($_GET['einstellungen']=="true") { ?>
+    <TR><TD colspan="3"><? echo $language ["strAnschrift"]; ?><? echo $fetch["strasse"] ?>, <? echo $fetch["plz"] . " " . $fetch["ort"] ?></TD></TR>
+    <TR><TD colspan="3""><? echo $language ["strEmail"]; ?><A href="mailto:<? echo $fetch["email"] ?>"><? echo $fetch["email"] ?></TD></TR>
+<? } ?>
+
+    <TR><TD><br></TD></TR>
+    <TR><TD><br></TD></TR>
+
+<? 
+// Ab hier werden die Proffile ausgelesen
+
+$result = mysql_db_query($database_bprofil,"select * from profil_zukunft where nutzerid=$_GET['id'] AND sprachid=$sprachid",$praktdbslave);
+$fetchzukunft = mysql_fetch_array($result);
+if (mysql_num_rows($result)>0) { 
+
+echo "<TR><TD colspan=\"3\"><b>Zukunftsabsichten des Bewerbers:</b><br><br></TD></TR>";
+
+echo "<TR><TD colspan=\"3\"><i>Ab welchen Zeitpunkt steht der Bewerber Ihnen voraussichtlich zur Verf&uuml;gung?</i></TD></TR>";
+echo "<TR><TD colspan=\"3\" valign=\"top\"><img src=/home/gifs/leer.gif width=\"15\">steht voraussichtlich ab: ". $fetchzukunft["ausbildungsende_monat"] ." / ". $fetchzukunft["ausbildungsende_jahr"] ." zur Verf&uuml;gung.</TD> </TR>";
+
+if ($fetchzukunft["berufsabschluss"] <> "") { 
+echo "<TR><TD colspan=\"3\"><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><i>Welchen Berufsabschluss wird der Bewerber erreichen?</i></TD></TR>";
+echo "<TR><TD colspan=\"3\" valign=\"top\"><img src=/home/gifs/leer.gif width=\"15\">steht voraussichtlich ab: ". $fetchzukunft["berufsabschluss"] ." / ". $fetchzukunft["ausbildungsende_jahr"] ." zur Verf&uuml;gung.</TD> </TR>";
+}
+
+if ($fetchzukunft["universitaet"] > 0) { 
+$uniid=$fetchzukunft["universitaet"];
+$universitaet = mysql_db_query($database_db,"select * from universitaeten where id=$uniid",$praktdbslave);
+echo "<TR><TD colspan=\"3\"><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><i>An welcher Hochschule/Universit&auml;t wird der Abschlu&szlig; erreicht werden?</i></TD></TR>";
+echo "<TR><TD colspan=\"3\" valign=\"top\"><img src=/home/gifs/leer.gif width=\"15\">Hochschule/Universit&auml;t: ". mysql_result($universitaet,0,"hochschule") ."</TD> </TR>";
+}
+
+if ($fetchzukunft["anderebildungseinr"] <> "") { 
+echo "<TR><TD colspan=\"3\"><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><i>An welcher Bildungseinrichtung wird der Abschlu&szlig; erreicht werden?</i></TD></TR>";
+echo "<TR><TD colspan=\"3\" valign=\"top\"><img src=/home/gifs/leer.gif width=\"15\">Bildungseinrichtung: ". $fetchzukunft["anderebildungseinr"] ."</TD> </TR>";
+}
+
+
+echo "<TR><TD colspan=\"3\"><br><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><b>Zuk&uuml;nftige Berufsrichtung des Bewerbers:</b><br><br></TD></TR>";
+
+if ($fetchzukunft["trainee"] == "ja" || $fetchzukunft["trainee"] == "nein") { 
+if ($fetchzukunft["trainee"] == "ja") 
+echo "<TR><TD width=45%><i>Berufseinstieg &uuml;ber ein Trainee-Programm?</i></TD><TD colspan=\"2\">". strtoupper($fetchzukunft["trainee"]) ."</TD></TR>";
+}
+
+if ($fetchzukunft["branche"] > 0) { 
+$b1=$fetchzukunft["branche"];
+$b2=$fetchzukunft["branche2"];
+$b3=$fetchzukunft["branche3"];
+$bf1=$fetchzukunft["berufsfeld"];
+$bf2=$fetchzukunft["berufsfeld2"];
+$bf3=$fetchzukunft["berufsfeld3"];
+if ($b1>0 && $bf1 >0) {
+	$branchesel=mysql_db_query($database_db,"select $s_sprache from branchen where id=$b1",$praktdbslave);
+	$bfeldsel=mysql_db_query($database_db,"select * from berufsfelder where id=$bf1",$praktdbslave);
+	$branche1=mysql_result($branchesel,0,$s_sprache);
+	$berufsfeld1=mysql_result($bfeldsel,0,$s_sprache);
+}
+if ($b2>0 && $bf2 >0) {
+	$branchesel2=mysql_db_query($database_db,"select $s_sprache from branchen where id=$b2",$praktdbslave);
+	$bfeldsel2=mysql_db_query($database_db,"select * from berufsfelder where id=$bf2",$praktdbslave);
+	$branche2=mysql_result($branchesel2,0,$s_sprache);
+	$berufsfeld2=mysql_result($bfeldsel2,0,$s_sprache);
+}
+if ($b3>0 && $bf3 >0) {
+	$branchesel3=mysql_db_query($database_db,"select $s_sprache from branchen where id=$b3",$praktdbslave);
+	$bfeldsel3=mysql_db_query($database_db,"select * from berufsfelder where id=$bf3",$praktdbslave);
+	$branche3=mysql_result($branchesel3,0,$s_sprache);
+	$berufsfeld3=mysql_result($bfeldsel3,0,$s_sprache);
+}
+echo "<TR><TD colspan=\"3\"><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><i>Wunschbranchen des Bewerbers:</i></TD></tr>";
+echo "<TR><TD colspan=\"3\">";
+if ($b1>0 && $bf1 >0) echo "Branche 1: ".$branche1.", Berufsfeld: ".$berufsfeld1;
+if ($b1>0 && $bf1 ==0)	echo "Branche 1: ".$branche1;
+if ($b2>0 && $bf2 >0) echo "<br>Branche 2: ".$branche2.", Berufsfeld: ".$berufsfeld2;
+if ($b2>0 && $bf2 ==0)	echo "<br>Branche 2: ".$branche2;
+if ($b3>0 && $bf3 >0) echo "<br>Branche 3: ".$branche3.", Berufsfeld: ".$berufsfeld3;
+if ($b3>0 && $bf3 ==0)	echo "<br>Branche 3: ".$branche3;
+echo "</TD></TR>";
+}
+
+if ($fetchzukunft["sonstiges"] != "ja") { 
+echo "<TR><TD colspan=\"3\"><br><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><b>Weitere Pl&auml;ne und Pr&auml;ferenzen f&uuml;r die berufliche Zukunft:</b><br><br></TD></TR>";
+echo "<TR><TD colspan=\"3\"><b>".$fetchzukunft["sonstiges"]."</TD></TR>";
+}
+if ($s_loggedin=="yes") {
+	echo "<tr><td colspan=\"3\" align=\"right\" class=\"toppraktika\"><br><br>powered by <img src=\"/home/gifs/powered_by_praktika.gif\" border=\"0\"></td></tr>";
+}
+
+} else {
+  echo "<TR><TD colspan=\"3\">Der Bewerber hat kein Profil in diesem Bereich hinterlegt!</TD></TR>";
+	
+}
+
+
+
+}?>
+
+</table>
+
+</CENTER>
+</TD>
+</TR>
+</TABLE>
+</BODY>
+</HTML>
+ 

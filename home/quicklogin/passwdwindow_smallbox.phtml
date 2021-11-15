@@ -1,0 +1,103 @@
+<?php
+$sprachbasisdatei = "/home/firmen/firmencheck.phtml";
+$sprachbasisdatei2 = "/home/praktikanten/praktikantencheck.phtml";
+ob_start();
+require("/home/praktika/etc/gb_config.inc.php"); 
+
+if (!empty($_POST["email"])) {
+	if ($_SESSION['current_user_group'] == USER_GROUP_COMPANIES) {
+		// Bearbeiter mit Angabe suchen
+		$bearbeiter = Praktika_Bearbeiter::getByUsername($_POST['email']);
+
+		// Wurde Bearbeiter mit der Angabe gefunden?
+		if ($bearbeiter !== false) {
+			$bearbeiter->passwortVergessen();
+			die('ok-B');
+		}
+	}
+
+	// bewerber mit Angabe suchen
+	$nutzer = Praktika_User::getByUsername($_POST['email']);
+
+	// Wurde bewerber mit der Angabe gefunden?
+	if ($nutzer !== false) {
+		$nutzer->passwortVergessen();
+		die('ok-N');
+	}
+	
+	if($_SESSION['current_user_group'] != USER_GROUP_COMPANIES) {
+		// Bearbeiter mit Angabe suchen (Nochmals um auch auf Kandidaten-Seiten nach Bearbeitern zu suchen)
+		$bearbeiter = Praktika_Bearbeiter::getByUsername($_POST['email']);
+
+		// Wurde Bearbeiter mit der Angabe gefunden?
+		if ($bearbeiter !== false) {
+			$bearbeiter->passwortVergessen();
+			die('ok-B');
+		}
+	}
+	
+	exit();
+}
+?>
+
+<div id="login_ajax">
+	<p>
+		Bitte geben Sie hier die eMail-Adresse an,<br />
+		welche Sie zur Registrierung auf praktika.de genutzt haben.<br />
+		An diese senden wir Ihnen einen neuen Zugang zu Ihrem Account.<br />
+		<strong>Schauen Sie bitte auch in Ihren SPAM-Ordner.</strong><br /><br />
+	</p>
+	<div class="loginStatus" id="loginStatus"></div>
+	<form>
+		<fieldset>
+			<p>
+				<input type="text" id="pwd_ajax_email" class="inactive" onblur="if (!this.value) { this.value = 'eMail-Adresse oder Login-ID'; this.setAttribute('class', 'inactive'); }" onfocus="if (this.value == 'eMail-Adresse oder Login-ID') { this.value = ''; this.setAttribute('class', 'active'); }" name="eMail" id="eMail" onkeyup="checkEnter(event);" value="eMail-Adresse oder Login-ID" />
+			</p>
+		</fieldset>
+		<fieldset class="control_panel">
+			<p>
+				<a href="#" class="button small alternative" onclick="smallboxManager.getById('login').loadLogin(); return false;">zur&uuml;ck zum Login</a>
+				<input type="submit" class="button small" name="send" onclick="ajaxsend(); return false;" value="NEUES PASSWORT ZUSENDEN" />
+			</p>
+		</fieldset>
+	</form>
+</div>
+
+<script type="text/javascript">
+	function checkEnter(e) {
+		var keycode;
+
+		if (window.event) {
+			keycode = window.event.keyCode;
+		} else if (e) {
+			keycode = e.keyCode;
+		}
+		
+		if (keycode == 13) {
+			// ajaxsend();
+		}
+	}
+	function ajaxsend() {
+		$('#loginStatus').html('<img src="/styles/images/ajax/loading_2.gif" alt="Laden ..." />');
+		document.body.style.cursor="wait";
+
+		$.ajax({
+			  type: 'POST',
+			  url: '/home/quicklogin/passwdwindow_smallbox.phtml',
+			  data: {'email':$('#pwd_ajax_email').val()},
+			  success: function(text) {
+				 document.body.style.cursor = 'default';
+				 
+				if (text == 'ok-B' || text == 'ok-N') {
+					$('#loginStatus').html('<p class="hint success">Eine eMail wurde Ihnen zugesendet.</p>');
+				} else {
+					$('#loginStatus').html('<p class="hint error">Die eMail-Adresse konnte nicht gefunden werden.</p>');
+				}
+			  },
+			  dataType: 'html'
+		});
+	}
+</script>
+<?php
+bodyoff();
+?>

@@ -1,0 +1,215 @@
+<?
+ $gruppe = "praktikanten";
+ require("/home/praktika/etc/config.inc.php"); 
+?>
+<html>
+<head>
+<title>praktika.de Lebenslauf</title>
+<LINK HREF="/home/praktika.css" REL="STYLESHEET">
+
+</head>
+
+<body text="#000000" bgcolor="<? echo $praktikafarbe ?>">
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+if (document.all && !window.print)
+  document.writeln ('<OBJECT ID="WebBrowser1" WIDTH=0 HEIGHT=0 CLASSID="CLSID:8856F961-340A-11D0-A96B-00C04FD705A2"></OBJECT>');
+//-->
+</script>
+
+<script language="JavaScript1.2" type="text/javascript">
+<!--
+function printform() {
+if (parent.previewmain.window.print) {
+  parent.previewmain.focus();
+  parent.previewmain.window.print(); }
+else if (document.all)
+  WebBrowser1.ExecWB(6,1);
+}
+
+function ZweiFrames(ID, NUTZERID, MAPPE, SPRACHID, DATEI, GESUCHE) {
+  Frame1=eval("parent.previewtop");
+  Frame2=eval("parent.previewmain");
+  Frame1.location.href = "<? echo "/home/praktikanten/profilausgabe/profiltop.phtml?mappe=\" + MAPPE + \"&sprachid=\" + SPRACHID + \"&nutzerid=\" + NUTZERID + \"&gesuche=\" + GESUCHE + \"&id=\" + ID + \"&" . session_name() . "=" . session_id(); ?>";
+  Frame2.location.href = <? echo "DATEI + \"?nid=\" + NUTZERID + \"&sprachid=\" + SPRACHID + \"&gesuche=\" + GESUCHE + \"&" . session_name() . "=" . session_id(); ?>";
+}
+
+//-->
+</script>
+
+
+<?
+$mappe=$mappe;
+?>
+
+
+<table width="680" border="0" cellpadding="0" cellspacing="0">
+<tr><td colspan=11><h1 class="layout1"><img src="/gifs/zentralelemente/spacer.gif" width="20" border="0">Bewerbungsmappe</h1></td></tr>
+
+<tr>
+<td width="20">&nbsp;</td>
+<td align="left">
+
+<? 
+if ($s_nutzerid >0) {
+	$bewerbung=mysql_db_query($database_bprofil,"select lebenslauftemplate from einstellungen where nutzerid=$id",$praktdbslave);
+	$nutzerid=$id;
+	if ($bewerbung != false && mysql_num_rows($bewerbung) > 0) $lebenlaufwahl=mysql_result($bewerbung,0,"lebenslauftemplate");
+	if ($bewerbung != false && mysql_num_rows($bewerbung) < 1) { 
+		$lebenlaufwahl="01"; 
+		$insertstring = mysql_db_query($database_bprofil,"INSERT INTO einstellungen (sprachid,lebenslauftemplate,nutzerid,datum_eintrag,modify) VALUES ('$bewerbsprache','01','$s_nutzerid','$datum_eintrag','$modify')",$praktdbmaster); 
+	}
+}
+
+if ($s_nutzerid < 1 ) {
+	$bewerbung=mysql_db_query($database_bprofil,"select lebenslauftemplate from einstellungen where nutzerid=$id",$praktdbslave);
+	$nutzerid=$id;
+	if ($bewerbung != false && mysql_num_rows($bewerbung) > 0) $lebenlaufwahl=mysql_result($bewerbung,0,"lebenslauftemplate");
+}
+
+if ($gesuche=="no") { $gesuche="no"; } else { $gesuche="egal"; }
+if ($lebenlaufwahl>10) { $sprachid=1; } else { $sprachid=2; }
+if ($lebenlaufwahl=="20" || $lebenlaufwahl=="10") $lebenlaufwahl="01";
+if (empty($lebenlaufwahl)) $lebenlaufwahl="01";
+if ($lebenlaufwahl=="01") { $leistung="01"; $zukunft="01"; }
+if ($lebenlaufwahl=="02" || $lebenlaufwahl=="11" || $lebenlaufwahl=="21") { $leistung="02"; $zukunft="02"; }
+if ($lebenlaufwahl=="03" || $lebenlaufwahl=="12" || $lebenlaufwahl=="22") { $leistung="03"; $zukunft="03"; }
+//echo $lebenlaufwahl;
+
+// LEBENSLAUF
+if ($mappe == 1) {
+$imagelleft="ecke_linksu.gif";
+$imagelright="ecke_rechtsu.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$imagemitte="mitte_aktivu.gif";
+$class="topmenu_w";
+} else {
+$imagelleft="ecke_links_deaktiv.gif";
+$imagelright="ecke_rechts_deaktiv.gif";
+$imagemitte="mitte_deaktiv.gif";
+$bgcolorl="";
+$class="topmenu_b";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelleft."\"></td>";
+echo "<td background=\"/gifs/zentralelemente/".$imagemitte."\" align=\"center\" width=\"100\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','1','".$sprachid."','/home/praktikanten/profil/previewlebenslauf".$lebenlaufwahl.".phtml','".$gesuche."');\">Lebenslauf</a></span></td>";
+
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelright."\"></td>";
+echo "</tr>";
+echo "</table>";
+
+echo "</td>";
+echo "<td width=\"10\"><img src=\"/gifs/zentralelemente/spacer.gif\" width=\"10\" height=\"10\"></td>";
+echo "<td align=\"center\">";
+
+
+// LEISTUNGSPROFIL
+if ($mappe == 2) {
+$imagelleft="ecke_linksu.gif";
+$imagelright="ecke_rechtsu.gif";
+$imagemitte="mitte_aktivu.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="topmenu_w";
+} else {
+$imagelleft="ecke_links_deaktiv.gif";
+$imagelright="ecke_rechts_deaktiv.gif";
+$imagemitte="mitte_deaktiv.gif";
+$bgcolorl="";
+$class="topmenu_b";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelleft."\"></td>";
+echo "<td background=\"/gifs/zentralelemente/".$imagemitte."\" align=\"center\" width=\"140\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','2','".$sprachid."','/home/praktikanten/profilausgabe/profilleistung".$leistung.".phtml','".$gesuche."');\">Leistungsprofil</a></span></td>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelright."\"></td>";
+echo "</tr>";
+echo "</table>";
+
+
+echo "</td>";
+echo "<td width=\"10\"><img src=\"/gifs/zentralelemente/spacer.gif\" width=\"10\" height=\"10\"></td>";
+echo "<td align=\"center\">";
+
+
+// ZUKUNFTSPROFIL
+if ($mappe == 3) {
+$imagelleft="ecke_linksu.gif";
+$imagelright="ecke_rechtsu.gif";
+$imagemitte="mitte_aktivu.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="topmenu_w";
+} else {
+$imagelleft="ecke_links_deaktiv.gif";
+$imagelright="ecke_rechts_deaktiv.gif";
+$imagemitte="mitte_deaktiv.gif";
+$bgcolorl="";
+$class="topmenu_b";
+}
+
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelleft."\"></td>";
+echo "<td background=\"/gifs/zentralelemente/".$imagemitte."\" align=\"center\" width=\"120\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','3','".$sprachid."','/home/praktikanten/profilausgabe/profilzukunft".$zukunft.".phtml','".$gesuche."');\">Zukunftsprofil</a></span></td>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelright."\"></td>";
+echo "</tr>";
+echo "</table>";
+
+echo "</td>";
+echo "<td width=\"10\"><img src=\"/gifs/zentralelemente/spacer.gif\" width=\"10\" height=\"10\"></td>";
+echo "<td align=\"center\">";
+
+// Anlagen
+if ($mappe == 4) {
+$imagelleft="ecke_linksu.gif";
+$imagelright="ecke_rechtsu.gif";
+$imagemitte="mitte_aktivu.gif";
+$bgcolorl="bgcolor=\"".$topnavleiste."\"";
+$class="topmenu_w";
+} else {
+$imagelleft="ecke_links_deaktiv.gif";
+$imagelright="ecke_rechts_deaktiv.gif";
+$imagemitte="mitte_deaktiv.gif";
+$bgcolorl="";
+$class="topmenu_b";
+}
+echo "<table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">";
+echo "<tr>";
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelleft."\"></td>";
+if ($gesuche!="no") {
+echo "<td background=\"/gifs/zentralelemente/".$imagemitte."\" align=\"center\" width=\"140\"><span class=\"".$class."\"><a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','4','".$sprachid."','/home/praktikanten/previewanlagen.phtml','".$gesuche."');\">Anlagen</a></span></td>";
+} else {
+echo "<td background=\"/gifs/zentralelemente/".$imagemitte."\" align=\"center\" width=\"140\"><span class=\"".$class."\">Anlagen</span></td>";
+}
+echo "<td><img src=\"/gifs/zentralelemente/".$imagelright."\"></td>";
+echo "</tr>";
+echo "</table>";
+
+
+echo "</td>";
+echo "<td width=100>&nbsp;</tD>";
+echo "</tr>";
+
+
+$bewerbung=mysql_db_query($database_bprofil,"select id,aufgefordert from profilverbessern where nutzerid=$nutzerid AND firmenid=$s_firmenid",$praktdbmaster);
+if ($bewerbung != false && mysql_numrows($bewerbung) == 0) {
+	$bewerbungverbessern="false";
+} else {
+	$bewerbungverbessern=mysql_result($bewerbung,0,"aufgefordert");
+}
+
+echo "<tr height=\"30\">";
+echo "<td width=\"20\">&nbsp;</td>";
+echo "<td align=\"left\" bgcolor=\"".$topnavleiste."\" class=\"menu_w\">&nbsp;&nbsp;&nbsp;<img src=\"/gifs/zentralelemente/grid_dots_firmen_weiss.gif\" border=0> <a href=\"javascript:printform();\">Seite Drucken</a></td>";
+echo "<td colspan=\"8\" align=\"left\" bgcolor=\"".$topnavleiste."\" class=\"menu_w\">";
+if ($bewerbungverbessern=="false") echo "&nbsp;&nbsp;&nbsp;<img src=\"/gifs/zentralelemente/grid_dots_firmen_weiss.gif\" border=0> <a href=\"javascript:ZweiFrames('".$id."','".$nutzerid."','0','".$sprachid."','/home/praktikanten/bewerbungsmappe/profilverbessern_einzel.phtml','".$gesuche."');\">Bewerbermappe verbessern!</a>";
+echo "</td><td bgcolor=\"".$topnavleiste."\">&nbsp;</td></tR>";
+
+?>
+</table>
+
+</body>
+</html>
